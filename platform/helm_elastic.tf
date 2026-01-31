@@ -31,6 +31,13 @@ resource "helm_release" "elastic_operator" {
     value = "1Gi"
   }
 
+  # Postrender with kustomize to inject health probes for AKS Automatic safeguards compliance
+  # The ECK operator chart does not expose probe configuration, so we use kustomize to patch
+  # the StatefulSet with tcpSocket probes on webhook port 9443
+  postrender {
+    binary_path = "${path.module}/kustomize/eck-operator-postrender.sh"
+  }
+
   # Ignore changes for imported resources to avoid safeguards conflicts
   lifecycle {
     ignore_changes = all

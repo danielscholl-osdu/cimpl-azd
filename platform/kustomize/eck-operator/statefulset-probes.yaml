@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elastic-operator
+  namespace: elastic-system
+spec:
+  template:
+    spec:
+      containers:
+        - name: manager
+          # Add tcpSocket probes on webhook port 9443 for AKS Automatic safeguards compliance
+          # The ECK operator exposes a webhook service on port 9443 that we can probe
+          livenessProbe:
+            tcpSocket:
+              port: 9443
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          readinessProbe:
+            tcpSocket:
+              port: 9443
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
