@@ -20,70 +20,50 @@ This document tracks known issues, workarounds, and areas requiring improvement.
 
 ## Known Issues
 
-### Issue 1: AKS Safeguards Race Condition on Fresh Deploy
+### Issue 1: AKS Automatic Deployment Safeguards (CRITICAL)
 
-**Problem**: On a fresh `azd up`, the post-provision script runs immediately after cluster creation, but AKS safeguards (Gatekeeper) policies haven't fully propagated. Helm deployments fail with violations like:
-- Missing health probes
-- Duplicate service selectors
-- Missing resource limits
+**Problem**: AKS Automatic clusters have Deployment Safeguards **always enforced** with no option to relax or add namespace exclusions. This is by design - Microsoft explicitly states that the only supported path is to make workloads compliant.
 
-**Error Examples**:
+**Key Limitation**:
 ```
-Error: admission webhook "validation.gatekeeper.sh" denied the request
-[azurepolicy-k8sazurev3containerrestricted-xxx] Container 'postgresql' must define readinessProbe and livenessProbe
+ERROR: The request is not allowed because cimpl-dev is an automatic cluster.
 ```
 
-**Root Cause Analysis**:
-- Azure Policy add-on is enabled at cluster creation in `infra/aks.tf`
-- Gatekeeper constraints are installed asynchronously after AKS provisioning
-- The script sets safeguards to Warning mode but doesn't wait for Gatekeeper reconciliation
-- Platform charts already include probes and resource limits - the error is timing, not config
+**What Doesn't Work on AKS Automatic**:
+- `az aks safeguards update --level Warn` - Rejected
+- `az aks safeguards update --excluded-ns` - Rejected
+- `az aks update --safeguards-level Warning` - Silently ignored
+- Any attempt to relax or exclude namespaces from safeguards
 
-**Implemented Fix: Two-Phase Deployment with Behavioral Gate**
+**Policies That Are Enforced** (cannot be disabled):
+| Policy | Requirement |
+|--------|-------------|
+| `k8sazurev1antiaffinityrules` | Deployments with replicas > 1 must have podAntiAffinity or topologySpreadConstraints |
+| `k8sazurev2containerenforceprob` | All containers must have readinessProbe and livenessProbe |
+| `k8sazurev1containerrequests` | All containers must have resource requests |
+| `k8sazurev2containernolatestima` | No `:latest` image tags |
+| `k8sazurev3allowedseccomp` | Must set seccompProfile (RuntimeDefault or Localhost) |
+| Pod Security Standards | Baseline PSS enforced (runAsNonRoot, etc.) |
 
-The solution uses server-side dry-run to verify that namespace exclusions are actually working:
+**Resolution Strategy**: Make all workloads compliant instead of trying to bypass safeguards.
 
-```
-postprovision (orchestrator)
-  │
-  ├── Phase 1: ensure-safeguards.ps1 (GATE)
-  │     ├── Configure safeguards to Warning mode with excluded namespaces
-  │     ├── Wait for Gatekeeper controller ready
-  │     ├── Create target namespaces (elastic-search, postgresql, minio, etc.)
-  │     └── Dry-run non-compliant Deployment in each namespace
-  │         └── If any dry-run FAILS → exit with actionable error
-  │         └── If all dry-runs PASS → exclusions verified, proceed
-  │
-  └── Phase 2: deploy-platform.ps1 (only runs if Phase 1 succeeds)
-        ├── Deploy platform Terraform
-        └── Verify component health
-```
+**Required Chart Updates**:
+1. **Probes**: Add readinessProbe and livenessProbe to all containers
+2. **Resources**: Add resource requests to all containers
+3. **Image tags**: Use specific version tags, not `:latest`
+4. **Security context**: Add `seccompProfile: RuntimeDefault` to pod spec
+5. **Anti-affinity**: Add topologySpreadConstraints or podAntiAffinity when replicas > 1
+6. **Pod Security**: Ensure runAsNonRoot where possible
 
-**Why behavioral gate over constraint mode checking:**
-- Constraint enforcement mode (`warn`/`deny`) doesn't reflect namespace exclusions
-- Another policy assignment at subscription/management group level may enforce the same definitions
-- Dry-run tests **actual admission behavior** - if it passes, the real deployment will work
+**Safeguards Script Update**:
+The `ensure-safeguards.ps1` script should be updated to:
+- Skip attempts to configure exclusions (won't work on Automatic)
+- Wait for Gatekeeper to be ready
+- Optionally dry-run actual platform manifests to verify compliance
 
-**Key insight from Azure docs**: Policy assignments can take up to 20 minutes to sync into each cluster. The behavioral dry-run gate handles this by testing actual admission behavior rather than waiting for metadata to reconcile.
-
-Key features:
-1. **Behavioral verification**: Tests what matters (admission behavior) not metadata (constraint modes)
-2. **Fail fast with diagnosis**: If exclusions aren't working, shows which namespaces failed
-3. **Actionable errors**: Provides debug commands and possible causes
-4. **Azure Policy detection**: Skips checks entirely if Azure Policy add-on not enabled
-5. **Namespace wait**: Waits for gatekeeper-system namespace to appear (handles fresh clusters)
-6. **Dual deployment check**: Tries both `gatekeeper-controller` and `gatekeeper-controller-manager`
-7. **Bypass escape hatch**: `SKIP_SAFEGUARDS_WAIT=true` environment variable for debugging
-
-**Manual retry** (if Phase 1 fails):
-```bash
-./scripts/ensure-safeguards.ps1  # Retry Phase 1
-./scripts/deploy-platform.ps1    # Run Phase 2 after Phase 1 succeeds
-```
-
-**Future Enhancement**:
-- Move safeguards config + wait into infra layer using `azapi_update_resource` + `time_sleep`
-- This would make postprovision only handle platform deployment
+**References**:
+- [MS Answer confirming limitation](https://learn.microsoft.com/en-us/answers/questions/5694725/aks-automatic-gatekeeper-safeguards-block-sonobuoy)
+- [Deployment Safeguards docs](https://learn.microsoft.com/en-us/azure/aks/deployment-safeguards)
 
 ---
 

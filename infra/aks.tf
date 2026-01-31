@@ -1,3 +1,6 @@
+# Get current user for RBAC assignment
+data "azurerm_client_config" "current" {}
+
 # AKS Automatic Cluster using Azure Verified Module
 module "aks" {
   source  = "Azure/avm-res-containerservice-managedcluster/azurerm"
@@ -126,4 +129,12 @@ module "aks" {
   }
 
   tags = local.common_tags
+}
+
+# Assign deploying user as Cluster Admin to avoid RBAC propagation delays
+# This ensures the user can immediately interact with the cluster after creation
+resource "azurerm_role_assignment" "aks_cluster_admin" {
+  scope                = module.aks.resource_id
+  role_definition_name = "Azure Kubernetes Service RBAC Cluster Admin"
+  principal_id         = data.azurerm_client_config.current.object_id
 }
