@@ -128,6 +128,20 @@ resource "kubectl_manifest" "elasticsearch" {
                             operator: In
                             values:
                               - elastic
+              # Topology spread for AKS Automatic safeguards compliance (3 replicas)
+              topologySpreadConstraints:
+                - maxSkew: 1
+                  topologyKey: topology.kubernetes.io/zone
+                  whenUnsatisfiable: ScheduleAnyway
+                  labelSelector:
+                    matchLabels:
+                      elasticsearch.k8s.elastic.co/cluster-name: elasticsearch
+                - maxSkew: 1
+                  topologyKey: kubernetes.io/hostname
+                  whenUnsatisfiable: ScheduleAnyway
+                  labelSelector:
+                    matchLabels:
+                      elasticsearch.k8s.elastic.co/cluster-name: elasticsearch
               # NOTE: sysctl init container removed - blocked by AKS Automatic safeguards
               # and not needed when node.store.allow_mmap: false is set
               containers:
@@ -190,6 +204,11 @@ resource "kubectl_manifest" "kibana" {
             disabled: true
       podTemplate:
         spec:
+          # Pod security context for AKS Automatic safeguards compliance
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           tolerations:
             - effect: NoSchedule
               key: app

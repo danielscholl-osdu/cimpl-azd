@@ -30,6 +30,12 @@ resource "helm_release" "postgresql" {
         storageClass: "managed-csi"
         size: 8Gi
 
+      # Explicit probe configuration for AKS Automatic safeguards compliance
+      livenessProbe:
+        enabled: true
+      readinessProbe:
+        enabled: true
+
       # Resource limits for safeguards compliance
       resources:
         requests:

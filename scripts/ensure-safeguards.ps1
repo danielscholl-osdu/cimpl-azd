@@ -37,7 +37,7 @@ Write-Host "Resource Group: $resourceGroup" -ForegroundColor Gray
 Write-Host "Cluster Name: $clusterName" -ForegroundColor Gray
 
 # Step 1: Get kubeconfig
-Write-Host "`n[1/3] Configuring kubeconfig..." -ForegroundColor Cyan
+Write-Host "`n[1/4] Configuring kubeconfig..." -ForegroundColor Cyan
 az aks get-credentials -g $resourceGroup -n $clusterName --overwrite-existing
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to get kubeconfig" -ForegroundColor Red
@@ -46,67 +46,105 @@ if ($LASTEXITCODE -ne 0) {
 kubelogin convert-kubeconfig -l azurecli
 Write-Host "  Kubeconfig configured" -ForegroundColor Green
 
-# Step 2: Configure AKS safeguards
-Write-Host "`n[2/3] Configuring AKS safeguards..." -ForegroundColor Cyan
+# Step 1.5: Verify RBAC permissions (can take minutes to propagate on fresh clusters)
+Write-Host "`n[1.5/4] Verifying RBAC permissions..." -ForegroundColor Cyan
+$rbacMaxWait = 300  # 5 minutes
+$rbacWaitInterval = 15
+$rbacElapsed = 0
 
-# Aligned with docs/architecture.md
-# Pass as array - Azure CLI expects multiple values for az aks safeguards update
-$excludedNsList = @(
-    "kube-system",
-    "gatekeeper-system",
-    "elastic-system",
-    "elastic-search",
-    "cert-manager",
-    "aks-istio-ingress",
-    "postgresql",
-    "minio"
-)
-
-$maxRetries = 3
-$retryCount = 0
-$safeguardsConfigured = $false
-
-while (-not $safeguardsConfigured -and $retryCount -lt $maxRetries) {
-    $retryCount++
-    Write-Host "  Attempt $retryCount of $maxRetries..." -ForegroundColor Gray
-
-    # Try new command first (az aks safeguards update), fallback to old for CLI compatibility
-    Write-Host "  Trying az aks safeguards update..." -ForegroundColor Gray
-    $safeguardsResult = az aks safeguards update -g $resourceGroup -n $clusterName `
-        --level Warn `
-        --excluded-ns @excludedNsList `
-        --only-show-errors 2>&1
-
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "  Fallback: trying az aks update --safeguards-level..." -ForegroundColor Gray
-        $excludedNsComma = $excludedNsList -join ","
-        $safeguardsResult = az aks update -g $resourceGroup -n $clusterName `
-            --safeguards-level Warning `
-            --safeguards-excluded-ns $excludedNsComma `
-            --only-show-errors 2>&1
+while ($rbacElapsed -lt $rbacMaxWait) {
+    $canCreate = kubectl auth can-i create namespaces 2>&1
+    if ($canCreate -eq "yes") {
+        Write-Host "  RBAC permissions: OK" -ForegroundColor Green
+        break
     }
-
-    if ($LASTEXITCODE -eq 0) {
-        $safeguardsConfigured = $true
-        Write-Host "  Safeguards: Warning mode" -ForegroundColor Green
-        Write-Host "  Excluded: $($excludedNsList -join ', ')" -ForegroundColor Gray
-    }
-    else {
-        if ($retryCount -lt $maxRetries) {
-            Write-Host "  Safeguards configuration failed, retrying in 30 seconds..." -ForegroundColor Yellow
-            Start-Sleep -Seconds 30
-        }
-    }
+    Write-Host "  Waiting for RBAC propagation... ($rbacElapsed`s)" -ForegroundColor Gray
+    Start-Sleep -Seconds $rbacWaitInterval
+    $rbacElapsed += $rbacWaitInterval
 }
 
-if (-not $safeguardsConfigured) {
-    Write-Host "  ERROR: Safeguards configuration failed after $maxRetries attempts" -ForegroundColor Red
-    Write-Host "  Platform deployment will likely fail" -ForegroundColor Red
+if ($rbacElapsed -ge $rbacMaxWait) {
+    Write-Host "  ERROR: RBAC permissions not available after ${rbacMaxWait}s" -ForegroundColor Red
+    Write-Host "  User cannot create namespaces. Check role assignments." -ForegroundColor Red
     exit 1
 }
 
+# Step 2: Check cluster type and configure safeguards (if supported)
+Write-Host "`n[2/4] Checking cluster configuration..." -ForegroundColor Cyan
+
+# Detect AKS Automatic (safeguards cannot be modified)
+$clusterSku = az aks show -g $resourceGroup -n $clusterName --query "sku.name" -o tsv 2>$null
+$isAutomatic = ($clusterSku -eq "Automatic")
+
+if ($isAutomatic) {
+    Write-Host "  Cluster type: AKS Automatic" -ForegroundColor Cyan
+    Write-Host "  Safeguards: Enforced (cannot be modified)" -ForegroundColor Yellow
+    Write-Host "  Workloads must be compliant with Deployment Safeguards" -ForegroundColor Yellow
+    $safeguardsConfigured = $true
+}
+else {
+    Write-Host "  Cluster type: Standard AKS" -ForegroundColor Cyan
+    Write-Host "  Configuring AKS safeguards..." -ForegroundColor Cyan
+
+    # Aligned with docs/architecture.md
+    # Pass as array - Azure CLI expects multiple values for az aks safeguards update
+    $excludedNsList = @(
+        "kube-system",
+        "gatekeeper-system",
+        "elastic-system",
+        "elastic-search",
+        "cert-manager",
+        "aks-istio-ingress",
+        "postgresql",
+        "minio"
+    )
+
+    $maxRetries = 3
+    $retryCount = 0
+    $safeguardsConfigured = $false
+
+    while (-not $safeguardsConfigured -and $retryCount -lt $maxRetries) {
+        $retryCount++
+        Write-Host "  Attempt $retryCount of $maxRetries..." -ForegroundColor Gray
+
+        # Try new command first (az aks safeguards update), fallback to old for CLI compatibility
+        Write-Host "  Trying az aks safeguards update..." -ForegroundColor Gray
+        $safeguardsResult = az aks safeguards update -g $resourceGroup -n $clusterName `
+            --level Warn `
+            --excluded-ns @excludedNsList `
+            --only-show-errors 2>&1
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  Fallback: trying az aks update --safeguards-level..." -ForegroundColor Gray
+            $excludedNsComma = $excludedNsList -join ","
+            $safeguardsResult = az aks update -g $resourceGroup -n $clusterName `
+                --safeguards-level Warning `
+                --safeguards-excluded-ns $excludedNsComma `
+                --only-show-errors 2>&1
+        }
+
+        if ($LASTEXITCODE -eq 0) {
+            $safeguardsConfigured = $true
+            Write-Host "  Safeguards: Warning mode" -ForegroundColor Green
+            Write-Host "  Excluded: $($excludedNsList -join ', ')" -ForegroundColor Gray
+        }
+        else {
+            if ($retryCount -lt $maxRetries) {
+                Write-Host "  Safeguards configuration failed, retrying in 30 seconds..." -ForegroundColor Yellow
+                Start-Sleep -Seconds 30
+            }
+        }
+    }
+
+    if (-not $safeguardsConfigured) {
+        Write-Host "  ERROR: Safeguards configuration failed after $maxRetries attempts" -ForegroundColor Red
+        Write-Host "  Platform deployment will likely fail" -ForegroundColor Red
+        exit 1
+    }
+}
+
 # Step 3: Wait for Gatekeeper and verify exclusions
-Write-Host "`n[3/3] Verifying safeguards readiness..." -ForegroundColor Cyan
+Write-Host "`n[3/4] Verifying safeguards readiness..." -ForegroundColor Cyan
 
 # Allow bypass via environment variable (for debugging or known-good clusters)
 if ($env:SKIP_SAFEGUARDS_WAIT -eq "true") {
@@ -194,10 +232,8 @@ else {
     }
 }
 
-# Step 3.5: Verify exclusions are effective via server-side dry-run
-# Instead of checking constraint enforcement modes (which may not reflect exclusions),
-# we test actual admission behavior by dry-running a non-compliant workload
-Write-Host "  Verifying namespace exclusions via dry-run..." -ForegroundColor Gray
+# Step 4: Verify exclusions (for standard AKS) or just Gatekeeper readiness (for AKS Automatic)
+Write-Host "`n[4/4] Final verification..." -ForegroundColor Cyan
 
 $targetNamespaces = @("elastic-search", "postgresql", "minio", "cert-manager", "elastic-system")
 
@@ -206,16 +242,34 @@ foreach ($ns in $targetNamespaces) {
     $nsExists = kubectl get namespace $ns --no-headers 2>$null
     if ([string]::IsNullOrEmpty($nsExists)) {
         Write-Host "  Creating namespace: $ns" -ForegroundColor Gray
-        kubectl create namespace $ns 2>$null | Out-Null
+        $nsResult = kubectl create namespace $ns 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  ERROR: Failed to create namespace $ns" -ForegroundColor Red
+            Write-Host "        $nsResult" -ForegroundColor Gray
+            exit 1
+        }
     }
 }
 
-# Deployment that triggers multiple policies:
-# - K8sAzureV2ContainerEnforceProbes (no readiness/liveness probes)
-# - K8sAzureV2ContainerNoPrivilege (missing securityContext)
-# - K8sAzureV2BlockDefault (uses default namespace - but we test in excluded ns)
-# - K8sAzureV2ContainerRestrictedImagePulls (uses nginx:latest)
-$testDeploymentYaml = @"
+if ($isAutomatic) {
+    # AKS Automatic: Skip exclusion dry-run testing - exclusions don't work
+    # Workloads must be compliant with Deployment Safeguards
+    Write-Host "  AKS Automatic detected - skipping exclusion dry-run test" -ForegroundColor Yellow
+    Write-Host "  All workloads must be compliant with Deployment Safeguards" -ForegroundColor Yellow
+    Write-Host "  Namespaces created successfully" -ForegroundColor Green
+}
+else {
+    # Standard AKS: Verify exclusions are effective via server-side dry-run
+    # Instead of checking constraint enforcement modes (which may not reflect exclusions),
+    # we test actual admission behavior by dry-running a non-compliant workload
+    Write-Host "  Verifying namespace exclusions via dry-run..." -ForegroundColor Gray
+
+    # Deployment that triggers multiple policies:
+    # - K8sAzureV2ContainerEnforceProbes (no readiness/liveness probes)
+    # - K8sAzureV2ContainerNoPrivilege (missing securityContext)
+    # - K8sAzureV2BlockDefault (uses default namespace - but we test in excluded ns)
+    # - K8sAzureV2ContainerRestrictedImagePulls (uses nginx:latest)
+    $testDeploymentYaml = @"
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -235,66 +289,67 @@ spec:
         image: nginx:latest
 "@
 
-# Helper function to test dry-run and return structured result
-function Test-DryRun {
-    param([string]$Namespace, [string]$Yaml)
+    # Helper function to test dry-run and return structured result
+    function Test-DryRun {
+        param([string]$Namespace, [string]$Yaml)
 
-    $result = $Yaml | kubectl apply --dry-run=server -n $Namespace -f - 2>&1
-    $exitCode = $LASTEXITCODE
-    return @{
-        Success = ($exitCode -eq 0)
-        Output = $result
-        IsPolicyError = ($result -match "denied|violation|constraint")
-    }
-}
-
-$allExclusionsWork = $true
-$failedNamespaces = @()
-
-foreach ($ns in $targetNamespaces) {
-    $dryRun = Test-DryRun -Namespace $ns -Yaml $testDeploymentYaml
-
-    if (-not $dryRun.Success) {
-        # Retry once for transient errors (not policy violations)
-        if (-not $dryRun.IsPolicyError) {
-            Write-Host "  RETRY: $ns - transient error, retrying..." -ForegroundColor Yellow
-            Start-Sleep -Seconds 2
-            $dryRun = Test-DryRun -Namespace $ns -Yaml $testDeploymentYaml
+        $result = $Yaml | kubectl apply --dry-run=server -n $Namespace -f - 2>&1
+        $exitCode = $LASTEXITCODE
+        return @{
+            Success = ($exitCode -eq 0)
+            Output = $result
+            IsPolicyError = ($result -match "denied|violation|constraint")
         }
     }
 
-    if (-not $dryRun.Success) {
-        $allExclusionsWork = $false
-        $failedNamespaces += $ns
+    $allExclusionsWork = $true
+    $failedNamespaces = @()
 
-        if ($dryRun.IsPolicyError) {
-            Write-Host "  FAIL: $ns - policy violation" -ForegroundColor Red
+    foreach ($ns in $targetNamespaces) {
+        $dryRun = Test-DryRun -Namespace $ns -Yaml $testDeploymentYaml
+
+        if (-not $dryRun.Success) {
+            # Retry once for transient errors (not policy violations)
+            if (-not $dryRun.IsPolicyError) {
+                Write-Host "  RETRY: $ns - transient error, retrying..." -ForegroundColor Yellow
+                Start-Sleep -Seconds 2
+                $dryRun = Test-DryRun -Namespace $ns -Yaml $testDeploymentYaml
+            }
+        }
+
+        if (-not $dryRun.Success) {
+            $allExclusionsWork = $false
+            $failedNamespaces += $ns
+
+            if ($dryRun.IsPolicyError) {
+                Write-Host "  FAIL: $ns - policy violation" -ForegroundColor Red
+            }
+            else {
+                Write-Host "  FAIL: $ns - dry-run error (RBAC/network/other)" -ForegroundColor Red
+            }
+            $firstLine = ($dryRun.Output -split "`n")[0]
+            Write-Host "        $firstLine" -ForegroundColor Gray
         }
         else {
-            Write-Host "  FAIL: $ns - dry-run error (RBAC/network/other)" -ForegroundColor Red
+            Write-Host "  OK: $ns - exclusions working" -ForegroundColor Green
         }
-        $firstLine = ($dryRun.Output -split "`n")[0]
-        Write-Host "        $firstLine" -ForegroundColor Gray
     }
-    else {
-        Write-Host "  OK: $ns - exclusions working" -ForegroundColor Green
+
+    if (-not $allExclusionsWork) {
+        Write-Host "`n  ERROR: Namespace exclusions not effective for: $($failedNamespaces -join ', ')" -ForegroundColor Red
+        Write-Host "  Possible causes:" -ForegroundColor Yellow
+        Write-Host "    - Another Azure Policy assignment at subscription/management group level" -ForegroundColor Yellow
+        Write-Host "    - Azure Policy addon has not reconciled yet (try again in 2-3 min)" -ForegroundColor Yellow
+        Write-Host "  Debug:" -ForegroundColor Yellow
+        Write-Host "    kubectl get constraints -o json | jq '.items[].spec.match.excludedNamespaces'" -ForegroundColor Yellow
+        Write-Host "    az policy assignment list --scope /subscriptions/`$(az account show --query id -o tsv)" -ForegroundColor Yellow
+        Write-Host "  Bypass:" -ForegroundColor Yellow
+        Write-Host "    SKIP_SAFEGUARDS_WAIT=true ./scripts/ensure-safeguards.ps1" -ForegroundColor Yellow
+        exit 1
     }
-}
 
-if (-not $allExclusionsWork) {
-    Write-Host "`n  ERROR: Namespace exclusions not effective for: $($failedNamespaces -join ', ')" -ForegroundColor Red
-    Write-Host "  Possible causes:" -ForegroundColor Yellow
-    Write-Host "    - Another Azure Policy assignment at subscription/management group level" -ForegroundColor Yellow
-    Write-Host "    - Azure Policy addon has not reconciled yet (try again in 2-3 min)" -ForegroundColor Yellow
-    Write-Host "  Debug:" -ForegroundColor Yellow
-    Write-Host "    kubectl get constraints -o json | jq '.items[].spec.match.excludedNamespaces'" -ForegroundColor Yellow
-    Write-Host "    az policy assignment list --scope /subscriptions/`$(az account show --query id -o tsv)" -ForegroundColor Yellow
-    Write-Host "  Bypass:" -ForegroundColor Yellow
-    Write-Host "    SKIP_SAFEGUARDS_WAIT=true ./scripts/ensure-safeguards.ps1" -ForegroundColor Yellow
-    exit 1
+    Write-Host "  All namespace exclusions verified" -ForegroundColor Green
 }
-
-Write-Host "  All namespace exclusions verified" -ForegroundColor Green
 
 Write-Host "`n=== Phase 1 Complete: Safeguards Ready ===" -ForegroundColor Green
 Write-Host "You can now run Phase 2: ./scripts/deploy-platform.ps1" -ForegroundColor Cyan
