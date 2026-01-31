@@ -1,6 +1,6 @@
 # PostgreSQL for shared database services
 resource "helm_release" "postgresql" {
-  count = var.enable_postgresql ? 1 : 0
+  count            = var.enable_postgresql ? 1 : 0
   name             = "postgresql"
   repository       = "oci://registry-1.docker.io/bitnamicharts"
   chart            = "postgresql"
@@ -56,6 +56,8 @@ resource "helm_release" "postgresql" {
           type: RuntimeDefault
 
     auth:
+      # DEMO ONLY - change for production
+      # TODO: Use secrets management (e.g., Azure Key Vault) for production
       postgresPassword: "postgres"
       database: "osdu"
 

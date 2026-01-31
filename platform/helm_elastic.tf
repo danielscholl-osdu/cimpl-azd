@@ -1,6 +1,6 @@
 # ECK Operator
 resource "helm_release" "elastic_operator" {
-  count = var.enable_elasticsearch ? 1 : 0
+  count            = var.enable_elasticsearch ? 1 : 0
   name             = "elastic-operator"
   repository       = "https://helm.elastic.co"
   chart            = "eck-operator"
@@ -55,7 +55,7 @@ resource "kubernetes_namespace" "elastic_search" {
 # This is compliant with security standards requiring no shared keys
 # NOTE: diskEncryptionType removed - causes provisioning failures when DiskEncryptionSetID not set
 resource "kubectl_manifest" "elastic_storage_class" {
-  count = var.enable_elasticsearch ? 1 : 0
+  count     = var.enable_elasticsearch ? 1 : 0
   yaml_body = <<-YAML
     apiVersion: storage.k8s.io/v1
     kind: StorageClass
@@ -78,7 +78,7 @@ resource "kubectl_manifest" "elastic_storage_class" {
 
 # Elasticsearch Cluster
 resource "kubectl_manifest" "elasticsearch" {
-  count = var.enable_elasticsearch ? 1 : 0
+  count     = var.enable_elasticsearch ? 1 : 0
   yaml_body = <<-YAML
     apiVersion: elasticsearch.k8s.elastic.co/v1
     kind: Elasticsearch
@@ -172,7 +172,7 @@ resource "kubectl_manifest" "elasticsearch" {
 
 # Kibana
 resource "kubectl_manifest" "kibana" {
-  count = var.enable_elasticsearch ? 1 : 0
+  count     = var.enable_elasticsearch ? 1 : 0
   yaml_body = <<-YAML
     apiVersion: kibana.k8s.elastic.co/v1
     kind: Kibana

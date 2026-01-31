@@ -1,0 +1,136 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-format:
+    name: Terraform Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
+
+      - name: Check Terraform formatting in infra/
+        run: terraform fmt -check -recursive
+        working-directory: ./infra
+
+      - name: Check Terraform formatting in platform/
+        run: terraform fmt -check -recursive
+        working-directory: ./platform
+
+  powershell-syntax:
+    name: PowerShell Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate PowerShell scripts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $scripts = Get-ChildItem -Path ./scripts -Filter "*.ps1" -Recurse
+          $hasErrors = $false
+
+          foreach ($script in $scripts) {
+            Write-Host "Checking $($script.Name)..."
+            try {
+              $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $script.FullName -Raw), [ref]$null)
+              Write-Host "✓ $($script.Name) - OK" -ForegroundColor Green
+            } catch {
+              Write-Host "✗ $($script.Name) - FAILED" -ForegroundColor Red
+              Write-Host $_.Exception.Message -ForegroundColor Red
+              $hasErrors = $true
+            }
+          }
+
+          if ($hasErrors) {
+            Write-Host "`nPowerShell syntax check failed!" -ForegroundColor Red
+            exit 1
+          } else {
+            Write-Host "`nAll PowerShell scripts passed syntax check!" -ForegroundColor Green
+          }
+
+  secrets-scan:
+    name: Secrets Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
+      - name: Scan for potential secrets
+        run: |
+          echo "Scanning for potential secrets..."
+
+          # Define patterns for common secret types
+          PATTERNS=(
+            # API keys and tokens
+            "(?i)(api[_-]?key|apikey)[\s]*[=:][\s]*['\"]?[a-zA-Z0-9_\-]{20,}['\"]?"
+            "(?i)(access[_-]?token|accesstoken)[\s]*[=:][\s]*['\"]?[a-zA-Z0-9_\-]{20,}['\"]?"
+            "(?i)(secret[_-]?key|secretkey)[\s]*[=:][\s]*['\"]?[a-zA-Z0-9_\-]{20,}['\"]?"
+            # Azure connection strings
+            "(?i)DefaultEndpointsProtocol=https;AccountName=[^;]+;AccountKey=[A-Za-z0-9+/=]{88}"
+            # Generic passwords in configuration
+            "(?i)password[\s]*[=:][\s]*['\"][^'\"]{8,}['\"]"
+            # AWS keys
+            "(?i)(aws[_-]?access[_-]?key[_-]?id)[\s]*[=:][\s]*['\"]?AKIA[A-Z0-9]{16}['\"]?"
+            "(?i)(aws[_-]?secret[_-]?access[_-]?key)[\s]*[=:][\s]*['\"]?[A-Za-z0-9/+=]{40}['\"]?"
+            # Private keys
+            "-----BEGIN (RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----"
+          )
+
+          FOUND=0
+          RESULTS_FILE=$(mktemp)
+
+          for pattern in "${PATTERNS[@]}"; do
+            rg -i -n "$pattern" \
+              --type-not md \
+              --glob '!*.example' \
+              --glob '!.git/**' \
+              . 2>/dev/null >> "$RESULTS_FILE" || true
+          done
+
+          # Filter out documented demo credentials
+          # Remove lines where the file contains "DEMO ONLY" or "TODO" comments near the match
+          CONTEXT_LINES=3
+          if [ -s "$RESULTS_FILE" ]; then
+            while IFS=: read -r file line content; do
+              # Check if there's a DEMO ONLY or TODO comment within CONTEXT_LINES of the match
+              START_LINE=$((line > CONTEXT_LINES ? line - CONTEXT_LINES : 1))
+              END_LINE=$((line + CONTEXT_LINES))
+
+              # Extract the context and check for demo markers
+              if ! sed -n "${START_LINE},${END_LINE}p" "$file" 2>/dev/null | grep -q -i "DEMO ONLY\|TODO.*production" 2>/dev/null; then
+                echo "${file}:${line}:${content}"
+                FOUND=1
+              fi
+            done < "$RESULTS_FILE"
+          fi
+
+          rm -f "$RESULTS_FILE"
+
+          if [ $FOUND -eq 1 ]; then
+            echo ""
+            echo "⚠️  Potential secrets detected! Please review the matches above."
+            echo "If these are demo credentials, add a '# DEMO ONLY' or '# TODO: ... production' comment nearby."
+            echo "Otherwise, remove the secrets and use environment variables or secure secret management."
+            exit 1
+          else
+            echo "✓ No obvious secrets detected"
+          fi
