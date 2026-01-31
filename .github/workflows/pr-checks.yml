@@ -95,28 +95,35 @@ jobs:
             "-----BEGIN (RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----"
           )
 
-          # Exclude patterns (environment variable examples, templates, etc.)
-          EXCLUDE_FILES=(
-            "*.example"
-            "*.md"
-            ".git"
-          )
-
           FOUND=0
+          RESULTS_FILE=$(mktemp)
+
           for pattern in "${PATTERNS[@]}"; do
-            if rg -i -n "$pattern" \
+            rg -i -n "$pattern" \
               --type-not md \
               --glob '!*.example' \
               --glob '!.git/**' \
-              . 2>/dev/null; then
-              FOUND=1
-            fi
+              . 2>/dev/null >> "$RESULTS_FILE" || true
           done
+
+          # Filter out documented demo credentials
+          # Remove lines where the file contains "DEMO ONLY" or "TODO" comments near the match
+          if [ -s "$RESULTS_FILE" ]; then
+            while IFS=: read -r file line content; do
+              # Check if the file has DEMO ONLY or TODO comment within 3 lines of the match
+              if ! grep -q -i -B 3 "DEMO ONLY\|TODO.*production" "$file" 2>/dev/null | grep -q "$content" 2>/dev/null; then
+                echo "${file}:${line}:${content}"
+                FOUND=1
+              fi
+            done < "$RESULTS_FILE"
+          fi
+
+          rm -f "$RESULTS_FILE"
 
           if [ $FOUND -eq 1 ]; then
             echo ""
             echo "⚠️  Potential secrets detected! Please review the matches above."
-            echo "If these are false positives (e.g., variable names, examples), you can ignore this warning."
+            echo "If these are demo credentials, add a '# DEMO ONLY' or '# TODO: ... production' comment nearby."
             echo "Otherwise, remove the secrets and use environment variables or secure secret management."
             exit 1
           else

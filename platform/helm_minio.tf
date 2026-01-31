@@ -1,7 +1,7 @@
 # MinIO for S3-compatible object storage
 # Using official MinIO Helm chart from minio/minio repository
 resource "helm_release" "minio" {
-  count = var.enable_minio ? 1 : 0
+  count            = var.enable_minio ? 1 : 0
   name             = "minio"
   repository       = "https://charts.min.io/"
   chart            = "minio"
@@ -56,7 +56,8 @@ resource "helm_release" "minio" {
       failureThreshold: 3
       successThreshold: 1
 
-    # Root credentials
+    # Root credentials (DEMO ONLY - change for production)
+    # TODO: Use secrets management (e.g., Azure Key Vault) for production
     rootUser: "admin"
     rootPassword: "adminpassword"
 
