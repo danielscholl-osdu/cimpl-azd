@@ -12,7 +12,7 @@ This document tracks known issues, workarounds, and areas requiring improvement.
 | Elasticsearch | Working | 3 nodes, dedicated node pool |
 | Kibana | Working | 1 node, external access via Istio |
 | PostgreSQL | Working | Bitnami chart with ECR images |
-| MinIO | Working | Bitnami chart |
+| MinIO | Working | Official MinIO chart |
 | cert-manager | Working | Let's Encrypt integration |
 | Istio Gateway | Working | External IP assigned |
 
@@ -43,6 +43,7 @@ ERROR: The request is not allowed because cimpl-dev is an automatic cluster.
 | `k8sazurev1containerrequests` | All containers must have resource requests |
 | `k8sazurev2containernolatestima` | No `:latest` image tags |
 | `k8sazurev3allowedseccomp` | Must set seccompProfile (RuntimeDefault or Localhost) |
+| `k8sazurev1uniqueserviceselecto` | Each service must have unique selector labels |
 | Pod Security Standards | Baseline PSS enforced (runAsNonRoot, etc.) |
 
 **Resolution Strategy**: Make all workloads compliant instead of trying to bypass safeguards.
@@ -54,6 +55,7 @@ ERROR: The request is not allowed because cimpl-dev is an automatic cluster.
 4. **Security context**: Add `seccompProfile: RuntimeDefault` to pod spec
 5. **Anti-affinity**: Add topologySpreadConstraints or podAntiAffinity when replicas > 1
 6. **Pod Security**: Ensure runAsNonRoot where possible
+7. **Service Selectors**: Use `commonLabels` with `app.kubernetes.io/component` to ensure unique service selectors
 
 **Safeguards Script Update**:
 The `ensure-safeguards.ps1` script should be updated to:
@@ -147,6 +149,33 @@ FATAL: database files are incompatible with server
 1. Consider terraform workspaces or single state
 2. Use terraform_remote_state data source to link layers
 3. Document state management strategy
+
+---
+
+### Issue 7: MinIO and PostgreSQL Service Selector Violations (RESOLVED)
+
+**Problem**: MinIO and PostgreSQL Bitnami Helm charts create multiple services with the same selector, violating AKS Automatic's `K8sAzureV1UniqueServiceSelector` policy.
+
+**Specific Issues**:
+- MinIO: Both `minio` and `minio-console` services had the same pod selector
+- PostgreSQL: Both `postgresql` and `postgresql-hl` (headless) services had the same selector
+
+**Error Messages**:
+```
+admission webhook "validation.gatekeeper.sh" denied the request: [azurepolicy-k8sazurev1uniqueserviceselecto-...] same selector as service <minio-console> in namespace <minio>
+admission webhook "validation.gatekeeper.sh" denied the request: [azurepolicy-k8sazurev1uniqueserviceselecto-...] same selector as service <postgresql> in namespace <postgresql>
+```
+
+**Resolution**:
+Added `commonLabels` configuration to both Helm charts in `platform/` directory:
+- **MinIO**: Added `app.kubernetes.io/component: minio-server` via `commonLabels`
+- **PostgreSQL**: Added `app.kubernetes.io/component: postgresql-primary` via `commonLabels`
+
+These labels are applied to all resources (pods, services, StatefulSets) created by the charts, making service selectors unique and compliant with AKS policy while following Kubernetes best practices for standard labels.
+
+**References**:
+- [Kubernetes Common Labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/)
+- Related to issues #8 and #11
 
 ---
 

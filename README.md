@@ -27,8 +27,8 @@ Layer 1: Cluster Infrastructure (infra/)
 Layer 2: Platform Components (platform/)
     └─ cert-manager + ClusterIssuer
     └─ ECK Operator + Elasticsearch + Kibana
-    └─ PostgreSQL (Bitnami)
-    └─ MinIO (Bitnami)
+    └─ PostgreSQL (Bitnami chart)
+    └─ MinIO (official chart)
     └─ Gateway API configuration
 
 Layer 3: Services (services/) [Future]

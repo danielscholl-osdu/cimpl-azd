@@ -15,6 +15,11 @@ resource "helm_release" "minio" {
     # Use standalone mode (single pod) for dev/test
     mode: standalone
 
+    # Add common labels to make service selectors unique for AKS policy compliance
+    # This resolves K8sAzureV1UniqueServiceSelector violations
+    commonLabels:
+      app.kubernetes.io/component: minio-server
+
     # Official MinIO image with specific version (required by AKS safeguards)
     image:
       repository: quay.io/minio/minio
