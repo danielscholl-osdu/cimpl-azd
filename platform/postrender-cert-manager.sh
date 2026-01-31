@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KUSTOMIZE_DIR="${SCRIPT_DIR}/kustomize/cert-manager"
 
 # Read Helm output from stdin and save to temporary file
-HELM_OUTPUT=$(mktemp -t helm-output.XXXXXX)
+HELM_OUTPUT=$(mktemp)
 
 # Set up cleanup trap to ensure temporary files are removed
 trap 'rm -f "${HELM_OUTPUT}" "${KUSTOMIZE_DIR}/all.yaml"' EXIT
