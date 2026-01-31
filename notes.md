@@ -12,7 +12,7 @@ This document tracks known issues, workarounds, and areas requiring improvement.
 | Elasticsearch | Working | 3 nodes, dedicated node pool |
 | Kibana | Working | 1 node, external access via Istio |
 | PostgreSQL | Working | Bitnami chart with ECR images |
-| MinIO | Working | Bitnami chart |
+| MinIO | Working | Official MinIO chart |
 | cert-manager | Working | Let's Encrypt integration |
 | Istio Gateway | Working | External IP assigned |
 
