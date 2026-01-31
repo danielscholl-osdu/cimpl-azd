@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - all.yaml
+
+patches:
+  - path: cainjector-probes.yaml
+    target:
+      kind: Deployment
+      name: cert-manager-cainjector
