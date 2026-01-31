@@ -1,5 +1,6 @@
 # cert-manager for TLS certificate management
 resource "helm_release" "cert_manager" {
+  count = var.enable_cert_manager ? 1 : 0
   name             = "cert-manager"
   repository       = "https://charts.jetstack.io"
   chart            = "cert-manager"
@@ -66,11 +67,11 @@ resource "helm_release" "cert_manager" {
     value = "256Mi"
   }
 
-  depends_on = [module.aks]
 }
 
 # ClusterIssuer for Let's Encrypt
 resource "kubectl_manifest" "cluster_issuer" {
+  count = var.enable_cert_manager ? 1 : 0
   yaml_body = <<-YAML
     apiVersion: cert-manager.io/v1
     kind: ClusterIssuer
@@ -89,4 +90,9 @@ resource "kubectl_manifest" "cluster_issuer" {
   YAML
 
   depends_on = [helm_release.cert_manager]
+}
+
+# Output the ClusterIssuer name for other resources
+output "cluster_issuer_name" {
+  value = var.enable_cert_manager ? "letsencrypt-prod" : ""
 }

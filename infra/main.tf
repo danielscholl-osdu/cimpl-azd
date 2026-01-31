@@ -1,34 +1,26 @@
-# Main orchestration file for AKS Automatic with Elasticsearch
+# Layer 1: Cluster Infrastructure
 #
-# Architecture Overview:
-# - AKS Automatic cluster with Istio service mesh
-# - Elasticsearch + Kibana deployed via ECK operator
-# - PostgreSQL for shared database services
-# - MinIO for S3-compatible object storage
-# - External HTTPS access via Istio Gateway API + cert-manager
+# This layer provisions the AKS Automatic cluster with:
+# - AKS Automatic cluster with Istio service mesh (built-in)
+# - Azure RBAC for Kubernetes authorization
+# - Workload Identity support
+# - Dedicated node pool for Elasticsearch
 #
-# Resource files:
-# - aks.tf: AKS Automatic cluster using Azure Verified Module
-# - helm_cert_manager.tf: cert-manager for TLS certificates
-# - helm_elastic.tf: ECK operator + Elasticsearch + Kibana
-# - helm_postgresql.tf: PostgreSQL database
-# - helm_minio.tf: MinIO object storage
-# - k8s_gateway.tf: Gateway API resources for external access
+# Platform components (Elasticsearch, PostgreSQL, MinIO, etc.) are deployed
+# in the platform layer (Layer 2) after the cluster is provisioned.
 #
-# Storage Strategy (KEYLESS):
-# This deployment uses Azure Managed Disks for Elasticsearch storage.
-# Managed Disks authenticate via the AKS cluster's managed identity,
-# NOT storage account keys. This is compliant with security standards
-# that prohibit shared key access.
+# Usage:
+#   azd provision  # Provisions this layer
 #
-# If you need Azure Blob/Files storage:
-# - Azure Files: Requires storage account keys (not keyless compatible)
-# - Azure Blob (keyless): Requires OSS Blob CSI driver + static provisioning
-# See: https://github.com/danielscholl/aks-storage-poc for details
+# After provisioning, get kubeconfig:
+#   az aks get-credentials -g <resource-group> -n <cluster-name>
+#   kubelogin convert-kubeconfig -l azurecli
 
-# Resource Group (required, minimal)
+# Resource Group
 resource "azurerm_resource_group" "main" {
   name     = var.resource_group_name
   location = var.location
-  tags     = var.tags
+  tags = merge(var.tags, {
+    "azd-env-name" = var.environment_name
+  })
 }

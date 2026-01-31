@@ -1,17 +1,32 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
 name: cimpl-azd
 metadata:
   template: cimpl-azd@0.0.1
+
+# Layer 1: Cluster Infrastructure (azd provision)
 infra:
   provider: terraform
   path: infra
+
+# Hooks for multi-layer deployment
 hooks:
+  # Pre-provision: Validate prerequisites
   preprovision:
     interactive: true
     continueOnError: false
     shell: pwsh
     run: ./scripts/pre-provision.ps1
+
+  # Post-provision: Deploy platform layer (Layer 2)
   postprovision:
     interactive: true
     continueOnError: false
     shell: pwsh
     run: ./scripts/post-provision.ps1
+
+# Future: Services layer (Layer 3) will be added here
+# services:
+#   osdu-platform:
+#     project: ./services
+#     host: aks

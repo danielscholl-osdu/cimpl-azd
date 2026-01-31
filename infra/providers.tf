@@ -1,24 +1,10 @@
-# Use Azure CLI default credentials and subscription
+# Provider configuration for cluster layer
+# Only Azure provider needed - no Kubernetes/Helm
+
 provider "azurerm" {
-  features {}
-  # Uses ARM_SUBSCRIPTION_ID and ARM_TENANT_ID environment variables
-  # Or Azure CLI default subscription
-}
-
-# Helm provider - uses kubeconfig from az aks get-credentials
-provider "helm" {
-  kubernetes {
-    config_path = "~/.kube/config"
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
   }
-}
-
-# Kubernetes provider - uses kubeconfig from az aks get-credentials
-provider "kubernetes" {
-  config_path = "~/.kube/config"
-}
-
-# Kubectl provider - uses kubeconfig from az aks get-credentials
-provider "kubectl" {
-  config_path      = "~/.kube/config"
-  load_config_file = true
 }

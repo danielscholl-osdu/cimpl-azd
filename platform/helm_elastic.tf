@@ -1,5 +1,6 @@
 # ECK Operator
 resource "helm_release" "elastic_operator" {
+  count = var.enable_elasticsearch ? 1 : 0
   name             = "elastic-operator"
   repository       = "https://helm.elastic.co"
   chart            = "eck-operator"
@@ -30,11 +31,15 @@ resource "helm_release" "elastic_operator" {
     value = "1Gi"
   }
 
-  depends_on = [module.aks]
+  # Ignore changes for imported resources to avoid safeguards conflicts
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Namespace for Elasticsearch
 resource "kubernetes_namespace" "elastic_search" {
+  count = var.enable_elasticsearch ? 1 : 0
   metadata {
     name = "elastic-search"
     labels = {
@@ -42,7 +47,6 @@ resource "kubernetes_namespace" "elastic_search" {
     }
   }
 
-  depends_on = [module.aks]
 }
 
 # Custom StorageClass for Elasticsearch (Premium LRS with Retain policy)
@@ -51,6 +55,7 @@ resource "kubernetes_namespace" "elastic_search" {
 # This is compliant with security standards requiring no shared keys
 # NOTE: diskEncryptionType removed - causes provisioning failures when DiskEncryptionSetID not set
 resource "kubectl_manifest" "elastic_storage_class" {
+  count = var.enable_elasticsearch ? 1 : 0
   yaml_body = <<-YAML
     apiVersion: storage.k8s.io/v1
     kind: StorageClass
@@ -69,11 +74,11 @@ resource "kubectl_manifest" "elastic_storage_class" {
     allowVolumeExpansion: true
   YAML
 
-  depends_on = [module.aks]
 }
 
 # Elasticsearch Cluster
 resource "kubectl_manifest" "elasticsearch" {
+  count = var.enable_elasticsearch ? 1 : 0
   yaml_body = <<-YAML
     apiVersion: elasticsearch.k8s.elastic.co/v1
     kind: Elasticsearch
@@ -167,6 +172,7 @@ resource "kubectl_manifest" "elasticsearch" {
 
 # Kibana
 resource "kubectl_manifest" "kibana" {
+  count = var.enable_elasticsearch ? 1 : 0
   yaml_body = <<-YAML
     apiVersion: kibana.k8s.elastic.co/v1
     kind: Kibana

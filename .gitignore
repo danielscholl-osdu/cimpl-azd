@@ -40,3 +40,6 @@ Thumbs.db
 aks-elastic/
 aks-istio-sample/
 aks-storage-poc/
+
+# Reference implementations (not part of this project)
+reference-rosa/

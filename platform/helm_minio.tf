@@ -1,6 +1,7 @@
 # MinIO for S3-compatible object storage
 # Using official MinIO Helm chart from minio/minio repository
 resource "helm_release" "minio" {
+  count = var.enable_minio ? 1 : 0
   name             = "minio"
   repository       = "https://charts.min.io/"
   chart            = "minio"
@@ -92,5 +93,8 @@ resource "helm_release" "minio" {
   YAML
   ]
 
-  depends_on = [module.aks]
+  # Ignore changes for imported resources to avoid safeguards conflicts
+  lifecycle {
+    ignore_changes = all
+  }
 }

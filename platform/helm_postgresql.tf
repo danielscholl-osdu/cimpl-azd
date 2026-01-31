@@ -1,5 +1,6 @@
 # PostgreSQL for shared database services
 resource "helm_release" "postgresql" {
+  count = var.enable_postgresql ? 1 : 0
   name             = "postgresql"
   repository       = "oci://registry-1.docker.io/bitnamicharts"
   chart            = "postgresql"
@@ -13,9 +14,12 @@ resource "helm_release" "postgresql" {
     global:
       storageClass: "managed-csi"
 
-    # Using latest tag - will work once policy exclusions propagate
+    # Specific version tag for AKS Automatic safeguards compliance
+    # Using AWS ECR public registry for reliable image pulls
     image:
-      tag: "latest"
+      registry: public.ecr.aws
+      repository: bitnami/postgresql
+      tag: "18"
 
     primary:
       persistence:
@@ -58,5 +62,8 @@ resource "helm_release" "postgresql" {
   YAML
   ]
 
-  depends_on = [module.aks]
+  # Ignore changes for imported resources to avoid safeguards conflicts
+  lifecycle {
+    ignore_changes = all
+  }
 }

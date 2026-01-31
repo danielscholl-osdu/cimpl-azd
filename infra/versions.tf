@@ -10,18 +10,6 @@ terraform {
       source  = "azure/azapi"
       version = "~> 2.7"
     }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.17"
-    }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.35"
-    }
-    kubectl = {
-      source  = "gavinbunney/kubectl"
-      version = "~> 1.19"
-    }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.5"

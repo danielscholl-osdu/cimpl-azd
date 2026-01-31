@@ -1,6 +1,8 @@
 # Gateway API CRDs (required for Istio Gateway API support)
 # AKS-managed Istio may not install these by default
 resource "kubectl_manifest" "gateway_api_crds" {
+  count = var.enable_gateway ? 1 : 0
+
   yaml_body = <<-YAML
     apiVersion: v1
     kind: Namespace
@@ -9,22 +11,22 @@ resource "kubectl_manifest" "gateway_api_crds" {
       labels:
         app.kubernetes.io/name: gateway-api
   YAML
-
-  depends_on = [module.aks]
 }
 
 # Install Gateway API standard CRDs
 resource "null_resource" "gateway_api_crds" {
+  count = var.enable_gateway ? 1 : 0
+
   provisioner "local-exec" {
     command = "kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml"
   }
-
-  depends_on = [module.aks]
 }
 
 # Gateway for external HTTPS access (AKS-managed Istio)
 # References the AKS Istio external ingress gateway service
 resource "kubectl_manifest" "gateway" {
+  count = var.enable_gateway ? 1 : 0
+
   yaml_body = <<-YAML
     apiVersion: gateway.networking.k8s.io/v1
     kind: Gateway
@@ -58,14 +60,13 @@ resource "kubectl_manifest" "gateway" {
               from: All
   YAML
 
-  depends_on = [
-    module.aks,
-    null_resource.gateway_api_crds
-  ]
+  depends_on = [null_resource.gateway_api_crds]
 }
 
 # HTTPRoute for Kibana
 resource "kubectl_manifest" "kibana_route" {
+  count = var.enable_gateway && var.enable_elasticsearch ? 1 : 0
+
   yaml_body = <<-YAML
     apiVersion: gateway.networking.k8s.io/v1
     kind: HTTPRoute
@@ -97,6 +98,8 @@ resource "kubectl_manifest" "kibana_route" {
 
 # ReferenceGrant to allow HTTPRoute in aks-istio-ingress to reference Service in elastic-search
 resource "kubectl_manifest" "kibana_reference_grant" {
+  count = var.enable_gateway && var.enable_elasticsearch ? 1 : 0
+
   yaml_body = <<-YAML
     apiVersion: gateway.networking.k8s.io/v1beta1
     kind: ReferenceGrant
@@ -122,6 +125,8 @@ resource "kubectl_manifest" "kibana_reference_grant" {
 
 # TLS Certificate for Kibana (in aks-istio-ingress namespace)
 resource "kubectl_manifest" "kibana_certificate" {
+  count = var.enable_gateway && var.enable_cert_manager ? 1 : 0
+
   yaml_body = <<-YAML
     apiVersion: cert-manager.io/v1
     kind: Certificate
