@@ -137,6 +137,25 @@ resource "kubectl_manifest" "elasticsearch" {
                     limits:
                       memory: 4Gi
                       cpu: 2
+                  # Health probes for AKS Automatic safeguards compliance
+                  readinessProbe:
+                    httpGet:
+                      path: /
+                      port: 9200
+                      scheme: HTTP
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+                    timeoutSeconds: 5
+                    failureThreshold: 3
+                  livenessProbe:
+                    httpGet:
+                      path: /
+                      port: 9200
+                      scheme: HTTP
+                    initialDelaySeconds: 60
+                    periodSeconds: 30
+                    timeoutSeconds: 10
+                    failureThreshold: 3
   YAML
 
   depends_on = [
@@ -178,6 +197,25 @@ resource "kubectl_manifest" "kibana" {
                 limits:
                   memory: 2Gi
                   cpu: 1
+              # Health probes for AKS Automatic safeguards compliance
+              readinessProbe:
+                httpGet:
+                  path: /api/status
+                  port: 5601
+                  scheme: HTTP
+                initialDelaySeconds: 30
+                periodSeconds: 10
+                timeoutSeconds: 5
+                failureThreshold: 3
+              livenessProbe:
+                httpGet:
+                  path: /api/status
+                  port: 5601
+                  scheme: HTTP
+                initialDelaySeconds: 60
+                periodSeconds: 30
+                timeoutSeconds: 10
+                failureThreshold: 3
   YAML
 
   depends_on = [kubectl_manifest.elasticsearch]

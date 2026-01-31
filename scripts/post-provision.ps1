@@ -29,7 +29,7 @@ Write-Host "Cluster Name: $clusterName" -ForegroundColor Gray
 Write-Host "`nConfiguring deployment safeguards..." -ForegroundColor Cyan
 Write-Host "  Setting safeguards-level to Warning and excluding namespaces..." -ForegroundColor Gray
 
-$excludedNs = "elastic-system,elastic-search,cert-manager,aks-istio-ingress"
+$excludedNs = "elastic-system,elastic-search,cert-manager,aks-istio-ingress,postgresql,minio"
 $safeguardsResult = az aks update -g $resourceGroup -n $clusterName `
     --safeguards-level Warning `
     --safeguards-excluded-ns $excludedNs `
@@ -53,7 +53,7 @@ $currentExcluded = @(
     "dapr-system", "dataprotection-microsoft", "flux-system", "acstor",
     "sc-system", "azure-extensions-usage-system", "app-routing-system",
     "aks-periscope", "aks-istio-system", "aks-istio-ingress", "aks-istio-egress",
-    "elastic-search", "elastic-system", "cert-manager"
+    "elastic-search", "elastic-system", "cert-manager", "postgresql", "minio"
 )
 $excludedJson = $currentExcluded | ConvertTo-Json -Compress
 
@@ -200,6 +200,45 @@ if ($kibana -and $kibana.items.Count -gt 0) {
 }
 else {
     Write-Host "  Kibana not found (may still be initializing)" -ForegroundColor Yellow
+}
+
+# Verify PostgreSQL
+Write-Host "`nVerifying PostgreSQL..." -ForegroundColor Cyan
+$pgPods = kubectl get pods -n postgresql -o json 2>$null | ConvertFrom-Json
+if ($pgPods -and $pgPods.items.Count -gt 0) {
+    $running = ($pgPods.items | Where-Object { $_.status.phase -eq "Running" }).Count
+    Write-Host "  PostgreSQL pods running: $running/$($pgPods.items.Count)" -ForegroundColor Green
+    foreach ($pod in $pgPods.items) {
+        $phase = $pod.status.phase
+        Write-Host "    $($pod.metadata.name): $phase" -ForegroundColor Gray
+    }
+    # Test PostgreSQL readiness
+    $pgReady = kubectl exec -n postgresql postgresql-0 -- pg_isready 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  PostgreSQL is ready and accepting connections" -ForegroundColor Green
+    }
+    else {
+        Write-Host "  PostgreSQL not yet ready" -ForegroundColor Yellow
+    }
+}
+else {
+    Write-Host "  PostgreSQL not found (may still be initializing)" -ForegroundColor Yellow
+}
+
+# Verify MinIO
+Write-Host "`nVerifying MinIO..." -ForegroundColor Cyan
+$minioPods = kubectl get pods -n minio -o json 2>$null | ConvertFrom-Json
+if ($minioPods -and $minioPods.items.Count -gt 0) {
+    $running = ($minioPods.items | Where-Object { $_.status.phase -eq "Running" }).Count
+    Write-Host "  MinIO pods running: $running/$($minioPods.items.Count)" -ForegroundColor Green
+    foreach ($pod in $minioPods.items) {
+        $phase = $pod.status.phase
+        Write-Host "    $($pod.metadata.name): $phase" -ForegroundColor Gray
+    }
+    Write-Host "  MinIO console accessible via: kubectl port-forward svc/minio 9001:9001 -n minio" -ForegroundColor Gray
+}
+else {
+    Write-Host "  MinIO not found (may still be initializing)" -ForegroundColor Yellow
 }
 
 # Verify TLS Certificate

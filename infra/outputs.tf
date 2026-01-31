@@ -33,3 +33,18 @@ output "get_elasticsearch_password_command" {
   description = "Command to get Elasticsearch password"
   value       = "kubectl get secret elasticsearch-es-elastic-user -n elastic-search -o jsonpath='{.data.elastic}' | base64 -d"
 }
+
+output "POSTGRESQL_HOST" {
+  description = "PostgreSQL internal service host"
+  value       = "postgresql.postgresql.svc.cluster.local"
+}
+
+output "MINIO_ENDPOINT" {
+  description = "MinIO internal API endpoint"
+  value       = "minio.minio.svc.cluster.local:9000"
+}
+
+output "MINIO_CONSOLE_ENDPOINT" {
+  description = "MinIO console endpoint (port-forward to access)"
+  value       = "minio.minio.svc.cluster.local:9001"
+}
