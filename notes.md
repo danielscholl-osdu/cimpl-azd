@@ -39,33 +39,41 @@ Error: admission webhook "validation.gatekeeper.sh" denied the request
 - The script sets safeguards to Warning mode but doesn't wait for Gatekeeper reconciliation
 - Platform charts already include probes and resource limits - the error is timing, not config
 
-**Implemented Fix: Two-Phase Deployment Architecture**
+**Implemented Fix: Two-Phase Deployment with Behavioral Gate**
 
-The solution makes safeguards readiness an explicit gate rather than a mitigation:
+The solution uses server-side dry-run to verify that namespace exclusions are actually working:
 
 ```
 postprovision (orchestrator)
   │
   ├── Phase 1: ensure-safeguards.ps1 (GATE)
-  │     ├── Configure safeguards to Warning mode
+  │     ├── Configure safeguards to Warning mode with excluded namespaces
   │     ├── Wait for Gatekeeper controller ready
-  │     └── Wait for ALL constraints to leave deny mode
-  │     └── EXIT with error if not ready (fail fast)
+  │     ├── Create target namespaces (elastic-search, postgresql, minio, etc.)
+  │     └── Dry-run non-compliant Deployment in each namespace
+  │         └── If any dry-run FAILS → exit with actionable error
+  │         └── If all dry-runs PASS → exclusions verified, proceed
   │
   └── Phase 2: deploy-platform.ps1 (only runs if Phase 1 succeeds)
         ├── Deploy platform Terraform
         └── Verify component health
 ```
 
-Key improvements:
-1. **Explicit gate**: Phase 2 only runs after Phase 1 succeeds
-2. **Fail fast**: If safeguards don't reconcile in 5 minutes, script exits with error
-3. **Decoupled retry**: Platform deployment can be retried independently
-4. **Azure Policy constraints only**: Scopes check to `azurepolicy-*` constraints (ignores custom deny)
+**Why behavioral gate over constraint mode checking:**
+- Constraint enforcement mode (`warn`/`deny`) doesn't reflect namespace exclusions
+- Another policy assignment at subscription/management group level may enforce the same definitions
+- Dry-run tests **actual admission behavior** - if it passes, the real deployment will work
+
+**Key insight from Azure docs**: Policy assignments can take up to 20 minutes to sync into each cluster. The behavioral dry-run gate handles this by testing actual admission behavior rather than waiting for metadata to reconcile.
+
+Key features:
+1. **Behavioral verification**: Tests what matters (admission behavior) not metadata (constraint modes)
+2. **Fail fast with diagnosis**: If exclusions aren't working, shows which namespaces failed
+3. **Actionable errors**: Provides debug commands and possible causes
+4. **Azure Policy detection**: Skips checks entirely if Azure Policy add-on not enabled
 5. **Namespace wait**: Waits for gatekeeper-system namespace to appear (handles fresh clusters)
 6. **Dual deployment check**: Tries both `gatekeeper-controller` and `gatekeeper-controller-manager`
-7. **Azure Policy detection**: Checks if Azure Policy add-on is enabled; skips wait if not
-8. **Bypass escape hatch**: `SKIP_SAFEGUARDS_WAIT=true` environment variable for debugging
+7. **Bypass escape hatch**: `SKIP_SAFEGUARDS_WAIT=true` environment variable for debugging
 
 **Manual retry** (if Phase 1 fails):
 ```bash

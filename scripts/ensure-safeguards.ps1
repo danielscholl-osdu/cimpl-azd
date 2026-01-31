@@ -4,10 +4,13 @@
 # This script runs after cluster provisioning and:
 # 1. Configures kubeconfig
 # 2. Configures AKS safeguards to Warning mode with namespace exclusions
-# 3. Waits for Gatekeeper to fully reconcile
-# 4. Exits with success only when safeguards are ready
+# 3. Waits for Gatekeeper controller to be ready
+# 4. Verifies exclusions via server-side dry-run (behavioral gate)
 #
 # Platform deployment (Phase 2) should only run after this succeeds.
+#
+# The dry-run approach tests actual admission behavior rather than checking
+# constraint enforcement modes, which may not reflect namespace exclusions.
 
 $ErrorActionPreference = "Stop"
 
@@ -47,7 +50,17 @@ Write-Host "  Kubeconfig configured" -ForegroundColor Green
 Write-Host "`n[2/3] Configuring AKS safeguards..." -ForegroundColor Cyan
 
 # Aligned with docs/architecture.md
-$excludedNs = "kube-system,gatekeeper-system,elastic-system,elastic-search,cert-manager,aks-istio-ingress,postgresql,minio"
+# Pass as array - Azure CLI expects multiple values for az aks safeguards update
+$excludedNsList = @(
+    "kube-system",
+    "gatekeeper-system",
+    "elastic-system",
+    "elastic-search",
+    "cert-manager",
+    "aks-istio-ingress",
+    "postgresql",
+    "minio"
+)
 
 $maxRetries = 3
 $retryCount = 0
@@ -57,15 +70,26 @@ while (-not $safeguardsConfigured -and $retryCount -lt $maxRetries) {
     $retryCount++
     Write-Host "  Attempt $retryCount of $maxRetries..." -ForegroundColor Gray
 
-    $safeguardsResult = az aks update -g $resourceGroup -n $clusterName `
-        --safeguards-level Warning `
-        --safeguards-excluded-ns $excludedNs `
+    # Try new command first (az aks safeguards update), fallback to old for CLI compatibility
+    Write-Host "  Trying az aks safeguards update..." -ForegroundColor Gray
+    $safeguardsResult = az aks safeguards update -g $resourceGroup -n $clusterName `
+        --level Warn `
+        --excluded-ns @excludedNsList `
         --only-show-errors 2>&1
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  Fallback: trying az aks update --safeguards-level..." -ForegroundColor Gray
+        $excludedNsComma = $excludedNsList -join ","
+        $safeguardsResult = az aks update -g $resourceGroup -n $clusterName `
+            --safeguards-level Warning `
+            --safeguards-excluded-ns $excludedNsComma `
+            --only-show-errors 2>&1
+    }
 
     if ($LASTEXITCODE -eq 0) {
         $safeguardsConfigured = $true
         Write-Host "  Safeguards: Warning mode" -ForegroundColor Green
-        Write-Host "  Excluded: $excludedNs" -ForegroundColor Gray
+        Write-Host "  Excluded: $($excludedNsList -join ', ')" -ForegroundColor Gray
     }
     else {
         if ($retryCount -lt $maxRetries) {
@@ -81,12 +105,12 @@ if (-not $safeguardsConfigured) {
     exit 1
 }
 
-# Step 3: Wait for Gatekeeper to reconcile (readiness gate)
-Write-Host "`n[3/3] Waiting for Gatekeeper to reconcile..." -ForegroundColor Cyan
+# Step 3: Wait for Gatekeeper and verify exclusions
+Write-Host "`n[3/3] Verifying safeguards readiness..." -ForegroundColor Cyan
 
 # Allow bypass via environment variable (for debugging or known-good clusters)
 if ($env:SKIP_SAFEGUARDS_WAIT -eq "true") {
-    Write-Host "  SKIP_SAFEGUARDS_WAIT=true - Bypassing Gatekeeper wait" -ForegroundColor Yellow
+    Write-Host "  SKIP_SAFEGUARDS_WAIT=true - Bypassing all safeguards checks" -ForegroundColor Yellow
     Write-Host "`n=== Phase 1 Complete: Safeguards Ready (bypassed) ===" -ForegroundColor Green
     Write-Host "You can now run Phase 2: ./scripts/deploy-platform.ps1" -ForegroundColor Cyan
     exit 0
@@ -106,7 +130,8 @@ if ($clusterInfo -ne "true") {
 
 Write-Host "  Azure Policy add-on: Enabled" -ForegroundColor Green
 
-$maxWaitSeconds = 300  # 5 minutes max
+# Azure Policy sync can take up to 20 minutes per docs
+$maxWaitSeconds = if ($env:SAFEGUARDS_WAIT_TIMEOUT) { [int]$env:SAFEGUARDS_WAIT_TIMEOUT } else { 1200 }  # 20 min default
 $waitInterval = 15
 $elapsedSeconds = 0
 
@@ -127,10 +152,15 @@ while (-not $gatekeeperNsExists -and $elapsedSeconds -lt $maxWaitSeconds) {
 }
 
 if (-not $gatekeeperNsExists) {
-    Write-Host "  Warning: Gatekeeper namespace not found after ${maxWaitSeconds}s" -ForegroundColor Yellow
-    Write-Host "  Continuing without Gatekeeper readiness check" -ForegroundColor Yellow
+    Write-Host "  ERROR: Gatekeeper namespace not found after ${maxWaitSeconds}s" -ForegroundColor Red
+    Write-Host "  Azure Policy add-on is enabled but Gatekeeper not running" -ForegroundColor Red
+    Write-Host "  Bypass: SKIP_SAFEGUARDS_WAIT=true ./scripts/ensure-safeguards.ps1" -ForegroundColor Yellow
+    exit 1
 }
 else {
+    # Reset timer for controller wait (namespace wait already consumed some time)
+    $elapsedSeconds = 0
+
     # Wait for Gatekeeper controller to be ready
     # Try both deployment names: gatekeeper-controller (AKS Automatic) and gatekeeper-controller-manager (standard)
     Write-Host "  Checking Gatekeeper controller status..." -ForegroundColor Gray
@@ -164,58 +194,107 @@ else {
     }
 }
 
-# Check Azure Policy constraints for enforcement action
-# Only check constraints with names starting with "azurepolicy-" (Azure Policy managed)
-# This avoids blocking on custom deny constraints that may be intentionally configured
-Write-Host "  Checking Azure Policy constraint enforcement..." -ForegroundColor Gray
-$constraintsReady = $false
-$elapsedSeconds = 0
+# Step 3.5: Verify exclusions are effective via server-side dry-run
+# Instead of checking constraint enforcement modes (which may not reflect exclusions),
+# we test actual admission behavior by dry-running a non-compliant workload
+Write-Host "  Verifying namespace exclusions via dry-run..." -ForegroundColor Gray
 
-while (-not $constraintsReady -and $elapsedSeconds -lt $maxWaitSeconds) {
-    $constraintsJson = kubectl get constraints -o json 2>$null
+$targetNamespaces = @("elastic-search", "postgresql", "minio", "cert-manager", "elastic-system")
 
-    if ([string]::IsNullOrEmpty($constraintsJson)) {
-        Write-Host "  Waiting for constraints to be created... ($elapsedSeconds`s)" -ForegroundColor Gray
-        Start-Sleep -Seconds $waitInterval
-        $elapsedSeconds += $waitInterval
+# Ensure namespaces exist (create if needed - this is allowed regardless of policies)
+foreach ($ns in $targetNamespaces) {
+    $nsExists = kubectl get namespace $ns --no-headers 2>$null
+    if ([string]::IsNullOrEmpty($nsExists)) {
+        Write-Host "  Creating namespace: $ns" -ForegroundColor Gray
+        kubectl create namespace $ns 2>$null | Out-Null
     }
-    else {
-        $constraints = $constraintsJson | ConvertFrom-Json
-        $denyCount = 0
-        $totalCount = 0
+}
 
-        foreach ($item in $constraints.items) {
-            # Only check Azure Policy constraints (name starts with "azurepolicy-")
-            if ($item.metadata.name -like "azurepolicy-*") {
-                $totalCount++
-                if ($item.spec.enforcementAction -eq "deny") {
-                    $denyCount++
-                }
-            }
-        }
+# Deployment that triggers multiple policies:
+# - K8sAzureV2ContainerEnforceProbes (no readiness/liveness probes)
+# - K8sAzureV2ContainerNoPrivilege (missing securityContext)
+# - K8sAzureV2BlockDefault (uses default namespace - but we test in excluded ns)
+# - K8sAzureV2ContainerRestrictedImagePulls (uses nginx:latest)
+$testDeploymentYaml = @"
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: safeguards-test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: safeguards-test
+  template:
+    metadata:
+      labels:
+        app: safeguards-test
+    spec:
+      containers:
+      - name: test
+        image: nginx:latest
+"@
 
-        if ($totalCount -eq 0) {
-            Write-Host "  Waiting for Azure Policy constraints... ($elapsedSeconds`s)" -ForegroundColor Gray
-            Start-Sleep -Seconds $waitInterval
-            $elapsedSeconds += $waitInterval
+# Helper function to test dry-run and return structured result
+function Test-DryRun {
+    param([string]$Namespace, [string]$Yaml)
+
+    $result = $Yaml | kubectl apply --dry-run=server -n $Namespace -f - 2>&1
+    $exitCode = $LASTEXITCODE
+    return @{
+        Success = ($exitCode -eq 0)
+        Output = $result
+        IsPolicyError = ($result -match "denied|violation|constraint")
+    }
+}
+
+$allExclusionsWork = $true
+$failedNamespaces = @()
+
+foreach ($ns in $targetNamespaces) {
+    $dryRun = Test-DryRun -Namespace $ns -Yaml $testDeploymentYaml
+
+    if (-not $dryRun.Success) {
+        # Retry once for transient errors (not policy violations)
+        if (-not $dryRun.IsPolicyError) {
+            Write-Host "  RETRY: $ns - transient error, retrying..." -ForegroundColor Yellow
+            Start-Sleep -Seconds 2
+            $dryRun = Test-DryRun -Namespace $ns -Yaml $testDeploymentYaml
         }
-        elseif ($denyCount -eq 0) {
-            $constraintsReady = $true
-            Write-Host "  All $totalCount Azure Policy constraints in warn/dryrun mode" -ForegroundColor Green
+    }
+
+    if (-not $dryRun.Success) {
+        $allExclusionsWork = $false
+        $failedNamespaces += $ns
+
+        if ($dryRun.IsPolicyError) {
+            Write-Host "  FAIL: $ns - policy violation" -ForegroundColor Red
         }
         else {
-            Write-Host "  $denyCount of $totalCount Azure Policy constraints still in deny mode, waiting... ($elapsedSeconds`s)" -ForegroundColor Gray
-            Start-Sleep -Seconds $waitInterval
-            $elapsedSeconds += $waitInterval
+            Write-Host "  FAIL: $ns - dry-run error (RBAC/network/other)" -ForegroundColor Red
         }
+        $firstLine = ($dryRun.Output -split "`n")[0]
+        Write-Host "        $firstLine" -ForegroundColor Gray
+    }
+    else {
+        Write-Host "  OK: $ns - exclusions working" -ForegroundColor Green
     }
 }
 
-if (-not $constraintsReady) {
-    Write-Host "  ERROR: Azure Policy constraints still in deny mode after ${maxWaitSeconds}s" -ForegroundColor Red
-    Write-Host "  Platform deployment will likely fail" -ForegroundColor Red
+if (-not $allExclusionsWork) {
+    Write-Host "`n  ERROR: Namespace exclusions not effective for: $($failedNamespaces -join ', ')" -ForegroundColor Red
+    Write-Host "  Possible causes:" -ForegroundColor Yellow
+    Write-Host "    - Another Azure Policy assignment at subscription/management group level" -ForegroundColor Yellow
+    Write-Host "    - Azure Policy addon has not reconciled yet (try again in 2-3 min)" -ForegroundColor Yellow
+    Write-Host "  Debug:" -ForegroundColor Yellow
+    Write-Host "    kubectl get constraints -o json | jq '.items[].spec.match.excludedNamespaces'" -ForegroundColor Yellow
+    Write-Host "    az policy assignment list --scope /subscriptions/`$(az account show --query id -o tsv)" -ForegroundColor Yellow
+    Write-Host "  Bypass:" -ForegroundColor Yellow
+    Write-Host "    SKIP_SAFEGUARDS_WAIT=true ./scripts/ensure-safeguards.ps1" -ForegroundColor Yellow
     exit 1
 }
+
+Write-Host "  All namespace exclusions verified" -ForegroundColor Green
 
 Write-Host "`n=== Phase 1 Complete: Safeguards Ready ===" -ForegroundColor Green
 Write-Host "You can now run Phase 2: ./scripts/deploy-platform.ps1" -ForegroundColor Cyan
