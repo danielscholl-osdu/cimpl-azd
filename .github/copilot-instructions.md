@@ -18,7 +18,9 @@ Before any deployment, run the pre-provision script to validate prerequisites:
 ```bash
 pwsh ./scripts/pre-provision.ps1
 ```
-This checks for required tools (terraform v1.5+, az CLI v2.50+, kubelogin), Azure login status, and required environment variables.
+This checks for required tools (terraform v1.5+, az CLI v2.50+, kubelogin), Azure login status, and the Terraform environment variables `TF_VAR_acme_email` and `TF_VAR_kibana_hostname`.
+
+> **Note:** While `pre-provision.ps1` checks for Terraform v1.5+, the actual Terraform constraint in `infra/versions.tf` requires `~> 1.12` (1.12.x or higher). Use Terraform 1.12+ to match the repository's version constraint.
 
 ### Terraform Formatting
 **ALWAYS run terraform fmt before committing Terraform changes:**
@@ -43,7 +45,7 @@ pwsh -Command '$scripts = Get-ChildItem -Path ./scripts -Filter "*.ps1"; foreach
 ### Full Deployment (requires Azure credentials)
 ```bash
 # Set required environment variables first
-azd env set AZURE_CONTACT_EMAIL "your-email@example.com"
+azd env set TF_VAR_contact_email "your-email@example.com"
 azd env set TF_VAR_acme_email "your-email@example.com"
 azd env set TF_VAR_kibana_hostname "kibana.yourdomain.com"
 
@@ -127,11 +129,11 @@ cimpl-azd/
 ### Platform Components
 | Component | Version | Notes |
 |-----------|---------|-------|
-| cert-manager | 1.16.2 | Let's Encrypt integration |
+| cert-manager | 1.17.0 | Let's Encrypt integration (Helm chart v1.17.0) |
 | Elasticsearch | 8.15.2 | 3-node cluster, 128Gi SSD each |
 | Kibana | 8.15.2 | External access via Istio |
-| PostgreSQL | 18.x | Bitnami chart, 8Gi storage |
-| MinIO | Latest | Bitnami chart, 10Gi storage |
+| PostgreSQL | 16.4.6 | Bitnami Helm chart v16.4.6 (PostgreSQL 18.x image), 8Gi storage |
+| MinIO | 5.4.0 | Official MinIO Helm chart v5.4.0 from https://charts.min.io/, 10Gi storage |
 
 ## Critical Issues and Workarounds
 
@@ -203,7 +205,7 @@ The `.github/workflows/pr-checks.yml` workflow runs on all PRs:
 
 ### Required for Deployment
 ```bash
-AZURE_CONTACT_EMAIL      # Contact email for resource tagging
+TF_VAR_contact_email    # Contact email for resource tagging (required by Terraform)
 TF_VAR_acme_email       # Email for Let's Encrypt certificates
 TF_VAR_kibana_hostname  # Hostname for Kibana external access
 ```
