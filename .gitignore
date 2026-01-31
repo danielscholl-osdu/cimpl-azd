@@ -1,0 +1,42 @@
+# Terraform
+**/.terraform/
+tfplan
+*.tfplan
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Azure Developer CLI
+.azure/
+
+# Environment files
+.env
+.env.local
+*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# POC/Test directories
+aks-elastic/
+aks-istio-sample/
+aks-storage-poc/

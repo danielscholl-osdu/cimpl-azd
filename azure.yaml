@@ -1,0 +1,17 @@
+name: cimpl-azd
+metadata:
+  template: cimpl-azd@0.0.1
+infra:
+  provider: terraform
+  path: infra
+hooks:
+  preprovision:
+    interactive: true
+    continueOnError: false
+    shell: pwsh
+    run: ./scripts/pre-provision.ps1
+  postprovision:
+    interactive: true
+    continueOnError: false
+    shell: pwsh
+    run: ./scripts/post-provision.ps1
