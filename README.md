@@ -46,6 +46,7 @@ See [docs/architecture.md](docs/architecture.md) for detailed architecture docum
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [kubelogin](https://github.com/Azure/kubelogin) (for Azure AD authentication)
 - [Helm](https://helm.sh/docs/intro/install/) (v3.12+)
+- [kustomize](https://kubectl.docs.kubernetes.io/installation/kustomize/) (for ECK operator probe injection)
 - PowerShell Core (for deployment scripts)
 
 ## Quick Start
