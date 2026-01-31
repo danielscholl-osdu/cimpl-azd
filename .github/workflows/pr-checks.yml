@@ -1,0 +1,122 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terraform-format:
+    name: Terraform Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
+
+      - name: Check Terraform formatting in infra/
+        run: terraform fmt -check -recursive
+        working-directory: ./infra
+
+      - name: Check Terraform formatting in platform/
+        run: terraform fmt -check -recursive
+        working-directory: ./platform
+
+  powershell-syntax:
+    name: PowerShell Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate PowerShell scripts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $scripts = Get-ChildItem -Path ./scripts -Filter "*.ps1"
+          $hasErrors = $false
+
+          foreach ($script in $scripts) {
+            Write-Host "Checking $($script.Name)..."
+            try {
+              $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $script.FullName -Raw), [ref]$null)
+              Write-Host "✓ $($script.Name) - OK" -ForegroundColor Green
+            } catch {
+              Write-Host "✗ $($script.Name) - FAILED" -ForegroundColor Red
+              Write-Host $_.Exception.Message -ForegroundColor Red
+              $hasErrors = $true
+            }
+          }
+
+          if ($hasErrors) {
+            Write-Host "`nPowerShell syntax check failed!" -ForegroundColor Red
+            exit 1
+          } else {
+            Write-Host "`nAll PowerShell scripts passed syntax check!" -ForegroundColor Green
+          }
+
+  secrets-scan:
+    name: Secrets Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
+      - name: Scan for potential secrets
+        run: |
+          echo "Scanning for potential secrets..."
+
+          # Define patterns for common secret types
+          PATTERNS=(
+            # API keys and tokens
+            "(?i)(api[_-]?key|apikey)[\s]*[=:][\s]*['\"]?[a-zA-Z0-9_\-]{20,}['\"]?"
+            "(?i)(access[_-]?token|accesstoken)[\s]*[=:][\s]*['\"]?[a-zA-Z0-9_\-]{20,}['\"]?"
+            "(?i)(secret[_-]?key|secretkey)[\s]*[=:][\s]*['\"]?[a-zA-Z0-9_\-]{20,}['\"]?"
+            # Azure connection strings
+            "(?i)DefaultEndpointsProtocol=https;AccountName=[^;]+;AccountKey=[A-Za-z0-9+/=]{88}"
+            # Generic passwords in configuration
+            "(?i)password[\s]*[=:][\s]*['\"][^'\"]{8,}['\"]"
+            # AWS keys
+            "(?i)(aws[_-]?access[_-]?key[_-]?id)[\s]*[=:][\s]*['\"]?AKIA[A-Z0-9]{16}['\"]?"
+            "(?i)(aws[_-]?secret[_-]?access[_-]?key)[\s]*[=:][\s]*['\"]?[A-Za-z0-9/+=]{40}['\"]?"
+            # Private keys
+            "-----BEGIN (RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----"
+          )
+
+          # Exclude patterns (environment variable examples, templates, etc.)
+          EXCLUDE_FILES=(
+            "*.example"
+            "*.md"
+            ".git"
+          )
+
+          FOUND=0
+          for pattern in "${PATTERNS[@]}"; do
+            if rg -i -n "$pattern" \
+              --type-not md \
+              --glob '!*.example' \
+              --glob '!.git/**' \
+              --glob '!.github/**' \
+              . 2>/dev/null; then
+              FOUND=1
+            fi
+          done
+
+          if [ $FOUND -eq 1 ]; then
+            echo ""
+            echo "⚠️  Potential secrets detected! Please review the matches above."
+            echo "If these are false positives (e.g., variable names, examples), you can ignore this warning."
+            echo "Otherwise, remove the secrets and use environment variables or secure secret management."
+            exit 1
+          else
+            echo "✓ No obvious secrets detected"
+          fi
