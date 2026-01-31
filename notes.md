@@ -65,6 +65,29 @@ The `ensure-safeguards.ps1` script should be updated to:
 - [MS Answer confirming limitation](https://learn.microsoft.com/en-us/answers/questions/5694725/aks-automatic-gatekeeper-safeguards-block-sonobuoy)
 - [Deployment Safeguards docs](https://learn.microsoft.com/en-us/azure/aks/deployment-safeguards)
 
+#### ECK Operator Probe Support (RESOLVED)
+
+**Problem**: The ECK operator Helm chart (v2.16.0 - v3.2.0) does not expose probe configuration for the manager container, causing deployment failures on AKS Automatic clusters with Deployment Safeguards enforced.
+
+**Error**:
+```
+Container <manager> in your Pod <elastic-operator-pod> has no <livenessProbe>
+Container <manager> in your Pod <elastic-operator-pod> has no <readinessProbe>
+```
+
+**Solution**: Implemented Helm postrenderer with kustomize to inject tcpSocket probes on webhook port (9443).
+
+**Implementation**:
+- Created kustomize overlay at `platform/kustomize/eck-operator/` with Strategic Merge Patch
+- Created postrenderer script at `platform/kustomize/eck-operator-postrender.sh`
+- Updated `platform/helm_elastic.tf` to use postrenderer for elastic_operator deployment
+- Probes are injected during Helm install without modifying the upstream chart
+
+**Files**:
+- `platform/kustomize/eck-operator/kustomization.yaml` - Kustomize configuration
+- `platform/kustomize/eck-operator/statefulset-probes.yaml` - Probe patch for StatefulSet
+- `platform/kustomize/eck-operator-postrender.sh` - Helm postrenderer script
+
 ---
 
 ### Issue 2: RBAC Permission Delay on Fresh Deploy

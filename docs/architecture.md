@@ -195,6 +195,20 @@ Internet ──► External IP ──► Istio Gateway ──► VirtualService 
                                            cert-manager TLS
 ```
 
+### ECK Operator
+
+Elastic Cloud on Kubernetes (ECK) operator manages the Elasticsearch and Kibana deployments.
+
+**Version**: 2.16.0
+
+**Probe Injection Workaround**:
+The ECK operator Helm chart does not expose probe configuration, which is required by AKS Automatic Deployment Safeguards. We use a Helm postrenderer with kustomize to inject tcpSocket probes on the webhook port (9443) during deployment.
+
+**Implementation**:
+- Postrenderer script: `platform/kustomize/eck-operator-postrender.sh`
+- Kustomize patch: `platform/kustomize/eck-operator/statefulset-probes.yaml`
+- Automatically applied during `helm install` via `postrender` block in Terraform
+
 ### PostgreSQL
 
 Bitnami PostgreSQL chart deployed in standalone mode.
