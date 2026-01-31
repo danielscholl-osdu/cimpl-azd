@@ -18,9 +18,7 @@
 
 # Resource Group
 resource "azurerm_resource_group" "main" {
-  name     = var.resource_group_name
+  name     = local.resource_group_name
   location = var.location
-  tags = merge(var.tags, {
-    "azd-env-name" = var.environment_name
-  })
+  tags     = local.common_tags
 }

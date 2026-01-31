@@ -3,7 +3,7 @@ module "aks" {
   source  = "Azure/avm-res-containerservice-managedcluster/azurerm"
   version = "0.4.2"
 
-  name      = var.cluster_name
+  name      = local.cluster_name
   location  = var.location
   parent_id = azurerm_resource_group.main.id
 
@@ -125,5 +125,5 @@ module "aks" {
     }
   }
 
-  tags = var.tags
+  tags = local.common_tags
 }

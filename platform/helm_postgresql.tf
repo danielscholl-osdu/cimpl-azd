@@ -13,6 +13,9 @@ resource "helm_release" "postgresql" {
   values = [<<-YAML
     global:
       storageClass: "managed-csi"
+      # Allow ECR images (required for non-DockerHub Bitnami images)
+      security:
+        allowInsecureImages: true
 
     # Specific version tag for AKS Automatic safeguards compliance
     # Using AWS ECR public registry for reliable image pulls

@@ -2,9 +2,8 @@
 # This layer only provisions the AKS cluster
 
 variable "environment_name" {
-  description = "The name of the azd environment"
+  description = "The name of the azd environment (used for resource uniqueness)"
   type        = string
-  default     = "dev"
 }
 
 variable "location" {
@@ -13,23 +12,27 @@ variable "location" {
   default     = "eastus2"
 }
 
-variable "resource_group_name" {
-  description = "Resource group name"
+variable "contact_email" {
+  description = "Contact email for resource tagging (owner identification)"
   type        = string
-  default     = "rg-cimpl-aks"
-}
-
-variable "cluster_name" {
-  description = "AKS cluster name"
-  type        = string
-  default     = "cimpl-aks"
 }
 
 variable "tags" {
-  description = "Tags to apply to resources"
+  description = "Additional tags to apply to resources"
   type        = map(string)
-  default = {
-    environment = "dev"
-    project     = "cimpl"
-  }
+  default     = {}
+}
+
+# Derived names using environment_name for uniqueness
+locals {
+  # Resource naming: cimpl-<env_name> allows multiple deployments
+  resource_group_name = "rg-cimpl-${var.environment_name}"
+  cluster_name        = "cimpl-${var.environment_name}"
+
+  # Standard tags applied to all resources
+  common_tags = merge(var.tags, {
+    "azd-env-name" = var.environment_name
+    "project"      = "cimpl"
+    "Contact"      = var.contact_email
+  })
 }

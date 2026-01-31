@@ -67,6 +67,10 @@ resource "helm_release" "cert_manager" {
     value = "256Mi"
   }
 
+  # Ignore changes for imported resources to avoid safeguards conflicts
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # ClusterIssuer for Let's Encrypt
