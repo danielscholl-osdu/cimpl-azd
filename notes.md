@@ -61,9 +61,17 @@ The `ensure-safeguards.ps1` script should be updated to:
 - Wait for Gatekeeper to be ready
 - Optionally dry-run actual platform manifests to verify compliance
 
+**cert-manager cainjector Probe Solution**:
+The cert-manager Helm chart (v1.17.0 - v1.19.2) does not expose probe configuration for the cainjector component. To comply with AKS Automatic safeguards:
+- Solution: Use Helm postrender with kustomize to inject tcpSocket probes
+- Implementation: `platform/postrender-cert-manager.sh` applies patches from `platform/kustomize/cert-manager/`
+- Probes use port 9402 (metrics endpoint) via tcpSocket since cainjector lacks an HTTP healthz endpoint
+- This approach avoids modifying the upstream chart or switching to raw manifests
+
 **References**:
 - [MS Answer confirming limitation](https://learn.microsoft.com/en-us/answers/questions/5694725/aks-automatic-gatekeeper-safeguards-block-sonobuoy)
 - [Deployment Safeguards docs](https://learn.microsoft.com/en-us/azure/aks/deployment-safeguards)
+- [cert-manager issue #5626](https://github.com/cert-manager/cert-manager/issues/5626)
 
 ---
 
