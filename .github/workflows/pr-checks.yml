@@ -12,6 +12,8 @@ jobs:
   terraform-format:
     name: Terraform Format Check
     runs-on: ubuntu-latest
+    env:
+      CHECKPOINT_DISABLE: "1"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
