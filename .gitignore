@@ -17,8 +17,8 @@ override.tf.json
 # Azure Developer CLI
 .azure/
 
-# Agent
-.github
+# Agent (exclude agent instructions but allow other .github files)
+.github/agents/
 
 # Environment files
 .env
