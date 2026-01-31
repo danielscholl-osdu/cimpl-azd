@@ -37,7 +37,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $scripts = Get-ChildItem -Path ./scripts -Filter "*.ps1"
+          $scripts = Get-ChildItem -Path ./scripts -Filter "*.ps1" -Recurse
           $hasErrors = $false
 
           foreach ($script in $scripts) {
@@ -105,7 +105,6 @@ jobs:
               --type-not md \
               --glob '!*.example' \
               --glob '!.git/**' \
-              --glob '!.github/**' \
               . 2>/dev/null; then
               FOUND=1
             fi
