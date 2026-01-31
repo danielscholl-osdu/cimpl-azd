@@ -64,16 +64,38 @@ while ($rbacElapsed -lt $rbacMaxWait) {
 }
 
 if ($rbacElapsed -ge $rbacMaxWait) {
-    Write-Host "  ERROR: RBAC permissions not available after ${rbacMaxWait}s" -ForegroundColor Red
-    Write-Host "  User cannot create namespaces. Check role assignments." -ForegroundColor Red
-    exit 1
+    # Final check to catch permissions that propagated during the last sleep interval
+    $canCreate = kubectl auth can-i create namespaces 2>&1
+    if ($canCreate -ne "yes") {
+        Write-Host "  ERROR: RBAC permissions not available after ${rbacMaxWait}s" -ForegroundColor Red
+        Write-Host "  User cannot create namespaces. Check role assignments." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "  RBAC permissions: OK (detected on final check)" -ForegroundColor Green
 }
 
 # Step 2: Check cluster type and configure safeguards (if supported)
 Write-Host "`n[2/4] Checking cluster configuration..." -ForegroundColor Cyan
 
 # Detect AKS Automatic (safeguards cannot be modified)
-$clusterSku = az aks show -g $resourceGroup -n $clusterName --query "sku.name" -o tsv 2>$null
+$clusterSkuOutput = az aks show -g $resourceGroup -n $clusterName --query "sku.name" -o tsv 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  ERROR: Failed to determine AKS cluster SKU via 'az aks show'." -ForegroundColor Red
+    if (-not [string]::IsNullOrEmpty($clusterSkuOutput)) {
+        Write-Host "  az aks show output:" -ForegroundColor Red
+        Write-Host "  $clusterSkuOutput" -ForegroundColor Red
+    }
+    Write-Host "  Ensure you are logged in (az login), have access to the subscription, and the cluster exists." -ForegroundColor Red
+    exit 1
+}
+
+$clusterSku = $clusterSkuOutput.Trim()
+if ([string]::IsNullOrEmpty($clusterSku)) {
+    Write-Host "  ERROR: AKS cluster SKU was not returned by 'az aks show'." -ForegroundColor Red
+    Write-Host "  Command succeeded but did not return a SKU name. Investigate cluster configuration and Azure CLI." -ForegroundColor Red
+    exit 1
+}
+
 $isAutomatic = ($clusterSku -eq "Automatic")
 
 if ($isAutomatic) {
@@ -143,8 +165,8 @@ else {
     }
 }
 
-# Step 3: Wait for Gatekeeper and verify exclusions
-Write-Host "`n[3/4] Verifying safeguards readiness..." -ForegroundColor Cyan
+# Step 3: Wait for Gatekeeper (exclusion verification happens in Step 4 for Standard AKS only)
+Write-Host "`n[3/4] Waiting for Gatekeeper controller..." -ForegroundColor Cyan
 
 # Allow bypass via environment variable (for debugging or known-good clusters)
 if ($env:SKIP_SAFEGUARDS_WAIT -eq "true") {
