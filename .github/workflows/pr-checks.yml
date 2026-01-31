@@ -108,10 +108,15 @@ jobs:
 
           # Filter out documented demo credentials
           # Remove lines where the file contains "DEMO ONLY" or "TODO" comments near the match
+          CONTEXT_LINES=3
           if [ -s "$RESULTS_FILE" ]; then
             while IFS=: read -r file line content; do
-              # Check if the file has DEMO ONLY or TODO comment within 3 lines of the match
-              if ! grep -q -i -B 3 "DEMO ONLY\|TODO.*production" "$file" 2>/dev/null | grep -q "$content" 2>/dev/null; then
+              # Check if there's a DEMO ONLY or TODO comment within CONTEXT_LINES of the match
+              START_LINE=$((line > CONTEXT_LINES ? line - CONTEXT_LINES : 1))
+              END_LINE=$((line + CONTEXT_LINES))
+              
+              # Extract the context and check for demo markers
+              if ! sed -n "${START_LINE},${END_LINE}p" "$file" 2>/dev/null | grep -q -i "DEMO ONLY\|TODO.*production" 2>/dev/null; then
                 echo "${file}:${line}:${content}"
                 FOUND=1
               fi
