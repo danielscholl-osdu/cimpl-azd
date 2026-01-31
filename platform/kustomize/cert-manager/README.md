@@ -32,7 +32,7 @@ The cainjector component does not expose an HTTP healthz endpoint, only metrics 
 livenessProbe:
   tcpSocket:
     port: 9402
-  initialDelaySeconds: 10
+  initialDelaySeconds: 30
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
@@ -41,7 +41,7 @@ livenessProbe:
 readinessProbe:
   tcpSocket:
     port: 9402
-  initialDelaySeconds: 5
+  initialDelaySeconds: 10
   periodSeconds: 5
   timeoutSeconds: 3
   failureThreshold: 3
