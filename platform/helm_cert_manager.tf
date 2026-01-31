@@ -8,6 +8,12 @@ resource "helm_release" "cert_manager" {
   namespace        = "cert-manager"
   create_namespace = true
 
+  # Use postrender to inject health probes for cainjector
+  # The upstream chart doesn't support probe configuration for cainjector
+  postrender {
+    binary_path = "${path.module}/postrender-cert-manager.sh"
+  }
+
   set {
     name  = "crds.enabled"
     value = "true"
