@@ -15,16 +15,36 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KUSTOMIZE_DIR="${SCRIPT_DIR}/kustomize/cert-manager"
 
+# Verify kustomize directory exists
+if [ ! -d "${KUSTOMIZE_DIR}" ]; then
+    echo "Error: kustomize directory '${KUSTOMIZE_DIR}' does not exist. Ensure kustomize/cert-manager is present relative to ${SCRIPT_DIR}." >&2
+    exit 1
+fi
+
 # Read Helm output from stdin and save to temporary file
 HELM_OUTPUT=$(mktemp)
 
-# Set up cleanup trap to ensure temporary files are removed
-trap 'rm -f "${HELM_OUTPUT}" "${KUSTOMIZE_DIR}/all.yaml"' EXIT
+# Create a temporary kustomize directory to avoid concurrent access conflicts
+KUSTOMIZE_TEMP_DIR=$(mktemp -d)
+cp -R "${KUSTOMIZE_DIR}/." "${KUSTOMIZE_TEMP_DIR}/"
 
-cat > "${HELM_OUTPUT}"
+# Set up cleanup trap to ensure temporary files and directories are removed
+trap 'rm -f "${HELM_OUTPUT}"; [ -n "${KUSTOMIZE_TEMP_DIR:-}" ] && rm -rf "${KUSTOMIZE_TEMP_DIR}"' EXIT
 
-# Copy Helm output to kustomize directory
-cp "${HELM_OUTPUT}" "${KUSTOMIZE_DIR}/all.yaml"
+# Capture Helm output from stdin; fail if the read/write operation fails
+if ! cat > "${HELM_OUTPUT}"; then
+    echo "Error: failed to read Helm output from stdin" >&2
+    exit 1
+fi
+
+# Ensure we actually received some Helm output
+if [ ! -s "${HELM_OUTPUT}" ]; then
+    echo "Error: no Helm output received on stdin" >&2
+    exit 1
+fi
+
+# Copy Helm output to the temporary kustomize directory
+cp "${HELM_OUTPUT}" "${KUSTOMIZE_TEMP_DIR}/all.yaml"
 
 # Apply kustomize patches
-kubectl kustomize "${KUSTOMIZE_DIR}"
+kubectl kustomize "${KUSTOMIZE_TEMP_DIR}"
