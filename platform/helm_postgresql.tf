@@ -11,6 +11,12 @@ resource "helm_release" "postgresql" {
   wait             = false
 
   values = [<<-YAML
+    # Add common labels to make service selectors unique for AKS policy compliance
+    # This resolves K8sAzureV1UniqueServiceSelector violations between
+    # the regular service and headless service
+    commonLabels:
+      app.kubernetes.io/component: postgresql-primary
+
     global:
       storageClass: "managed-csi"
       # Allow ECR images (required for non-DockerHub Bitnami images)
