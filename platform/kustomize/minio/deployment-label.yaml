@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+spec:
+  template:
+    metadata:
+      labels:
+        # Add unique label to differentiate service selectors
+        # This label is added to main service selector but not console service
+        minio.service/variant: api

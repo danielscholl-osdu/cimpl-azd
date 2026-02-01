@@ -11,6 +11,12 @@ resource "helm_release" "minio" {
   timeout          = 600
   wait             = false
 
+  # Use postrender to inject health probes for AKS Automatic safeguards compliance
+  # The upstream chart doesn't support probe configuration via values
+  postrender {
+    binary_path = "${path.module}/postrender-minio.sh"
+  }
+
   values = [<<-YAML
     # Use standalone mode (single pod) for dev/test
     mode: standalone
@@ -44,22 +50,8 @@ resource "helm_release" "minio" {
         cpu: 1
         memory: 1Gi
 
-    # Health probes required by AKS Automatic safeguards
-    livenessProbe:
-      enabled: true
-      initialDelaySeconds: 30
-      periodSeconds: 10
-      timeoutSeconds: 5
-      failureThreshold: 3
-      successThreshold: 1
-
-    readinessProbe:
-      enabled: true
-      initialDelaySeconds: 10
-      periodSeconds: 5
-      timeoutSeconds: 5
-      failureThreshold: 3
-      successThreshold: 1
+    # Note: Health probes are injected via postrender script
+    # The upstream MinIO chart doesn't support probe configuration via values
 
     # Root credentials (DEMO ONLY - change for production)
     # TODO: Use secrets management (e.g., Azure Key Vault) for production
@@ -96,6 +88,14 @@ resource "helm_release" "minio" {
           - ALL
       seccompProfile:
         type: RuntimeDefault
+
+    # Disable post-install jobs that create users/buckets/policies
+    # These jobs require probes which AKS Automatic enforces but Helm hooks don't support
+    users: []
+    buckets: []
+    policies: []
+    svcaccts: []
+    customCommands: []
   YAML
   ]
 

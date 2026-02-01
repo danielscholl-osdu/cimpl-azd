@@ -78,18 +78,15 @@ if ($rbacElapsed -ge $rbacMaxWait) {
 Write-Host "`n[2/4] Checking cluster configuration..." -ForegroundColor Cyan
 
 # Detect AKS Automatic (safeguards cannot be modified)
-$clusterSkuOutput = az aks show -g $resourceGroup -n $clusterName --query "sku.name" -o tsv 2>&1
+# Note: Using 2>$null to discard stderr (aks-preview warnings) since we only need the SKU value
+$clusterSkuOutput = az aks show -g $resourceGroup -n $clusterName --query "sku.name" -o tsv 2>$null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "  ERROR: Failed to determine AKS cluster SKU via 'az aks show'." -ForegroundColor Red
-    if (-not [string]::IsNullOrEmpty($clusterSkuOutput)) {
-        Write-Host "  az aks show output:" -ForegroundColor Red
-        Write-Host "  $clusterSkuOutput" -ForegroundColor Red
-    }
     Write-Host "  Ensure you are logged in (az login), have access to the subscription, and the cluster exists." -ForegroundColor Red
     exit 1
 }
 
-$clusterSku = $clusterSkuOutput.Trim()
+$clusterSku = if ($clusterSkuOutput) { $clusterSkuOutput.Trim() } else { "" }
 if ([string]::IsNullOrEmpty($clusterSku)) {
     Write-Host "  ERROR: AKS cluster SKU was not returned by 'az aks show'." -ForegroundColor Red
     Write-Host "  Command succeeded but did not return a SKU name. Investigate cluster configuration and Azure CLI." -ForegroundColor Red
