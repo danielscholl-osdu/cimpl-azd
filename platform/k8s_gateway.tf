@@ -17,9 +17,35 @@ resource "kubectl_manifest" "gateway_api_crds" {
 resource "null_resource" "gateway_api_crds" {
   count = var.enable_gateway ? 1 : 0
 
-  provisioner "local-exec" {
-    command = "kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml"
+  triggers = {
+    gateway_api_version = "v1.2.1"
   }
+
+  provisioner "local-exec" {
+    command = "kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/${self.triggers.gateway_api_version}/standard-install.yaml"
+  }
+}
+
+# Wait for Gateway API CRDs to be fully established
+resource "null_resource" "gateway_api_crds_wait" {
+  count = var.enable_gateway ? 1 : 0
+
+  triggers = {
+    gateway_api_version = "v1.2.1"
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      kubectl wait --for condition=Established --timeout=120s \
+        crd/gatewayclasses.gateway.networking.k8s.io \
+        crd/gateways.gateway.networking.k8s.io \
+        crd/httproutes.gateway.networking.k8s.io \
+        crd/grpcroutes.gateway.networking.k8s.io \
+        crd/referencegrants.gateway.networking.k8s.io
+    EOT
+  }
+
+  depends_on = [null_resource.gateway_api_crds]
 }
 
 # Gateway for external HTTPS access (AKS-managed Istio)
@@ -60,7 +86,7 @@ resource "kubectl_manifest" "gateway" {
               from: All
   YAML
 
-  depends_on = [null_resource.gateway_api_crds]
+  depends_on = [null_resource.gateway_api_crds_wait]
 }
 
 # HTTPRoute for Kibana
@@ -118,6 +144,7 @@ resource "kubectl_manifest" "kibana_reference_grant" {
   YAML
 
   depends_on = [
+    null_resource.gateway_api_crds_wait,
     kubernetes_namespace.elastic_search,
     kubectl_manifest.kibana
   ]
