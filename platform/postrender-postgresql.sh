@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Helm postrender script to apply kustomize patches to PostgreSQL
 # This adds unique labels to differentiate service selectors for AKS policy compliance
 # (K8sAzureV1UniqueServiceSelector requires unique selectors per service)
@@ -6,13 +6,13 @@
 set -e
 
 # Verify kubectl is available
-if ! command -v kubectl &> /dev/null; then
+if ! command -v kubectl >/dev/null 2>&1; then
     echo "Error: kubectl is required but not found in PATH" >&2
     exit 1
 fi
 
 # Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 KUSTOMIZE_DIR="${SCRIPT_DIR}/kustomize/postgresql"
 
 # Verify kustomize directory exists
@@ -40,6 +40,17 @@ fi
 # Ensure we actually received some Helm output
 if [ ! -s "${HELM_OUTPUT}" ]; then
     echo "Error: no Helm output received on stdin" >&2
+    exit 1
+fi
+
+# Basic validation of Helm-rendered YAML to catch obvious issues early
+if ! grep -qE '^[[:space:]]*apiVersion:[[:space:]]+[A-Za-z0-9./-]+' "${HELM_OUTPUT}"; then
+    echo "Error: Helm output does not appear to contain valid Kubernetes resources (missing apiVersion)" >&2
+    exit 1
+fi
+
+if ! grep -qE '^[[:space:]]*kind:[[:space:]]+[A-Za-z0-9]+' "${HELM_OUTPUT}"; then
+    echo "Error: Helm output does not appear to contain valid Kubernetes resources (missing kind)" >&2
     exit 1
 fi
 

@@ -1,17 +1,17 @@
-#!/bin/bash
+#!/bin/sh
 # Helm postrender script to apply kustomize patches to MinIO
 # This allows injecting health probes for AKS Automatic safeguards compliance
 
 set -e
 
 # Verify kubectl is available
-if ! command -v kubectl &> /dev/null; then
+if ! command -v kubectl >/dev/null 2>&1; then
     echo "Error: kubectl is required but not found in PATH" >&2
     exit 1
 fi
 
 # Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 KUSTOMIZE_DIR="${SCRIPT_DIR}/kustomize/minio"
 
 # Verify kustomize directory exists
