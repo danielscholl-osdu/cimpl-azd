@@ -19,6 +19,13 @@ resource "helm_release" "cert_manager" {
     value = "true"
   }
 
+  # Disable startupapicheck - the post-install Job fails AKS Automatic safeguards
+  # which require probes on all containers (Jobs shouldn't have probes as they run to completion)
+  set {
+    name  = "startupapicheck.enabled"
+    value = "false"
+  }
+
   # Controller resources (AKS Automatic safeguards compliance)
   set {
     name  = "resources.requests.cpu"
@@ -79,7 +86,30 @@ resource "helm_release" "cert_manager" {
   }
 }
 
-# ClusterIssuer for Let's Encrypt
+# ClusterIssuer for Let's Encrypt Staging (for testing - has relaxed rate limits)
+resource "kubectl_manifest" "cluster_issuer_staging" {
+  count     = var.enable_cert_manager ? 1 : 0
+  yaml_body = <<-YAML
+    apiVersion: cert-manager.io/v1
+    kind: ClusterIssuer
+    metadata:
+      name: letsencrypt-staging
+    spec:
+      acme:
+        server: https://acme-staging-v02.api.letsencrypt.org/directory
+        email: ${var.acme_email}
+        privateKeySecretRef:
+          name: letsencrypt-staging
+        solvers:
+          - http01:
+              ingress:
+                class: istio
+  YAML
+
+  depends_on = [helm_release.cert_manager]
+}
+
+# ClusterIssuer for Let's Encrypt Production
 resource "kubectl_manifest" "cluster_issuer" {
   count     = var.enable_cert_manager ? 1 : 0
   yaml_body = <<-YAML
@@ -102,7 +132,11 @@ resource "kubectl_manifest" "cluster_issuer" {
   depends_on = [helm_release.cert_manager]
 }
 
-# Output the ClusterIssuer name for other resources
+# Output the ClusterIssuer names for other resources
 output "cluster_issuer_name" {
   value = var.enable_cert_manager ? "letsencrypt-prod" : ""
+}
+
+output "cluster_issuer_staging_name" {
+  value = var.enable_cert_manager ? "letsencrypt-staging" : ""
 }

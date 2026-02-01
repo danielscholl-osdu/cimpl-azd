@@ -10,12 +10,16 @@ resource "helm_release" "postgresql" {
   timeout          = 600
   wait             = false
 
+  # Use postrender to add unique labels to differentiate service selectors
+  # This resolves K8sAzureV1UniqueServiceSelector violations between
+  # the regular service and headless service
+  postrender {
+    binary_path = "${path.module}/postrender-postgresql.sh"
+  }
+
   values = [<<-YAML
-    # Add common labels to make service selectors unique for AKS policy compliance
-    # This resolves K8sAzureV1UniqueServiceSelector violations between
-    # the regular service and headless service
-    commonLabels:
-      app.kubernetes.io/component: postgresql-primary
+    # Note: Service selector uniqueness is handled by postrender
+    # which adds postgresql.service/variant label to pod and regular service
 
     global:
       storageClass: "managed-csi"

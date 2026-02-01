@@ -4,6 +4,12 @@
 
 set -e
 
+# Verify kubectl is available (kubectl kustomize is bundled with kubectl)
+if ! command -v kubectl >/dev/null 2>&1; then
+    echo "Error: kubectl is required but not found in PATH" >&2
+    exit 1
+fi
+
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 KUSTOMIZE_DIR="$SCRIPT_DIR/eck-operator"
@@ -33,5 +39,5 @@ EOF
 # Copy the patch file to the temp directory
 cp "$KUSTOMIZE_DIR/statefulset-probes.yaml" "$TEMP_DIR/"
 
-# Apply kustomize and output the result
-kustomize build "$TEMP_DIR"
+# Apply kustomize and output the result (using kubectl kustomize which is bundled with kubectl)
+kubectl kustomize "$TEMP_DIR"

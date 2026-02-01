@@ -5,7 +5,13 @@ resources:
   - all.yaml
 
 patches:
+  # Cainjector needs both liveness and readiness probes (chart has none)
   - path: cainjector-probes.yaml
     target:
       kind: Deployment
       name: cert-manager-cainjector
+  # Controller needs readinessProbe (chart only has livenessProbe)
+  - path: controller-probes.yaml
+    target:
+      kind: Deployment
+      name: cert-manager

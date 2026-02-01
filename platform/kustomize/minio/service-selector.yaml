@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+spec:
+  selector:
+    # Add unique label to make this service's selector different from console
+    # Both services still select the same pods, but selectors are now unique
+    minio.service/variant: api
