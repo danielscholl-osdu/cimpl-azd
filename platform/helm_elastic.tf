@@ -95,9 +95,45 @@ resource "kubectl_manifest" "elasticsearch" {
     spec:
       version: 8.15.2
       http:
+        # Configure HTTP service selector to be unique from other services
+        # Required for AKS Automatic UniqueServiceSelector safeguard compliance
+        service:
+          spec:
+            selector:
+              common.k8s.elastic.co/type: elasticsearch
+              elasticsearch.k8s.elastic.co/cluster-name: elasticsearch
+              elasticsearch.service/http: "true"
         tls:
           selfSignedCertificate:
             disabled: true
+      transport:
+        # Configure transport service selector to be unique from other services
+        # Required for AKS Automatic UniqueServiceSelector safeguard compliance
+        service:
+          spec:
+            selector:
+              common.k8s.elastic.co/type: elasticsearch
+              elasticsearch.k8s.elastic.co/cluster-name: elasticsearch
+              elasticsearch.service/transport: "true"
+      # ============================================================================
+      # IMPORTANT: UniqueServiceSelector Compliance Labels
+      # ============================================================================
+      # Each nodeSet MUST include these labels in podTemplate.metadata.labels:
+      #   - elasticsearch.service/http: "true"
+      #   - elasticsearch.service/transport: "true"
+      #
+      # These labels are referenced in THREE places that must stay in sync:
+      #   1. spec.http.service.spec.selector (above)
+      #   2. spec.transport.service.spec.selector (above)
+      #   3. nodeSets[*].podTemplate.metadata.labels (below, per nodeSet)
+      #
+      # If you add a new nodeSet without these labels, pods in that nodeSet will:
+      #   - NOT be reachable via elasticsearch-es-http service
+      #   - NOT be reachable via elasticsearch-es-transport service
+      #   - Potentially fail to join the cluster properly
+      #
+      # Verify after changes: kubectl get svc -n elastic-search -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.selector}{"\n"}{end}'
+      # ============================================================================
       nodeSets:
         - name: default
           count: 3
@@ -115,6 +151,12 @@ resource "kubectl_manifest" "elasticsearch" {
             node.roles: ["master", "data", "ingest"]
             node.store.allow_mmap: false
           podTemplate:
+            metadata:
+              labels:
+                # Unique labels for service selector differentiation
+                # Each service has its own label for UniqueServiceSelector compliance
+                elasticsearch.service/http: "true"
+                elasticsearch.service/transport: "true"
             spec:
               # fsGroup ensures the mounted PVC is writable by elasticsearch user (UID 1000)
               securityContext:

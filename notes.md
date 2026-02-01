@@ -183,30 +183,47 @@ FATAL: database files are incompatible with server
 
 ---
 
-### Issue 7: MinIO and PostgreSQL Service Selector Violations (RESOLVED)
+### Issue 7: Service Selector Violations - MinIO, PostgreSQL, Elasticsearch (RESOLVED)
 
-**Problem**: MinIO and PostgreSQL Bitnami Helm charts create multiple services with the same selector, violating AKS Automatic's `K8sAzureV1UniqueServiceSelector` policy.
-
-**Specific Issues**:
+**Problem**: Multiple services with the same selector violate AKS Automatic's `K8sAzureV1UniqueServiceSelector` policy. This affects:
 - MinIO: Both `minio` and `minio-console` services had the same pod selector
 - PostgreSQL: Both `postgresql` and `postgresql-hl` (headless) services had the same selector
+- Elasticsearch: Both `elasticsearch-es-http` and `elasticsearch-es-transport` services had the same selector
 
 **Error Messages**:
 ```
 admission webhook "validation.gatekeeper.sh" denied the request: [azurepolicy-k8sazurev1uniqueserviceselecto-...] same selector as service <minio-console> in namespace <minio>
 admission webhook "validation.gatekeeper.sh" denied the request: [azurepolicy-k8sazurev1uniqueserviceselecto-...] same selector as service <postgresql> in namespace <postgresql>
+admission webhook "validation.gatekeeper.sh" denied the request: [azurepolicy-k8sazurev1uniqueserviceselecto-...] same selector as service <elasticsearch-es-transport> in namespace <elastic-search>
 ```
 
 **Resolution**:
-Added `commonLabels` configuration to both Helm charts in `platform/` directory:
-- **MinIO**: Added `app.kubernetes.io/component: minio-server` via `commonLabels`
-- **PostgreSQL**: Added `app.kubernetes.io/component: postgresql-primary` via `commonLabels`
 
-These labels are applied to all resources (pods, services, StatefulSets) created by the charts, making service selectors unique and compliant with AKS policy while following Kubernetes best practices for standard labels.
+**MinIO**: Added `commonLabels` in Helm values (`platform/helm_minio.tf`):
+- Added `app.kubernetes.io/component: minio-server` via `commonLabels`
+- This makes the main `minio` service selector unique from `minio-console`
+
+**PostgreSQL**: Used Helm postrender with kustomize patches (`platform/postrender-postgresql.sh`):
+- Added `postgresql.service/variant: primary` label to StatefulSet pods via `platform/kustomize/postgresql/statefulset-label.yaml`
+- Added same label to regular service selector via `platform/kustomize/postgresql/service-selector.yaml`
+- Headless service (`postgresql-hl`) keeps default selector
+
+**Elasticsearch**: Configured ECK's native service selector overrides in `platform/helm_elastic.tf`:
+- Added `elasticsearch.service/http: "true"` and `elasticsearch.service/transport: "true"` labels to ES pods via `nodeSets[].podTemplate.metadata.labels`
+- Configured `spec.http.service.spec.selector` to require `elasticsearch.service/http: "true"`
+- Configured `spec.transport.service.spec.selector` to require `elasticsearch.service/transport: "true"`
+- Internal-HTTP and Default (StatefulSet headless) services use default selectors (automatically unique)
+- All services still route to the same pods, but selectors are now unique
+- **Note**: When adding new nodeSets, each must include both labels for service connectivity
+
+This approach uses ECK's documented service customization capabilities rather than external kustomize patches.
+
+**Verification** (run after ECK upgrades): `kubectl get svc -n elastic-search -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.selector}{"\n"}{end}'`
 
 **References**:
 - [Kubernetes Common Labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/)
-- Related to issues #8 and #11
+- [ECK HTTP Service Settings](https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-http-settings-tls-sans.html)
+- Related to issues #8, #11, and #29
 
 ---
 

@@ -209,6 +209,23 @@ The ECK operator Helm chart does not expose probe configuration, which is requir
 - Kustomize patch: `platform/kustomize/eck-operator/statefulset-probes.yaml`
 - Automatically applied during `helm install` via `postrender` block in Terraform
 
+**Unique Service Selector Workaround**:
+ECK creates multiple services (`elasticsearch-es-http`, `elasticsearch-es-transport`, `elasticsearch-es-internal-http`, `elasticsearch-es-default`) that can have overlapping selectors, violating AKS Automatic's `K8sAzureV1UniqueServiceSelector` policy. We use ECK's native service selector overrides to differentiate them:
+
+- Pod labels: `elasticsearch.service/http: "true"` and `elasticsearch.service/transport: "true"` added to all ES pods
+- HTTP service: configured via `spec.http.service.spec.selector` to require `elasticsearch.service/http: "true"`
+- Transport service: configured via `spec.transport.service.spec.selector` to require `elasticsearch.service/transport: "true"`
+- Internal-HTTP and Default services: use default selectors (automatically unique due to other label differences)
+
+This is configured directly in the Elasticsearch CR in `platform/helm_elastic.tf` using ECK's documented service customization capabilities. See [ECK HTTP Service Settings](https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-http-settings-tls-sans.html) and [ECK Transport Settings](https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-transport-settings.html).
+
+**Important**: When adding new nodeSets, each must include both `elasticsearch.service/http: "true"` and `elasticsearch.service/transport: "true"` labels in its podTemplate.
+
+**Verification**: After ECK upgrades or configuration changes, verify all service selectors remain unique:
+```bash
+kubectl get svc -n elastic-search -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.selector}{"\n"}{end}'
+```
+
 ### PostgreSQL
 
 Bitnami PostgreSQL chart deployed in standalone mode.
