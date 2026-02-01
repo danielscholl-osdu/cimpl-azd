@@ -251,36 +251,40 @@ else {
     }
 }
 
-# Step 4: Verify exclusions (for standard AKS) or just Gatekeeper readiness (for AKS Automatic)
+# Step 4: Verify exclusions (for standard AKS) or skip for AKS Automatic
 Write-Host "`n[4/4] Final verification..." -ForegroundColor Cyan
-
-$targetNamespaces = @("elastic-search", "postgresql", "minio", "cert-manager", "elastic-system")
-
-# Ensure namespaces exist (create if needed - this is allowed regardless of policies)
-foreach ($ns in $targetNamespaces) {
-    $nsExists = kubectl get namespace $ns --no-headers 2>$null
-    if ([string]::IsNullOrEmpty($nsExists)) {
-        Write-Host "  Creating namespace: $ns" -ForegroundColor Gray
-        $nsResult = kubectl create namespace $ns 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  ERROR: Failed to create namespace $ns" -ForegroundColor Red
-            Write-Host "        $nsResult" -ForegroundColor Gray
-            exit 1
-        }
-    }
-}
 
 if ($isAutomatic) {
     # AKS Automatic: Skip exclusion dry-run testing - exclusions don't work
     # Workloads must be compliant with Deployment Safeguards
+    # NOTE: Do NOT create namespaces here - let Terraform manage them in Phase 2
+    # This avoids "namespace already exists" conflicts during terraform apply
     Write-Host "  AKS Automatic detected - skipping exclusion dry-run test" -ForegroundColor Yellow
     Write-Host "  All workloads must be compliant with Deployment Safeguards" -ForegroundColor Yellow
-    Write-Host "  Namespaces created successfully" -ForegroundColor Green
+    Write-Host "  Namespaces will be created by Terraform in Phase 2" -ForegroundColor Green
 }
 else {
     # Standard AKS: Verify exclusions are effective via server-side dry-run
     # Instead of checking constraint enforcement modes (which may not reflect exclusions),
     # we test actual admission behavior by dry-running a non-compliant workload
+
+    # For Standard AKS, we need to create namespaces for the dry-run test
+    # These will be managed by Terraform later, but we need them for testing exclusions
+    $targetNamespaces = @("elastic-search", "postgresql", "minio", "cert-manager", "elastic-system")
+
+    foreach ($ns in $targetNamespaces) {
+        $nsExists = kubectl get namespace $ns --no-headers 2>$null
+        if ([string]::IsNullOrEmpty($nsExists)) {
+            Write-Host "  Creating namespace: $ns" -ForegroundColor Gray
+            $nsResult = kubectl create namespace $ns 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "  ERROR: Failed to create namespace $ns" -ForegroundColor Red
+                Write-Host "        $nsResult" -ForegroundColor Gray
+                exit 1
+            }
+        }
+    }
+
     Write-Host "  Verifying namespace exclusions via dry-run..." -ForegroundColor Gray
 
     # Deployment that triggers multiple policies:
