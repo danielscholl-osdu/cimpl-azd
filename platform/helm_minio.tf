@@ -98,9 +98,4 @@ resource "helm_release" "minio" {
     customCommands: []
   YAML
   ]
-
-  # Ignore changes for imported resources to avoid safeguards conflicts
-  lifecycle {
-    ignore_changes = all
-  }
 }
