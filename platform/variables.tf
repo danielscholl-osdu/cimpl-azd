@@ -60,6 +60,24 @@ variable "enable_gateway" {
   default     = true
 }
 
+# Platform credentials
+variable "postgresql_password" {
+  description = "PostgreSQL admin password"
+  type        = string
+  sensitive   = true
+}
+
+variable "minio_root_user" {
+  description = "MinIO root username"
+  type        = string
+}
+
+variable "minio_root_password" {
+  description = "MinIO root password"
+  type        = string
+  sensitive   = true
+}
+
 # Tags
 variable "tags" {
   description = "Tags to apply to resources"

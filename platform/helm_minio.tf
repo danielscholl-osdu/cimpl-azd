@@ -55,8 +55,8 @@ resource "helm_release" "minio" {
 
     # Root credentials (DEMO ONLY - change for production)
     # TODO: Use secrets management (e.g., Azure Key Vault) for production
-    rootUser: "admin"
-    rootPassword: "adminpassword"
+    rootUser: "${var.minio_root_user}"
+    rootPassword: "${var.minio_root_password}"
 
     # Console service (MinIO web UI)
     consoleService:
