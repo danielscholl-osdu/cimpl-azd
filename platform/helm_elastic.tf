@@ -56,6 +56,24 @@ resource "kubernetes_namespace" "elastic_search" {
 
 }
 
+# Istio STRICT mTLS for Elasticsearch namespace
+resource "kubectl_manifest" "elasticsearch_peer_authentication" {
+  count = var.enable_elasticsearch ? 1 : 0
+
+  yaml_body = <<-EOF
+    apiVersion: security.istio.io/v1
+    kind: PeerAuthentication
+    metadata:
+      name: elasticsearch-strict-mtls
+      namespace: elastic-search
+    spec:
+      mtls:
+        mode: STRICT
+  EOF
+
+  depends_on = [kubernetes_namespace.elastic_search]
+}
+
 # Custom StorageClass for Elasticsearch (Premium LRS with Retain policy)
 # IMPORTANT: Uses Azure Managed Disks via disk.csi.azure.com - KEYLESS by design
 # Managed Disks use the AKS cluster's managed identity, NOT storage account keys
