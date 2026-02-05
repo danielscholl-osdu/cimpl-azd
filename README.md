@@ -199,6 +199,9 @@ cimpl-azd/
 | `AZURE_CONTACT_EMAIL` | Yes | Contact email for resource tagging |
 | `TF_VAR_acme_email` | Yes | Email for Let's Encrypt certificates |
 | `TF_VAR_kibana_hostname` | Yes | Hostname for Kibana external access |
+| `TF_VAR_postgresql_password` | No | PostgreSQL admin password (auto-generated if not set) |
+| `TF_VAR_minio_root_user` | No | MinIO root username (default: minioadmin) |
+| `TF_VAR_minio_root_password` | No | MinIO root password (auto-generated if not set) |
 | `AZURE_LOCATION` | No | Azure region (default: eastus2) |
 
 ### AKS Cluster Specifications
@@ -226,7 +229,7 @@ cimpl-azd/
 
 ### Common Issues
 
-1. **Safeguards blocking deployments**: Wait 5 minutes after cluster creation or re-run post-provision script
+1. **Safeguards blocking deployments**: The two-phase behavioral gate in post-provision handles Gatekeeper reconciliation automatically. If it times out, re-run `azd provision` to retry the gate and platform deployment
 2. **RBAC permission denied**: Grant "Azure Kubernetes Service RBAC Cluster Admin" role to your user
 3. **Helm timeout**: Increase timeout or verify node pool capacity
 

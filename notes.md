@@ -18,6 +18,18 @@ This document tracks known issues, workarounds, and areas requiring improvement.
 
 ---
 
+## Recent Changes
+
+The following improvements were completed in the latest sprint:
+
+- **kubectl pre-provision check** (PR #35): kubectl is now validated during pre-provision with minimum version 1.28.0
+- **Gateway API CRDs Terraform-managed** (PR for Issue #2): CRDs are now managed via `kubectl_manifest` with `for_each` instead of `local-exec` scripts, pinned at `platform/crds/gateway-api-v1.2.1.yaml`
+- **Istio STRICT mTLS for Elasticsearch** (PR #34): PeerAuthentication enforces STRICT mTLS in the `elastic-search` namespace
+- **Credentials externalized** (PR #36): PostgreSQL and MinIO credentials are now configurable via Terraform variables (`TF_VAR_postgresql_password`, `TF_VAR_minio_root_user`, `TF_VAR_minio_root_password`)
+- **`ignore_changes = all` removed** (PR #37): Lifecycle blocks removed from all four Helm releases (elastic, postgresql, minio, cert_manager), enabling proper Terraform drift detection
+
+---
+
 ## Known Issues
 
 ### Issue 1: AKS Automatic Deployment Safeguards (CRITICAL)
@@ -150,7 +162,7 @@ FATAL: database files are incompatible with server
 - Pin image tag to match existing data version (currently PostgreSQL 18)
 
 **Proposed Fix**:
-- Use `lifecycle { ignore_changes = all }` to prevent accidental upgrades
+- Pin image tag to match data version (currently done)
 - Document upgrade procedures requiring data migration
 
 ---
@@ -232,7 +244,7 @@ This approach uses ECK's documented service customization capabilities rather th
 ### Priority 1 - Reliability
 - [ ] Add retry logic with exponential backoff for Helm deployments
 - [ ] Add RBAC role assignment to infra layer
-- [ ] Add safeguards wait/verification before platform deployment
+- [x] Add safeguards wait/verification before platform deployment (two-phase behavioral gate)
 - [ ] Implement health check gates between layers
 
 ### Priority 2 - User Experience
@@ -248,10 +260,11 @@ This approach uses ECK's documented service customization capabilities rather th
 - [ ] Implement GitOps workflow option
 
 ### Priority 4 - Security
-- [ ] Externalize PostgreSQL password to Key Vault
-- [ ] Externalize MinIO credentials to Key Vault
+- [x] Externalize PostgreSQL password to Terraform variable (PR #36)
+- [x] Externalize MinIO credentials to Terraform variables (PR #36)
+- [ ] Externalize credentials to Azure Key Vault for production
 - [ ] Add network policies for namespace isolation
-- [ ] Configure pod-to-pod mTLS
+- [x] Configure pod-to-pod mTLS (Istio STRICT mTLS for Elasticsearch, PR #34)
 
 ---
 
@@ -287,7 +300,10 @@ TF_VAR_kibana_hostname=kibana.yourdomain.com
 
 Optional:
 ```
-AZURE_LOCATION=eastus2  # Default region
+AZURE_LOCATION=eastus2                    # Default region
+TF_VAR_postgresql_password=<password>     # PostgreSQL admin password (auto-generated if not set)
+TF_VAR_minio_root_user=<username>         # MinIO root user (default: minioadmin)
+TF_VAR_minio_root_password=<password>     # MinIO root password (auto-generated if not set)
 ```
 
 ---
@@ -316,6 +332,6 @@ kubectl get pods -n minio
 # Get Elasticsearch password
 kubectl get secret elasticsearch-es-elastic-user -n elastic-search -o jsonpath='{.data.elastic}' | base64 -d
 
-# Reconfigure safeguards manually
-az aks update -g <rg> -n <cluster> --safeguards-level Warning --safeguards-excluded-ns "elastic-system,elastic-search,cert-manager,aks-istio-ingress,postgresql,minio"
+# Reconfigure safeguards manually (space-separated namespaces)
+az aks safeguards update -g <rg> -n <cluster> --level Warn --excluded-ns elastic-system elastic-search cert-manager aks-istio-ingress postgresql minio
 ```
