@@ -9,7 +9,8 @@ Write-Host "=== Pre-Provision Validation ===" -ForegroundColor Cyan
 $requiredTools = @(
     @{Name = "terraform"; MinVersion = "1.5.0"; VersionCmd = 'terraform version -json | ConvertFrom-Json | Select-Object -ExpandProperty terraform_version' },
     @{Name = "az"; MinVersion = "2.50.0"; VersionCmd = '(az version | ConvertFrom-Json)."azure-cli"' },
-    @{Name = "kubelogin"; MinVersion = "0.0.0"; VersionCmd = 'kubelogin --version 2>&1 | Select-String -Pattern "v[\d\.]+" | ForEach-Object { $_.Matches[0].Value -replace "v","" }' }
+    @{Name = "kubelogin"; MinVersion = "0.0.0"; VersionCmd = 'kubelogin --version 2>&1 | Select-String -Pattern "v[\d\.]+" | ForEach-Object { $_.Matches[0].Value -replace "v","" }' },
+    @{Name = "kubectl"; MinVersion = "1.28.0"; VersionCmd = '(kubectl version --client -o json | ConvertFrom-Json).clientVersion.gitVersion -replace "v",""'; InstallHint = "Install kubectl: https://kubernetes.io/docs/tasks/tools/" }
 )
 
 $allPassed = $true
@@ -20,7 +21,11 @@ foreach ($tool in $requiredTools) {
     $cmd = Get-Command $tool.Name -ErrorAction SilentlyContinue
     if (-not $cmd) {
         Write-Host " NOT FOUND" -ForegroundColor Red
-        Write-Host "  Please install $($tool.Name)" -ForegroundColor Yellow
+        if ($tool.InstallHint) {
+            Write-Host "  $($tool.InstallHint)" -ForegroundColor Yellow
+        } else {
+            Write-Host "  Please install $($tool.Name)" -ForegroundColor Yellow
+        }
         $allPassed = $false
         continue
     }
