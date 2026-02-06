@@ -60,7 +60,7 @@ resource "kubernetes_namespace" "elastic_search" {
 resource "kubectl_manifest" "elasticsearch_peer_authentication" {
   count = var.enable_elasticsearch ? 1 : 0
 
-  yaml_body = <<-EOF
+  yaml_body = <<-YAML
     apiVersion: security.istio.io/v1
     kind: PeerAuthentication
     metadata:
@@ -69,7 +69,7 @@ resource "kubectl_manifest" "elasticsearch_peer_authentication" {
     spec:
       mtls:
         mode: STRICT
-  EOF
+  YAML
 
   depends_on = [kubernetes_namespace.elastic_search]
 }

@@ -9,11 +9,11 @@ locals {
 }
 
 resource "kubectl_manifest" "gateway_api_crds" {
-  for_each = var.enable_gateway ? { for idx, doc in local.gateway_api_crds : idx => doc } : {}
+  for_each = var.enable_gateway ? { for doc in local.gateway_api_crds : yamldecode(doc).metadata.name => doc } : {}
 
-  yaml_body = each.value
-
-  depends_on = [module.aks]
+  yaml_body         = each.value
+  wait              = true
+  server_side_apply = true
 }
 
 # Gateway for external HTTPS access (AKS-managed Istio)
