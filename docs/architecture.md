@@ -2,6 +2,13 @@
 
 This document describes the architecture and design decisions for the CIMPL AKS deployment.
 
+## Architecture Diagrams
+
+Detailed visual diagrams are available in Excalidraw format:
+
+- **[Functional Architecture](diagrams/functional-architecture.excalidraw)** — Layered view of ingress, platform services, and persistence
+- **[Zone Topology](diagrams/zone-topology.excalidraw)** — Node pool distribution across availability zones
+
 ## High-Level Architecture
 
 ```
@@ -14,20 +21,20 @@ This document describes the architecture and design decisions for the CIMPL AKS 
 │  │  │                 AKS Automatic: cimpl-<env>                        │ │  │
 │  │  │                                                                   │ │  │
 │  │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │ │  │
-│  │  │  │   System    │  │   Default   │  │       Elastic           │  │ │  │
+│  │  │  │   System    │  │   Default   │  │      Stateful           │  │ │  │
 │  │  │  │  Node Pool  │  │  Node Pool  │  │      Node Pool          │  │ │  │
 │  │  │  │  (2 nodes)  │  │  (auto)     │  │      (3 nodes)          │  │ │  │
 │  │  │  │             │  │             │  │                         │  │ │  │
 │  │  │  │ - Istio     │  │ - MinIO     │  │ - Elasticsearch (3)     │  │ │  │
-│  │  │  │ - CoreDNS   │  │ - PostgreSQL│  │ - Kibana (1)            │  │ │  │
-│  │  │  │ - Gateway   │  │ - cert-mgr  │  │                         │  │ │  │
+│  │  │  │ - CoreDNS   │  │ - cert-mgr  │  │ - PostgreSQL HA (3)     │  │ │  │
+│  │  │  │ - Gateway   │  │             │  │ - Kibana (1)            │  │ │  │
 │  │  │  └─────────────┘  └─────────────┘  └─────────────────────────┘  │ │  │
 │  │  │                                                                   │ │  │
 │  │  │  ┌──────────────────────────────────────────────────────────────┐│ │  │
 │  │  │  │                    Istio Service Mesh                        ││ │  │
 │  │  │  │                                                               ││ │  │
-│  │  │  │   Internet ──► Ingress Gateway ──► VirtualService ──► Pods   ││ │  │
-│  │  │  │              (External LB)                                    ││ │  │
+│  │  │  │   Internet ──► Ingress Gateway ──► HTTPRoute ──► Pods        ││ │  │
+│  │  │  │              (External LB)        (Gateway API)              ││ │  │
 │  │  │  └──────────────────────────────────────────────────────────────┘│ │  │
 │  │  └──────────────────────────────────────────────────────────────────┘ │  │
 │  └───────────────────────────────────────────────────────────────────────┘  │
@@ -46,7 +53,7 @@ The deployment is split into three distinct layers, each with its own terraform 
 - Azure Resource Group with tags
 - AKS Automatic cluster
 - System node pool (critical workloads)
-- Elastic node pool (tainted for ES)
+- Stateful node pool (tainted for ES + PostgreSQL)
 - Istio service mesh (AKS-managed)
 - Azure RBAC integration
 - Workload Identity support
@@ -56,6 +63,8 @@ The deployment is split into three distinct layers, each with its own terraform 
 ```
 azurerm_resource_group.main
 module.aks (Azure Verified Module)
+azurerm_role_assignment.aks_cluster_admin
+azurerm_resource_policy_exemption.cnpg_probe_exemption
 ```
 
 **Key Configuration**:
@@ -72,10 +81,10 @@ service_mesh_profile = { mode = "Istio" }
 **Components**:
 - cert-manager with Let's Encrypt ClusterIssuer
 - ECK Operator + Elasticsearch + Kibana
-- PostgreSQL (Bitnami Helm chart)
-- MinIO (Bitnami Helm chart)
-- Istio Gateway configuration
-- Custom StorageClass for Elasticsearch
+- CloudNativePG (CNPG) Operator + 3-instance HA PostgreSQL cluster
+- MinIO (standalone, S3-compatible object storage)
+- Gateway API configuration (Istio)
+- Custom StorageClasses for Elasticsearch and PostgreSQL
 
 **Terraform Resources**:
 ```
@@ -84,7 +93,13 @@ helm_release.elastic_operator
 kubectl_manifest.elasticsearch
 kubectl_manifest.elasticsearch_peer_authentication
 kubectl_manifest.kibana
-helm_release.postgresql
+helm_release.cnpg_operator
+kubectl_manifest.postgresql_cluster
+kubectl_manifest.postgresql_peer_authentication
+kubectl_manifest.pg_storage_class
+kubernetes_secret.postgresql_superuser
+kubernetes_secret.postgresql_user
+kubernetes_namespace.postgresql
 helm_release.minio
 kubectl_manifest.gateway_api_crds (for_each)
 kubectl_manifest.gateway
@@ -119,8 +134,8 @@ AKS Automatic provides:
 | Pool | Purpose | VM Size | Count | Taints |
 |------|---------|---------|-------|--------|
 | system | Critical system components | Standard_D4lds_v5 | 2 | CriticalAddonsOnly |
-| default | General workloads | Auto-provisioned | Auto | None |
-| elastic | Elasticsearch cluster | Standard_D4as_v5 | 3 | app=elasticsearch:NoSchedule |
+| default | General workloads (MinIO) | Auto-provisioned | Auto | None |
+| stateful | Elasticsearch + PostgreSQL | Standard_D4as_v5 | 3 | workload=stateful:NoSchedule |
 
 ### Network Configuration
 
@@ -230,25 +245,59 @@ This is configured directly in the Elasticsearch CR in `platform/helm_elastic.tf
 kubectl get svc -n elastic-search -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.selector}{"\n"}{end}'
 ```
 
-### PostgreSQL
+### PostgreSQL (CloudNativePG)
 
-Bitnami PostgreSQL chart deployed in standalone mode.
+3-instance HA PostgreSQL cluster managed by the CloudNativePG (CNPG) operator with synchronous replication.
+
+**Architecture**: 1 primary (read-write) + 2 sync replicas (read-only), spread across 3 availability zones.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    PostgreSQL Cluster (CNPG)                      │
+│                                                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │  Instance 1   │  │  Instance 2   │  │  Instance 3   │          │
+│  │  PRIMARY      │──►  REPLICA      │  │  REPLICA      │          │
+│  │  (read-write) │  │  (read-only) │  │  (read-only) │          │
+│  │              │──────────────────►│              │          │
+│  │  8Gi + 4Gi   │  │  8Gi + 4Gi   │  │  8Gi + 4Gi   │          │
+│  │  (data+WAL)  │  │  (data+WAL)  │  │  (data+WAL)  │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+│       Zone 1             Zone 2             Zone 3              │
+│                                                                  │
+│  ┌────────────────────┐  ┌────────────────────────┐             │
+│  │ postgresql-rw :5432│  │ postgresql-ro :5432     │             │
+│  │ (primary service)  │  │ (read-only replicas)   │             │
+│  └────────────────────┘  └────────────────────────┘             │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 **Configuration**:
-- Image: `public.ecr.aws/bitnami/postgresql:18`
-- Storage: 8Gi managed-csi PVC
-- Database: `osdu`
-- Connection: `postgresql.postgresql.svc.cluster.local:5432`
+- Operator: CNPG chart `cloudnative-pg` v0.23.0 (namespace: `cnpg-system`)
+- Instances: 3 (synchronous quorum replication: `minSyncReplicas: 1, maxSyncReplicas: 1`)
+- Replication slots: HA enabled
+- Database: `osdu` (owner: `osdu`)
+- Storage: 8Gi data + 4Gi WAL per instance on `pg-storageclass` (Premium_LRS, Retain)
+- Read-write: `postgresql-rw.postgresql.svc.cluster.local:5432`
+- Read-only: `postgresql-ro.postgresql.svc.cluster.local:5432`
+- Node affinity: `agentpool=stateful` with `workload=stateful:NoSchedule` toleration
+- Zone topology: `DoNotSchedule` for zone spread, `ScheduleAnyway` for host spread
+- Istio STRICT mTLS via `PeerAuthentication` in postgresql namespace
+
+**CNPG Probe Exemption**: CNPG creates short-lived initdb/join Jobs that cannot have health probes. AKS Automatic's `K8sAzureV2ContainerEnforceProbes` policy blocks these Jobs. An Azure Policy Exemption (`azurerm_resource_policy_exemption.cnpg_probe_exemption`) is configured in `infra/aks.tf` to waive the probe requirement for CNPG Jobs.
 
 ### MinIO
 
-Bitnami MinIO chart for S3-compatible object storage.
+MinIO standalone instance for S3-compatible object storage (dev/test).
 
 **Configuration**:
+- Chart: `minio/minio` v5.4.0
+- Mode: standalone (single pod)
 - Storage: 10Gi managed-csi PVC
 - API Port: 9000
 - Console Port: 9001
 - Connection: `minio.minio.svc.cluster.local:9000`
+- Runs on default (auto-provisioned) node pool
 
 ### cert-manager
 
@@ -302,28 +351,32 @@ Gatekeeper policies enforcing:
 
 **Mode**: Warning (violations logged, not blocked)
 
-**Excluded Namespaces** (configured in `scripts/post-provision.ps1`):
+**Excluded Namespaces** (configured in `scripts/ensure-safeguards.ps1`):
 - kube-system (Kubernetes system)
 - gatekeeper-system (Policy controller)
 - elastic-system (ECK operator)
 - elastic-search (Elasticsearch/Kibana)
+- cnpg-system (CNPG operator)
 - cert-manager (TLS certificates)
 - aks-istio-ingress (Istio ingress)
 - postgresql (Database)
 - minio (Object storage)
 
-### Istio STRICT mTLS for Elasticsearch
+**Azure Policy Exemption**: CNPG operator Jobs (initdb, join) are short-lived and cannot have health probes. An Azure Policy Exemption for `ensureProbesConfiguredInKubernetesCluster` is applied at the cluster level in `infra/aks.tf`.
 
-The Elasticsearch namespace (`elastic-search`) has Istio STRICT mTLS enforced via a `PeerAuthentication` resource. This ensures all pod-to-pod traffic within the namespace is encrypted at the mesh layer, even though ECK's self-signed TLS is disabled at the application layer (`http.tls.selfSignedCertificate.disabled: true`). Istio handles encryption transparently via sidecar proxies.
+### Istio STRICT mTLS
 
-The `PeerAuthentication` resource is managed in `platform/helm_elastic.tf` alongside other Elasticsearch resources.
+Both the Elasticsearch (`elastic-search`) and PostgreSQL (`postgresql`) namespaces have Istio STRICT mTLS enforced via `PeerAuthentication` resources. This ensures all pod-to-pod traffic within each namespace is encrypted at the mesh layer, even though application-level TLS is disabled (ECK's `selfSignedCertificate.disabled: true`). Istio handles encryption transparently via sidecar proxies.
+
+- Elasticsearch: `PeerAuthentication` managed in `platform/helm_elastic.tf`
+- PostgreSQL: `PeerAuthentication` managed in `platform/helm_cnpg.tf`
 
 ### Network Security
 
 - **Azure CNI Overlay**: Pod IPs in overlay network
 - **Cilium**: Network policy enforcement
 - **Managed NAT Gateway**: Outbound traffic via dedicated NAT
-- **Istio mTLS**: STRICT mode enforced for Elasticsearch namespace; PERMISSIVE (default) for other namespaces
+- **Istio mTLS**: STRICT mode enforced for Elasticsearch and PostgreSQL namespaces; PERMISSIVE (default) for other namespaces
 
 ---
 
@@ -342,8 +395,11 @@ The `PeerAuthentication` resource is managed in `platform/helm_elastic.tf` along
 ### Internal Service Communication
 
 ```
-PostgreSQL Client:
-  Pod ──► postgresql.postgresql.svc.cluster.local:5432 ──► PostgreSQL Pod
+PostgreSQL Client (read-write):
+  Pod ──► postgresql-rw.postgresql.svc.cluster.local:5432 ──► PG Primary
+
+PostgreSQL Client (read-only):
+  Pod ──► postgresql-ro.postgresql.svc.cluster.local:5432 ──► PG Replicas
 
 MinIO Client:
   Pod ──► minio.minio.svc.cluster.local:9000 ──► MinIO Pod
@@ -441,7 +497,7 @@ All resources follow the pattern: `<prefix>-<project>-<environment>`
 |----------|----------------|---------|
 | Resource Group | `rg-cimpl-<env>` | rg-cimpl-dev |
 | AKS Cluster | `cimpl-<env>` | cimpl-dev |
-| Node Pools | `system`, `elastic` | - |
+| Node Pools | `system`, `stateful` | - |
 | Namespaces | Descriptive | elastic-search, postgresql |
 
 ### Tagging Strategy
@@ -457,14 +513,21 @@ All Azure resources include:
 
 ### Elasticsearch
 
-- Horizontal: Add nodes to elastic pool (terraform variable)
+- Horizontal: Add nodes to stateful pool (terraform variable)
 - Vertical: Change VM size (requires node pool recreation)
 - Storage: Expandable via PVC (allowVolumeExpansion: true)
 
-### PostgreSQL / MinIO
+### PostgreSQL
 
-- Currently single-instance
-- Consider managed services (Azure Database for PostgreSQL, Azure Blob) for production
+- Horizontal: Increase CNPG cluster `instances` count (add read replicas)
+- Vertical: Adjust resource requests/limits in the Cluster CR
+- Storage: Expandable via PVC (allowVolumeExpansion: true on pg-storageclass)
+- Consider Azure Database for PostgreSQL Flexible Server for production
+
+### MinIO
+
+- Currently single-instance standalone mode
+- Consider Azure Blob Storage for production
 
 ### AKS Automatic
 
@@ -492,7 +555,8 @@ All Azure resources include:
 
 ### PVC Retention
 
-- Elasticsearch uses `reclaimPolicy: Retain`
+- Elasticsearch uses `reclaimPolicy: Retain` (es-storageclass)
+- PostgreSQL uses `reclaimPolicy: Retain` (pg-storageclass)
 - Data persists even if pods are deleted
 - Manual cleanup required after intentional deletion
 
@@ -501,9 +565,10 @@ All Azure resources include:
 ## Known Limitations
 
 1. **Single Region**: No multi-region deployment
-2. **No HA for PostgreSQL/MinIO**: Single instance deployments
+2. **No HA for MinIO**: Single instance standalone deployment
 3. **Manual DNS**: Requires external DNS configuration
 4. **Local Terraform State**: Consider remote state for team use
 5. **Safeguards Gate Timeout**: Phase 1 uses a behavioral gate that waits for Gatekeeper constraints to leave deny mode; if Azure Policy sync is slow, re-run `azd provision` to retry
+6. **CNPG Policy Exemption**: Azure Policy Exemption for probe enforcement is required for CNPG Jobs; this is a cluster-wide waiver for the specific probe policy
 
 See [notes.md](../notes.md) for detailed issue tracking.
