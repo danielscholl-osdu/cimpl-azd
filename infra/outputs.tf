@@ -36,3 +36,8 @@ output "cluster_name" {
   description = "Cluster name for platform layer"
   value       = module.aks.name
 }
+
+output "AZURE_SUBSCRIPTION_ID" {
+  description = "Azure subscription ID"
+  value       = data.azurerm_client_config.current.subscription_id
+}
