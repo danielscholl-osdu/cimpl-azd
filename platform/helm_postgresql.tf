@@ -83,7 +83,6 @@ resource "helm_release" "postgresql" {
   YAML
   ]
 
-  # Ignore changes for imported resources to avoid safeguards conflicts
   lifecycle {
     ignore_changes = all
   }

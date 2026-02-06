@@ -79,11 +79,6 @@ resource "helm_release" "cert_manager" {
     name  = "cainjector.resources.limits.memory"
     value = "256Mi"
   }
-
-  # Ignore changes for imported resources to avoid safeguards conflicts
-  lifecycle {
-    ignore_changes = all
-  }
 }
 
 # ============================================================================

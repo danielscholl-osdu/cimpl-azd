@@ -37,11 +37,6 @@ resource "helm_release" "elastic_operator" {
   postrender {
     binary_path = "${path.module}/kustomize/eck-operator-postrender.sh"
   }
-
-  # Ignore changes for imported resources to avoid safeguards conflicts
-  lifecycle {
-    ignore_changes = all
-  }
 }
 
 # Namespace for Elasticsearch
