@@ -82,4 +82,8 @@ resource "helm_release" "postgresql" {
       enabled: false
   YAML
   ]
+
+  lifecycle {
+    ignore_changes = all
+  }
 }

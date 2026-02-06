@@ -98,4 +98,8 @@ resource "helm_release" "minio" {
     customCommands: []
   YAML
   ]
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
