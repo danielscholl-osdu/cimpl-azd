@@ -55,7 +55,7 @@ else {
 
 # Verify required environment variables
 Write-Host "`nChecking environment variables..." -ForegroundColor Cyan
-$requiredEnvVars = @("TF_VAR_acme_email", "TF_VAR_kibana_hostname")
+$requiredEnvVars = @("TF_VAR_acme_email", "TF_VAR_kibana_hostname", "TF_VAR_postgresql_password", "TF_VAR_minio_root_user", "TF_VAR_minio_root_password")
 
 foreach ($envVar in $requiredEnvVars) {
     $value = [Environment]::GetEnvironmentVariable($envVar)

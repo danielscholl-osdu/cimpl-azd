@@ -74,7 +74,7 @@ resource "helm_release" "postgresql" {
     auth:
       # DEMO ONLY - change for production
       # TODO: Use secrets management (e.g., Azure Key Vault) for production
-      postgresPassword: "postgres"
+      postgresPassword: "${var.postgresql_password}"
       database: "osdu"
 
     # Metrics for observability
