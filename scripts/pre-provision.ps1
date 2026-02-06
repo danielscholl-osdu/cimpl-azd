@@ -79,7 +79,8 @@ $requiredProviders = @(
 
 foreach ($provider in $requiredProviders) {
     Write-Host "  $provider..." -NoNewline
-    $state = az provider show -n $provider --query "registrationState" -o tsv 2>$null
+    $stateRaw = az provider show -n $provider --query "registrationState" -o tsv 2>$null
+    $state = if ($stateRaw) { "$stateRaw".Trim() } else { "Unknown" }
     if ($state -eq "Registered") {
         Write-Host " Registered" -ForegroundColor Green
     }
