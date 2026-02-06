@@ -113,18 +113,18 @@ module "aks" {
     only_critical_addons_enabled = true
   }
 
-  # Elasticsearch Node Pool (tainted for ES workloads)
+  # Stateful Workload Node Pool (Elasticsearch, PostgreSQL, etc.)
   agent_pools = {
-    elastic = {
-      name               = "elastic"
+    stateful = {
+      name               = "stateful"
       vm_size            = "Standard_D4as_v5"
       count_of           = 3
       os_sku             = "AzureLinux"
       availability_zones = ["1", "2", "3"]
       node_labels = {
-        "app" = "elasticsearch"
+        "workload" = "stateful"
       }
-      node_taints = ["app=elasticsearch:NoSchedule"]
+      node_taints = ["workload=stateful:NoSchedule"]
     }
   }
 

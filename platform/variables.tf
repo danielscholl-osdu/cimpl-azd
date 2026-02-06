@@ -67,6 +67,12 @@ variable "postgresql_password" {
   sensitive   = true
 }
 
+variable "postgresql_username" {
+  description = "PostgreSQL application database owner username"
+  type        = string
+  default     = "osdu"
+}
+
 variable "minio_root_user" {
   description = "MinIO root username"
   type        = string
