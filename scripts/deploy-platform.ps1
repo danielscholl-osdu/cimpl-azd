@@ -18,13 +18,18 @@ $resourceGroup = $env:AZURE_RESOURCE_GROUP
 $clusterName = $env:AZURE_AKS_CLUSTER_NAME
 $subscriptionId = $env:AZURE_SUBSCRIPTION_ID
 
-if ([string]::IsNullOrEmpty($resourceGroup) -or [string]::IsNullOrEmpty($clusterName) -or [string]::IsNullOrEmpty($subscriptionId)) {
+if ([string]::IsNullOrEmpty($resourceGroup) -or [string]::IsNullOrEmpty($clusterName)) {
     Write-Host "Getting values from terraform outputs..." -ForegroundColor Gray
     Push-Location $PSScriptRoot/../infra
     if ([string]::IsNullOrEmpty($resourceGroup)) { $resourceGroup = terraform output -raw AZURE_RESOURCE_GROUP 2>$null }
     if ([string]::IsNullOrEmpty($clusterName)) { $clusterName = terraform output -raw AZURE_AKS_CLUSTER_NAME 2>$null }
     if ([string]::IsNullOrEmpty($subscriptionId)) { $subscriptionId = terraform output -raw AZURE_SUBSCRIPTION_ID 2>$null }
     Pop-Location
+}
+
+if ([string]::IsNullOrEmpty($subscriptionId)) {
+    Write-Host "Subscription ID not provided; falling back to current az account..." -ForegroundColor Gray
+    $subscriptionId = az account show --query id -o tsv 2>$null
 }
 
 if ([string]::IsNullOrEmpty($resourceGroup) -or [string]::IsNullOrEmpty($clusterName)) {
