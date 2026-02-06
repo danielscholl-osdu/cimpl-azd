@@ -63,6 +63,7 @@ foreach ($envVar in $requiredEnvVars) {
     if ([string]::IsNullOrEmpty($value)) {
         Write-Host " NOT SET" -ForegroundColor Yellow
         Write-Host "    Set with: `$env:$envVar = 'value'" -ForegroundColor Gray
+        $allPassed = $false
     }
     else {
         Write-Host " OK" -ForegroundColor Green
