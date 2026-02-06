@@ -82,12 +82,16 @@ service_mesh_profile = { mode = "Istio" }
 helm_release.cert_manager
 helm_release.elastic_operator
 kubectl_manifest.elasticsearch
+kubectl_manifest.elasticsearch_peer_authentication
 kubectl_manifest.kibana
 helm_release.postgresql
 helm_release.minio
+kubectl_manifest.gateway_api_crds (for_each)
 kubectl_manifest.gateway
 kubectl_manifest.http_route
 ```
+
+**Gateway API CRDs**: Gateway API Custom Resource Definitions are managed declaratively via Terraform `kubectl_manifest` resources using `for_each`, with the CRD file pinned at `platform/crds/gateway-api-v1.2.1.yaml`. This replaces the previous `local-exec` approach that used `kubectl apply` and `kubectl wait`, providing better state tracking and idempotent management.
 
 ### Layer 3: Services (`services/`) [Future]
 
@@ -308,12 +312,18 @@ Gatekeeper policies enforcing:
 - postgresql (Database)
 - minio (Object storage)
 
+### Istio STRICT mTLS for Elasticsearch
+
+The Elasticsearch namespace (`elastic-search`) has Istio STRICT mTLS enforced via a `PeerAuthentication` resource. This ensures all pod-to-pod traffic within the namespace is encrypted at the mesh layer, even though ECK's self-signed TLS is disabled at the application layer (`http.tls.selfSignedCertificate.disabled: true`). Istio handles encryption transparently via sidecar proxies.
+
+The `PeerAuthentication` resource is managed in `platform/helm_elastic.tf` alongside other Elasticsearch resources.
+
 ### Network Security
 
 - **Azure CNI Overlay**: Pod IPs in overlay network
 - **Cilium**: Network policy enforcement
 - **Managed NAT Gateway**: Outbound traffic via dedicated NAT
-- **Istio mTLS**: Service-to-service encryption (optional)
+- **Istio mTLS**: STRICT mode enforced for Elasticsearch namespace; PERMISSIVE (default) for other namespaces
 
 ---
 
@@ -494,6 +504,6 @@ All Azure resources include:
 2. **No HA for PostgreSQL/MinIO**: Single instance deployments
 3. **Manual DNS**: Requires external DNS configuration
 4. **Local Terraform State**: Consider remote state for team use
-5. **Safeguards Gate Timeout**: Phase 1 waits up to 5 minutes for Gatekeeper; if Azure Policy is slow, may need manual retry
+5. **Safeguards Gate Timeout**: Phase 1 uses a behavioral gate that waits for Gatekeeper constraints to leave deny mode; if Azure Policy sync is slow, re-run `azd provision` to retry
 
 See [notes.md](../notes.md) for detailed issue tracking.
