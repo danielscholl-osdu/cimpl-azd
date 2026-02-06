@@ -138,3 +138,17 @@ resource "azurerm_role_assignment" "aks_cluster_admin" {
   role_definition_name = "Azure Kubernetes Service RBAC Cluster Admin"
   principal_id         = data.azurerm_client_config.current.object_id
 }
+
+# Azure Policy Exemption: Probe enforcement for CNPG operator Jobs
+# CNPG creates short-lived initdb/join Jobs that cannot have health probes.
+# AKS Automatic enforces probes on all pods via deployment safeguards.
+# This exemption removes the probe constraint so CNPG Jobs can run.
+resource "azurerm_resource_policy_exemption" "cnpg_probe_exemption" {
+  name                            = "cnpg-probe-exemption"
+  resource_id                     = module.aks.resource_id
+  policy_assignment_id            = "${module.aks.resource_id}/providers/Microsoft.Authorization/policyAssignments/aks-deployment-safeguards-policy-assignment"
+  exemption_category              = "Waiver"
+  display_name                    = "CNPG operator Job probe exemption"
+  description                     = "CNPG operator creates short-lived initdb/join Jobs without probes. Jobs are one-shot tasks where probes are not meaningful."
+  policy_definition_reference_ids = ["ensureProbesConfiguredInKubernetesCluster"]
+}

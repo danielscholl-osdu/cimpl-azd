@@ -114,6 +114,7 @@ else {
         "elastic-search",
         "cert-manager",
         "aks-istio-ingress",
+        "cnpg-system",
         "postgresql",
         "minio"
     )
