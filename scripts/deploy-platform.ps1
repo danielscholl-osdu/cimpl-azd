@@ -11,14 +11,17 @@
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== Phase 2: Deploying Platform Layer ===" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "==================================================================" -ForegroundColor Cyan
+Write-Host "  Phase 2: Deploy Platform Layer"                                   -ForegroundColor Cyan
+Write-Host "==================================================================" -ForegroundColor Cyan
 
 # Get resource group and cluster name from terraform outputs or environment
 $resourceGroup = $env:AZURE_RESOURCE_GROUP
 $clusterName = $env:AZURE_AKS_CLUSTER_NAME
 
 if ([string]::IsNullOrEmpty($resourceGroup) -or [string]::IsNullOrEmpty($clusterName)) {
-    Write-Host "Getting values from terraform outputs..." -ForegroundColor Gray
+    Write-Host "  Getting values from terraform outputs..." -ForegroundColor Gray
     Push-Location $PSScriptRoot/../infra
     $resourceGroup = terraform output -raw AZURE_RESOURCE_GROUP 2>$null
     $clusterName = terraform output -raw AZURE_AKS_CLUSTER_NAME 2>$null
@@ -26,15 +29,19 @@ if ([string]::IsNullOrEmpty($resourceGroup) -or [string]::IsNullOrEmpty($cluster
 }
 
 if ([string]::IsNullOrEmpty($resourceGroup) -or [string]::IsNullOrEmpty($clusterName)) {
-    Write-Host "Could not determine resource group or cluster name" -ForegroundColor Red
+    Write-Host "  ERROR: Could not determine resource group or cluster name" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "Resource Group: $resourceGroup" -ForegroundColor Gray
-Write-Host "Cluster Name: $clusterName" -ForegroundColor Gray
+Write-Host "  Resource Group: $resourceGroup" -ForegroundColor Gray
+Write-Host "  Cluster: $clusterName" -ForegroundColor Gray
 
-# Step 1: Verify kubeconfig
-Write-Host "`n[1/3] Verifying cluster access..." -ForegroundColor Cyan
+#region Step 1: Verify kubeconfig
+Write-Host ""
+Write-Host "=================================================================="
+Write-Host "  [1/3] Verifying Cluster Access"
+Write-Host "=================================================================="
+
 $nodes = kubectl get nodes --no-headers 2>$null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "  Kubeconfig not configured, configuring now..." -ForegroundColor Yellow
@@ -45,9 +52,14 @@ if ($LASTEXITCODE -ne 0) {
 }
 $nodeCount = ($nodes -split "`n" | Where-Object { $_ }).Count
 Write-Host "  Cluster access verified ($nodeCount nodes)" -ForegroundColor Green
+#endregion
 
-# Step 2: Deploy platform layer
-Write-Host "`n[2/3] Deploying platform layer..." -ForegroundColor Cyan
+#region Step 2: Deploy platform layer
+Write-Host ""
+Write-Host "=================================================================="
+Write-Host "  [2/3] Deploying Platform Layer"
+Write-Host "=================================================================="
+
 Push-Location $PSScriptRoot/../platform
 
 # Initialize terraform if needed
@@ -55,7 +67,7 @@ if (-not (Test-Path ".terraform")) {
     Write-Host "  Initializing terraform..." -ForegroundColor Gray
     terraform init -upgrade
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "  Terraform init failed" -ForegroundColor Red
+        Write-Host "  ERROR: Terraform init failed" -ForegroundColor Red
         Pop-Location
         exit 1
     }
@@ -66,11 +78,34 @@ $acmeEmail = $env:TF_VAR_acme_email
 $kibanaHostname = $env:TF_VAR_kibana_hostname
 
 if ([string]::IsNullOrEmpty($acmeEmail) -or [string]::IsNullOrEmpty($kibanaHostname)) {
-    Write-Host "  Missing TF_VAR_acme_email or TF_VAR_kibana_hostname" -ForegroundColor Red
-    Write-Host "  Set these in .azure/<env>/.env" -ForegroundColor Gray
+    Write-Host "  ERROR: Missing TF_VAR_acme_email or TF_VAR_kibana_hostname" -ForegroundColor Red
+    Write-Host "    Set these in .azure/<env>/.env" -ForegroundColor Gray
     Pop-Location
     exit 1
 }
+
+# Get ExternalDNS / issuer vars from environment and infra outputs
+$useLetsencryptProd = $env:TF_VAR_use_letsencrypt_production
+if ([string]::IsNullOrEmpty($useLetsencryptProd)) { $useLetsencryptProd = "false" }
+
+$dnsZoneName = $env:TF_VAR_dns_zone_name
+$dnsZoneRg = $env:TF_VAR_dns_zone_resource_group
+$dnsZoneSubId = $env:TF_VAR_dns_zone_subscription_id
+
+# Get UAMI client ID and tenant ID from infra terraform outputs
+Push-Location $PSScriptRoot/../infra
+$externalDnsClientId = terraform output -raw EXTERNAL_DNS_CLIENT_ID 2>$null
+$tenantId = terraform output -raw AZURE_TENANT_ID 2>$null
+Pop-Location
+
+# Determine if ExternalDNS should be enabled (DNS zone configured + identity exists)
+$enableExternalDns = (-not [string]::IsNullOrEmpty($dnsZoneName)) -and `
+                     ($dnsZoneName -ne "") -and `
+                     (-not [string]::IsNullOrEmpty($externalDnsClientId)) -and `
+                     ($externalDnsClientId -ne "")
+
+Write-Host "  LetsEncrypt issuer: $(if ($useLetsencryptProd -eq 'true') { 'production' } else { 'staging' })" -ForegroundColor Gray
+Write-Host "  ExternalDNS: $(if ($enableExternalDns) { 'enabled' } else { 'disabled' })" -ForegroundColor Gray
 
 # Run terraform apply
 Write-Host "  Running terraform apply..." -ForegroundColor Gray
@@ -78,19 +113,30 @@ terraform apply -auto-approve `
     -var="cluster_name=$clusterName" `
     -var="resource_group_name=$resourceGroup" `
     -var="acme_email=$acmeEmail" `
-    -var="kibana_hostname=$kibanaHostname"
+    -var="kibana_hostname=$kibanaHostname" `
+    -var="use_letsencrypt_production=$useLetsencryptProd" `
+    -var="enable_external_dns=$enableExternalDns" `
+    -var="dns_zone_name=$dnsZoneName" `
+    -var="dns_zone_resource_group=$dnsZoneRg" `
+    -var="dns_zone_subscription_id=$dnsZoneSubId" `
+    -var="external_dns_client_id=$externalDnsClientId" `
+    -var="tenant_id=$tenantId"
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "  Platform deployment failed" -ForegroundColor Red
+    Write-Host "  ERROR: Platform deployment failed" -ForegroundColor Red
     Pop-Location
     exit 1
 }
 
 Write-Host "  Platform layer deployed" -ForegroundColor Green
 Pop-Location
+#endregion
 
-# Step 3: Verify deployment
-Write-Host "`n[3/3] Verifying deployment..." -ForegroundColor Cyan
+#region Step 3: Verify deployment
+Write-Host ""
+Write-Host "=================================================================="
+Write-Host "  [3/3] Verifying Deployment"
+Write-Host "=================================================================="
 
 # Wait for components to stabilize
 Write-Host "  Waiting 30 seconds for components to stabilize..." -ForegroundColor Gray
@@ -139,19 +185,30 @@ else {
 
 # Get external IP
 $ip = kubectl get svc -n aks-istio-ingress aks-istio-ingressgateway-external -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>$null
+#endregion
 
-# Summary
-Write-Host "`n=== Phase 2 Complete: Platform Deployed ===" -ForegroundColor Cyan
-Write-Host "Cluster: $clusterName" -ForegroundColor White
-Write-Host "Resource Group: $resourceGroup" -ForegroundColor White
+#region Summary
+Write-Host ""
+Write-Host "==================================================================" -ForegroundColor Green
+Write-Host "  Phase 2 Complete: Platform Deployed"                              -ForegroundColor Green
+Write-Host "==================================================================" -ForegroundColor Green
+Write-Host "  Cluster: $clusterName"
+Write-Host "  Resource Group: $resourceGroup"
 
 if ($ip) {
-    Write-Host "External IP: $ip" -ForegroundColor White
-    Write-Host "`nNext steps:" -ForegroundColor Yellow
-    Write-Host "  1. Create DNS A record: $kibanaHostname -> $ip" -ForegroundColor Gray
-    Write-Host "  2. Access Kibana: https://$kibanaHostname" -ForegroundColor Gray
-    Write-Host "  3. Get Elasticsearch password:" -ForegroundColor Gray
-    Write-Host "     kubectl get secret elasticsearch-es-elastic-user -n elastic-search -o jsonpath='{.data.elastic}' | base64 -d" -ForegroundColor DarkGray
+    Write-Host "  External IP: $ip"
+    Write-Host ""
+    Write-Host "  Next steps:" -ForegroundColor Yellow
+    if ($enableExternalDns) {
+        Write-Host "    1. DNS A record will be auto-created by ExternalDNS" -ForegroundColor Gray
+    }
+    else {
+        Write-Host "    1. Create DNS A record: $kibanaHostname -> $ip" -ForegroundColor Gray
+    }
+    Write-Host "    2. Access Kibana: https://$kibanaHostname" -ForegroundColor Gray
+    Write-Host "    3. Get Elasticsearch password:" -ForegroundColor Gray
+    Write-Host "       kubectl get secret elasticsearch-es-elastic-user -n elastic-search -o jsonpath='{.data.elastic}' | base64 -d" -ForegroundColor DarkGray
 }
-
-Write-Host "`n=== Deployment Complete ===" -ForegroundColor Green
+Write-Host ""
+exit 0
+#endregion

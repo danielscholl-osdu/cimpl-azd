@@ -1,3 +1,7 @@
+locals {
+  active_cluster_issuer = var.use_letsencrypt_production ? "letsencrypt-prod" : "letsencrypt-staging"
+}
+
 # cert-manager for TLS certificate management
 resource "helm_release" "cert_manager" {
   count            = var.enable_cert_manager ? 1 : 0
@@ -166,9 +170,9 @@ resource "kubectl_manifest" "cluster_issuer" {
   depends_on = [helm_release.cert_manager]
 }
 
-# Output the ClusterIssuer names for other resources
+# Output the active ClusterIssuer name
 output "cluster_issuer_name" {
-  value = var.enable_cert_manager ? "letsencrypt-prod" : ""
+  value = var.enable_cert_manager ? local.active_cluster_issuer : ""
 }
 
 output "cluster_issuer_staging_name" {

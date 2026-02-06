@@ -136,9 +136,12 @@ resource "kubectl_manifest" "kibana_certificate" {
       dnsNames:
         - "${var.kibana_hostname}"
       issuerRef:
-        name: letsencrypt-prod
+        name: ${local.active_cluster_issuer}
         kind: ClusterIssuer
   YAML
 
-  depends_on = [kubectl_manifest.cluster_issuer]
+  depends_on = [
+    kubectl_manifest.cluster_issuer,
+    kubectl_manifest.cluster_issuer_staging
+  ]
 }

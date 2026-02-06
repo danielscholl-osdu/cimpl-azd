@@ -116,7 +116,8 @@ else {
         "aks-istio-ingress",
         "cnpg-system",
         "postgresql",
-        "minio"
+        "minio",
+        "external-dns"
     )
 
     $maxRetries = 3

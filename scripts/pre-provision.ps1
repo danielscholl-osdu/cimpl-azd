@@ -1,11 +1,36 @@
 #!/usr/bin/env pwsh
 # Pre-provision validation script
+# Validates prerequisites and configures environment defaults before azd provision.
+#
+# Following the osdu-developer pattern:
+# - Auto-detect values where possible (email from Azure AD)
+# - Generate secure defaults for credentials
+# - Persist via 'azd env set' so values survive across runs
+# - Allow user override: azd env set TF_VAR_<name> <value>
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== Pre-Provision Validation ===" -ForegroundColor Cyan
+# Track validation issues for summary
+$issues = [System.Collections.ArrayList]::new()
 
-# Check required tools
+# Helper: Generate a random alphanumeric password (safe for YAML/Helm values)
+function New-RandomPassword {
+    param([int]$Length = 16)
+    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    return -join (1..$Length | ForEach-Object { $chars[(Get-Random -Maximum $chars.Length)] })
+}
+
+Write-Host ""
+Write-Host "==================================================================" -ForegroundColor Cyan
+Write-Host "  Pre-Provision Validation"                                         -ForegroundColor Cyan
+Write-Host "==================================================================" -ForegroundColor Cyan
+
+#region Required Tools
+Write-Host ""
+Write-Host "=================================================================="
+Write-Host "  Checking Required Tools"
+Write-Host "=================================================================="
+
 $requiredTools = @(
     @{Name = "terraform"; MinVersion = "1.5.0"; VersionCmd = 'terraform version -json | ConvertFrom-Json | Select-Object -ExpandProperty terraform_version' },
     @{Name = "az"; MinVersion = "2.50.0"; VersionCmd = '(az version | ConvertFrom-Json)."azure-cli"' },
@@ -13,20 +38,18 @@ $requiredTools = @(
     @{Name = "kubectl"; MinVersion = "1.28.0"; VersionCmd = '(kubectl version --client -o json | ConvertFrom-Json).clientVersion.gitVersion -replace "v",""'; InstallHint = "Install kubectl: https://kubernetes.io/docs/tasks/tools/" }
 )
 
-$allPassed = $true
-
 foreach ($tool in $requiredTools) {
-    Write-Host "`nChecking $($tool.Name)..." -NoNewline
+    Write-Host "  $($tool.Name)..." -NoNewline
 
     $cmd = Get-Command $tool.Name -ErrorAction SilentlyContinue
     if (-not $cmd) {
         Write-Host " NOT FOUND" -ForegroundColor Red
         if ($tool.InstallHint) {
-            Write-Host "  $($tool.InstallHint)" -ForegroundColor Yellow
+            Write-Host "    $($tool.InstallHint)" -ForegroundColor Gray
         } else {
-            Write-Host "  Please install $($tool.Name)" -ForegroundColor Yellow
+            Write-Host "    Please install $($tool.Name)" -ForegroundColor Gray
         }
-        $allPassed = $false
+        [void]$issues.Add("$($tool.Name) is not installed")
         continue
     }
 
@@ -38,40 +61,163 @@ foreach ($tool in $requiredTools) {
         Write-Host " (version check failed)" -ForegroundColor Yellow
     }
 }
+#endregion
 
-# Verify Azure CLI login
-Write-Host "`nChecking Azure CLI login..." -NoNewline
+#region Azure CLI Login
+Write-Host ""
+Write-Host "=================================================================="
+Write-Host "  Checking Azure CLI Login"
+Write-Host "=================================================================="
+
 $account = az account show 2>$null | ConvertFrom-Json
 if (-not $account) {
-    Write-Host " NOT LOGGED IN" -ForegroundColor Red
-    Write-Host "  Please run: az login" -ForegroundColor Yellow
-    $allPassed = $false
+    Write-Host "  Status: NOT LOGGED IN" -ForegroundColor Red
+    Write-Host "    Run: az login" -ForegroundColor Gray
+    [void]$issues.Add("Azure CLI is not logged in")
 }
 else {
-    Write-Host " OK" -ForegroundColor Green
+    Write-Host "  Status: OK" -ForegroundColor Green
     Write-Host "  Subscription: $($account.name)" -ForegroundColor Gray
     Write-Host "  Tenant: $($account.tenantId)" -ForegroundColor Gray
 }
+#endregion
 
-# Verify required environment variables
-Write-Host "`nChecking environment variables..." -ForegroundColor Cyan
-$requiredEnvVars = @("TF_VAR_acme_email", "TF_VAR_kibana_hostname", "TF_VAR_postgresql_password", "TF_VAR_minio_root_user", "TF_VAR_minio_root_password")
+#region Environment Defaults
+Write-Host ""
+Write-Host "=================================================================="
+Write-Host "  Configuring Environment Defaults"
+Write-Host "=================================================================="
 
-foreach ($envVar in $requiredEnvVars) {
-    $value = [Environment]::GetEnvironmentVariable($envVar)
-    Write-Host "  $envVar..." -NoNewline
-    if ([string]::IsNullOrEmpty($value)) {
-        Write-Host " NOT SET" -ForegroundColor Yellow
-        Write-Host "    Set with: `$env:$envVar = 'value'" -ForegroundColor Gray
-        $allPassed = $false
+# --- TF_VAR_acme_email: auto-detect from Azure AD signed-in user ---
+$acmeEmail = [Environment]::GetEnvironmentVariable("TF_VAR_acme_email")
+Write-Host "  TF_VAR_acme_email..." -NoNewline
+if ([string]::IsNullOrEmpty($acmeEmail)) {
+    if ($account) {
+        $detectedEmail = az ad signed-in-user show --query userPrincipalName -o tsv 2>$null
+        if (-not [string]::IsNullOrEmpty($detectedEmail)) {
+            azd env set TF_VAR_acme_email $detectedEmail 2>$null
+            Write-Host " auto-detected ($detectedEmail)" -ForegroundColor Green
+        }
+        else {
+            Write-Host " NOT SET" -ForegroundColor Yellow
+            Write-Host "    Could not auto-detect email from Azure AD" -ForegroundColor Gray
+            Write-Host "    Set with: azd env set TF_VAR_acme_email 'you@example.com'" -ForegroundColor Gray
+            [void]$issues.Add("TF_VAR_acme_email could not be auto-detected")
+        }
     }
     else {
-        Write-Host " OK" -ForegroundColor Green
+        Write-Host " SKIPPED (not logged in)" -ForegroundColor Yellow
     }
 }
+else {
+    Write-Host " $acmeEmail" -ForegroundColor Green
+}
 
-# Check Azure subscription has required providers
-Write-Host "`nChecking Azure resource providers..." -ForegroundColor Cyan
+# --- TF_VAR_kibana_hostname: default to kibana.developer.msft-osdu-test.org ---
+$kibanaHostname = [Environment]::GetEnvironmentVariable("TF_VAR_kibana_hostname")
+Write-Host "  TF_VAR_kibana_hostname..." -NoNewline
+if ([string]::IsNullOrEmpty($kibanaHostname)) {
+    $defaultHostname = "kibana.developer.msft-osdu-test.org"
+    azd env set TF_VAR_kibana_hostname $defaultHostname 2>$null
+    Write-Host " using default ($defaultHostname)" -ForegroundColor Green
+    Write-Host "    Override: azd env set TF_VAR_kibana_hostname 'your.domain.com'" -ForegroundColor Gray
+}
+else {
+    Write-Host " $kibanaHostname" -ForegroundColor Green
+}
+
+# --- TF_VAR_use_letsencrypt_production: default to false (staging) ---
+$useProd = [Environment]::GetEnvironmentVariable("TF_VAR_use_letsencrypt_production")
+Write-Host "  TF_VAR_use_letsencrypt_production..." -NoNewline
+if ([string]::IsNullOrEmpty($useProd)) {
+    azd env set TF_VAR_use_letsencrypt_production "false" 2>$null
+    Write-Host " using default (false = staging)" -ForegroundColor Green
+}
+else {
+    Write-Host " $useProd" -ForegroundColor Green
+}
+
+# --- DNS zone vars: default to developer.msft-osdu-test.org ---
+$dnsZone = [Environment]::GetEnvironmentVariable("TF_VAR_dns_zone_name")
+Write-Host "  TF_VAR_dns_zone_name..." -NoNewline
+if ([string]::IsNullOrEmpty($dnsZone)) {
+    azd env set TF_VAR_dns_zone_name "developer.msft-osdu-test.org" 2>$null
+    Write-Host " using default (developer.msft-osdu-test.org)" -ForegroundColor Green
+}
+else {
+    Write-Host " $dnsZone" -ForegroundColor Green
+}
+
+$dnsRg = [Environment]::GetEnvironmentVariable("TF_VAR_dns_zone_resource_group")
+Write-Host "  TF_VAR_dns_zone_resource_group..." -NoNewline
+if ([string]::IsNullOrEmpty($dnsRg)) {
+    azd env set TF_VAR_dns_zone_resource_group "team_resources" 2>$null
+    Write-Host " using default (team_resources)" -ForegroundColor Green
+}
+else {
+    Write-Host " $dnsRg" -ForegroundColor Green
+}
+
+$dnsSub = [Environment]::GetEnvironmentVariable("TF_VAR_dns_zone_subscription_id")
+Write-Host "  TF_VAR_dns_zone_subscription_id..." -NoNewline
+if ([string]::IsNullOrEmpty($dnsSub)) {
+    $subId = az account list --query "[?name=='MCI-ENERGY-OSDU-DEVELOPER'].id" -o tsv 2>$null
+    if (-not [string]::IsNullOrEmpty($subId)) {
+        azd env set TF_VAR_dns_zone_subscription_id $subId 2>$null
+        Write-Host " auto-detected ($subId)" -ForegroundColor Green
+    }
+    else {
+        Write-Host " NOT SET (subscription 'MCI-ENERGY-OSDU-DEVELOPER' not found)" -ForegroundColor Yellow
+        Write-Host "    Set with: azd env set TF_VAR_dns_zone_subscription_id '<subscription-id>'" -ForegroundColor Gray
+    }
+}
+else {
+    Write-Host " $dnsSub" -ForegroundColor Green
+}
+
+# --- TF_VAR_postgresql_password: generate random if not set ---
+$pgPassword = [Environment]::GetEnvironmentVariable("TF_VAR_postgresql_password")
+Write-Host "  TF_VAR_postgresql_password..." -NoNewline
+if ([string]::IsNullOrEmpty($pgPassword)) {
+    $generatedPgPassword = New-RandomPassword
+    azd env set TF_VAR_postgresql_password $generatedPgPassword 2>$null
+    Write-Host " generated" -ForegroundColor Green
+}
+else {
+    Write-Host " set" -ForegroundColor Green
+}
+
+# --- TF_VAR_minio_root_user: default to minioadmin ---
+$minioUser = [Environment]::GetEnvironmentVariable("TF_VAR_minio_root_user")
+Write-Host "  TF_VAR_minio_root_user..." -NoNewline
+if ([string]::IsNullOrEmpty($minioUser)) {
+    $defaultUser = "minioadmin"
+    azd env set TF_VAR_minio_root_user $defaultUser 2>$null
+    Write-Host " using default ($defaultUser)" -ForegroundColor Green
+}
+else {
+    Write-Host " $minioUser" -ForegroundColor Green
+}
+
+# --- TF_VAR_minio_root_password: generate random if not set ---
+$minioPassword = [Environment]::GetEnvironmentVariable("TF_VAR_minio_root_password")
+Write-Host "  TF_VAR_minio_root_password..." -NoNewline
+if ([string]::IsNullOrEmpty($minioPassword)) {
+    $generatedMinioPassword = New-RandomPassword
+    azd env set TF_VAR_minio_root_password $generatedMinioPassword 2>$null
+    Write-Host " generated" -ForegroundColor Green
+}
+else {
+    Write-Host " set" -ForegroundColor Green
+}
+#endregion
+
+#region Azure Resource Providers
+Write-Host ""
+Write-Host "=================================================================="
+Write-Host "  Checking Azure Resource Providers"
+Write-Host "=================================================================="
+
 $requiredProviders = @(
     "Microsoft.ContainerService",
     "Microsoft.OperationsManagement"
@@ -86,12 +232,30 @@ foreach ($provider in $requiredProviders) {
     else {
         Write-Host " $state" -ForegroundColor Yellow
         Write-Host "    Register with: az provider register -n $provider" -ForegroundColor Gray
+        [void]$issues.Add("Resource provider $provider is not registered ($state)")
     }
 }
+#endregion
 
-if (-not $allPassed) {
-    Write-Host "`n=== Pre-provision validation FAILED ===" -ForegroundColor Red
+#region Summary
+Write-Host ""
+if ($issues.Count -gt 0) {
+    Write-Host "==================================================================" -ForegroundColor Red
+    Write-Host "  Pre-Provision Validation FAILED ($($issues.Count) issues)"       -ForegroundColor Red
+    Write-Host "==================================================================" -ForegroundColor Red
+    for ($i = 0; $i -lt $issues.Count; $i++) {
+        Write-Host "  $($i + 1). $($issues[$i])" -ForegroundColor Yellow
+    }
+    Write-Host ""
     exit 1
 }
 
-Write-Host "`n=== Pre-provision validation PASSED ===" -ForegroundColor Green
+Write-Host "==================================================================" -ForegroundColor Green
+Write-Host "  Pre-Provision Validation PASSED"                                  -ForegroundColor Green
+Write-Host "==================================================================" -ForegroundColor Green
+Write-Host ""
+Write-Host "  To view configured values:  azd env get-values" -ForegroundColor Gray
+Write-Host "  To override a value:        azd env set TF_VAR_<name> <value>" -ForegroundColor Gray
+Write-Host ""
+exit 0
+#endregion

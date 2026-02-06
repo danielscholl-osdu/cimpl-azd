@@ -36,3 +36,13 @@ output "cluster_name" {
   description = "Cluster name for platform layer"
   value       = module.aks.name
 }
+
+output "EXTERNAL_DNS_CLIENT_ID" {
+  description = "Client ID of the ExternalDNS managed identity"
+  value       = var.dns_zone_name != "" ? azurerm_user_assigned_identity.external_dns[0].client_id : ""
+}
+
+output "AZURE_TENANT_ID" {
+  description = "Azure tenant ID"
+  value       = data.azurerm_client_config.current.tenant_id
+}

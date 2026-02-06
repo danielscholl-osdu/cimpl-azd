@@ -60,6 +60,48 @@ variable "enable_gateway" {
   default     = true
 }
 
+variable "enable_external_dns" {
+  description = "Enable ExternalDNS for automatic DNS record management"
+  type        = bool
+  default     = false
+}
+
+variable "use_letsencrypt_production" {
+  description = "Use Let's Encrypt production issuer (default: false = staging)"
+  type        = bool
+  default     = false
+}
+
+variable "dns_zone_name" {
+  description = "Azure DNS zone name for ExternalDNS"
+  type        = string
+  default     = ""
+}
+
+variable "dns_zone_resource_group" {
+  description = "Resource group containing the DNS zone"
+  type        = string
+  default     = ""
+}
+
+variable "dns_zone_subscription_id" {
+  description = "Subscription ID containing the DNS zone"
+  type        = string
+  default     = ""
+}
+
+variable "external_dns_client_id" {
+  description = "Client ID of the ExternalDNS managed identity"
+  type        = string
+  default     = ""
+}
+
+variable "tenant_id" {
+  description = "Azure tenant ID"
+  type        = string
+  default     = ""
+}
+
 # Platform credentials
 variable "postgresql_password" {
   description = "PostgreSQL admin password"
