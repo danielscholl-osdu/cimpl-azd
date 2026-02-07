@@ -192,6 +192,15 @@ else {
     Write-Host "  PostgreSQL: Pending" -ForegroundColor Yellow
 }
 
+# Verify Redis
+$redisPods = kubectl get pods -n redis -o jsonpath='{.items[*].status.phase}' 2>$null
+if ($redisPods -like "*Running*") {
+    Write-Host "  Redis: Running" -ForegroundColor Green
+}
+else {
+    Write-Host "  Redis: Pending" -ForegroundColor Yellow
+}
+
 # Verify MinIO
 $minioPods = kubectl get pods -n minio -o jsonpath='{.items[*].status.phase}' 2>$null
 if ($minioPods -like "*Running*") {

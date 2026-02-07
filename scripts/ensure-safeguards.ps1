@@ -140,6 +140,7 @@ else {
         "cnpg-system",
         "postgresql",
         "minio",
+        "redis",
         "external-dns"
     )
 
