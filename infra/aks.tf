@@ -113,18 +113,18 @@ module "aks" {
     only_critical_addons_enabled = true
   }
 
-  # Elasticsearch Node Pool (tainted for ES workloads)
+  # Stateful Workload Node Pool (Elasticsearch, PostgreSQL, etc.)
   agent_pools = {
-    elastic = {
-      name               = "elastic"
+    stateful = {
+      name               = "stateful"
       vm_size            = "Standard_D4as_v5"
       count_of           = 3
       os_sku             = "AzureLinux"
       availability_zones = ["1", "2", "3"]
       node_labels = {
-        "app" = "elasticsearch"
+        "workload" = "stateful"
       }
-      node_taints = ["app=elasticsearch:NoSchedule"]
+      node_taints = ["workload=stateful:NoSchedule"]
     }
   }
 
@@ -137,4 +137,18 @@ resource "azurerm_role_assignment" "aks_cluster_admin" {
   scope                = module.aks.resource_id
   role_definition_name = "Azure Kubernetes Service RBAC Cluster Admin"
   principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# Azure Policy Exemption: Probe enforcement for CNPG operator Jobs
+# CNPG creates short-lived initdb/join Jobs that cannot have health probes.
+# AKS Automatic enforces probes on all pods via deployment safeguards.
+# This exemption removes the probe constraint so CNPG Jobs can run.
+resource "azurerm_resource_policy_exemption" "cnpg_probe_exemption" {
+  name                            = "cnpg-probe-exemption"
+  resource_id                     = module.aks.resource_id
+  policy_assignment_id            = "${module.aks.resource_id}/providers/Microsoft.Authorization/policyAssignments/aks-deployment-safeguards-policy-assignment"
+  exemption_category              = "Waiver"
+  display_name                    = "CNPG operator Job probe exemption"
+  description                     = "CNPG operator creates short-lived initdb/join Jobs without probes. Jobs are one-shot tasks where probes are not meaningful."
+  policy_definition_reference_ids = ["ensureProbesConfiguredInKubernetesCluster"]
 }

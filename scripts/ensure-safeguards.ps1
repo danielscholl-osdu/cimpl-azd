@@ -137,8 +137,10 @@ else {
         "elastic-search",
         "cert-manager",
         "aks-istio-ingress",
+        "cnpg-system",
         "postgresql",
-        "minio"
+        "minio",
+        "external-dns"
     )
 
     $maxRetries = 3

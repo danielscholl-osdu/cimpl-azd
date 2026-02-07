@@ -26,7 +26,7 @@ locals {
 # Note: Individual components are in separate files:
 # - helm_cert_manager.tf
 # - helm_elastic.tf
-# - helm_postgresql.tf
+# - helm_cnpg.tf
 # - helm_minio.tf
 # - k8s_gateway.tf
 #

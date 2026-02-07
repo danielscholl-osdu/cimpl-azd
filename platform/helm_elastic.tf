@@ -179,8 +179,8 @@ resource "kubectl_manifest" "elasticsearch" {
                   type: RuntimeDefault
               tolerations:
                 - effect: NoSchedule
-                  key: app
-                  value: elasticsearch
+                  key: workload
+                  value: stateful
               affinity:
                 nodeAffinity:
                   requiredDuringSchedulingIgnoredDuringExecution:
@@ -189,7 +189,7 @@ resource "kubectl_manifest" "elasticsearch" {
                           - key: agentpool
                             operator: In
                             values:
-                              - elastic
+                              - stateful
               # Topology spread for AKS Automatic safeguards compliance (3 replicas)
               topologySpreadConstraints:
                 - maxSkew: 1
@@ -273,8 +273,8 @@ resource "kubectl_manifest" "kibana" {
               type: RuntimeDefault
           tolerations:
             - effect: NoSchedule
-              key: app
-              value: elasticsearch
+              key: workload
+              value: stateful
           containers:
             - name: kibana
               resources:

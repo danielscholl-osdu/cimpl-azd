@@ -23,6 +23,25 @@ variable "tags" {
   default     = {}
 }
 
+# DNS zone configuration for ExternalDNS
+variable "dns_zone_name" {
+  description = "Azure DNS zone name for ExternalDNS"
+  type        = string
+  default     = ""
+}
+
+variable "dns_zone_resource_group" {
+  description = "Resource group containing the DNS zone"
+  type        = string
+  default     = ""
+}
+
+variable "dns_zone_subscription_id" {
+  description = "Subscription ID containing the DNS zone (cross-subscription support)"
+  type        = string
+  default     = ""
+}
+
 # Derived names using environment_name for uniqueness
 locals {
   # Resource naming: cimpl-<env_name> allows multiple deployments

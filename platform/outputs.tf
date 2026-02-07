@@ -16,8 +16,13 @@ output "kibana_internal_url" {
 }
 
 output "postgresql_host" {
-  description = "PostgreSQL internal service host"
-  value       = var.enable_postgresql ? "postgresql.postgresql.svc.cluster.local" : ""
+  description = "PostgreSQL read-write service host (CNPG primary)"
+  value       = var.enable_postgresql ? "postgresql-rw.postgresql.svc.cluster.local" : ""
+}
+
+output "postgresql_ro_host" {
+  description = "PostgreSQL read-only service host (CNPG replicas)"
+  value       = var.enable_postgresql ? "postgresql-ro.postgresql.svc.cluster.local" : ""
 }
 
 output "postgresql_port" {
@@ -39,6 +44,11 @@ output "minio_console_endpoint" {
 output "get_elasticsearch_password_command" {
   description = "Command to get Elasticsearch password"
   value       = var.enable_elasticsearch ? "kubectl get secret elasticsearch-es-elastic-user -n elastic-search -o jsonpath='{.data.elastic}' | base64 -d" : ""
+}
+
+output "get_postgresql_password_command" {
+  description = "Command to get PostgreSQL password"
+  value       = var.enable_postgresql ? "kubectl get secret postgresql-superuser-credentials -n postgresql -o jsonpath='{.data.password}' | base64 -d" : ""
 }
 
 output "get_ingress_ip_command" {
