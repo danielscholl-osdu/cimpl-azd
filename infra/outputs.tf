@@ -44,7 +44,7 @@ output "AZURE_SUBSCRIPTION_ID" {
 
 output "EXTERNAL_DNS_CLIENT_ID" {
   description = "Client ID of the ExternalDNS managed identity"
-  value       = var.dns_zone_name != "" ? azurerm_user_assigned_identity.external_dns[0].client_id : ""
+  value       = local.enable_external_dns ? azurerm_user_assigned_identity.external_dns[0].client_id : ""
 }
 
 output "AZURE_TENANT_ID" {

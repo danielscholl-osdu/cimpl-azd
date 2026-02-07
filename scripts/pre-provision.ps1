@@ -17,7 +17,23 @@ $issues = [System.Collections.ArrayList]::new()
 function New-RandomPassword {
     param([int]$Length = 16)
     $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    return -join (1..$Length | ForEach-Object { $chars[(Get-Random -Maximum $chars.Length)] })
+    $passwordChars = New-Object 'System.Char[]' ($Length)
+
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $bytes = New-Object 'System.Byte[]' ($Length)
+        $rng.GetBytes($bytes)
+
+        for ($i = 0; $i -lt $Length; $i++) {
+            $index = $bytes[$i] % $chars.Length
+            $passwordChars[$i] = $chars[$index]
+        }
+    }
+    finally {
+        $rng.Dispose()
+    }
+
+    return -join $passwordChars
 }
 
 Write-Host ""
@@ -113,11 +129,11 @@ else {
     Write-Host " $acmeEmail" -ForegroundColor Green
 }
 
-# --- TF_VAR_kibana_hostname: default to kibana.developer.msft-osdu-test.org ---
+# --- TF_VAR_kibana_hostname: default to kibana.localhost ---
 $kibanaHostname = [Environment]::GetEnvironmentVariable("TF_VAR_kibana_hostname")
 Write-Host "  TF_VAR_kibana_hostname..." -NoNewline
 if ([string]::IsNullOrEmpty($kibanaHostname)) {
-    $defaultHostname = "kibana.developer.msft-osdu-test.org"
+    $defaultHostname = "kibana.localhost"
     azd env set TF_VAR_kibana_hostname $defaultHostname 2>$null
     Write-Host " using default ($defaultHostname)" -ForegroundColor Green
     Write-Host "    Override: azd env set TF_VAR_kibana_hostname 'your.domain.com'" -ForegroundColor Gray
@@ -137,42 +153,38 @@ else {
     Write-Host " $useProd" -ForegroundColor Green
 }
 
-# --- DNS zone vars: default to developer.msft-osdu-test.org ---
+# --- DNS zone vars: opt-in only (leave empty to disable ExternalDNS) ---
 $dnsZone = [Environment]::GetEnvironmentVariable("TF_VAR_dns_zone_name")
 Write-Host "  TF_VAR_dns_zone_name..." -NoNewline
 if ([string]::IsNullOrEmpty($dnsZone)) {
-    azd env set TF_VAR_dns_zone_name "developer.msft-osdu-test.org" 2>$null
-    Write-Host " using default (developer.msft-osdu-test.org)" -ForegroundColor Green
+    Write-Host " not set (ExternalDNS disabled)" -ForegroundColor Gray
+    Write-Host "    To enable: azd env set TF_VAR_dns_zone_name 'your.dns.zone'" -ForegroundColor Gray
 }
 else {
     Write-Host " $dnsZone" -ForegroundColor Green
-}
 
-$dnsRg = [Environment]::GetEnvironmentVariable("TF_VAR_dns_zone_resource_group")
-Write-Host "  TF_VAR_dns_zone_resource_group..." -NoNewline
-if ([string]::IsNullOrEmpty($dnsRg)) {
-    azd env set TF_VAR_dns_zone_resource_group "team_resources" 2>$null
-    Write-Host " using default (team_resources)" -ForegroundColor Green
-}
-else {
-    Write-Host " $dnsRg" -ForegroundColor Green
-}
-
-$dnsSub = [Environment]::GetEnvironmentVariable("TF_VAR_dns_zone_subscription_id")
-Write-Host "  TF_VAR_dns_zone_subscription_id..." -NoNewline
-if ([string]::IsNullOrEmpty($dnsSub)) {
-    $subId = az account list --query "[?name=='MCI-ENERGY-OSDU-DEVELOPER'].id" -o tsv 2>$null
-    if (-not [string]::IsNullOrEmpty($subId)) {
-        azd env set TF_VAR_dns_zone_subscription_id $subId 2>$null
-        Write-Host " auto-detected ($subId)" -ForegroundColor Green
+    # Only check related DNS vars when dns_zone_name is set
+    $dnsRg = [Environment]::GetEnvironmentVariable("TF_VAR_dns_zone_resource_group")
+    Write-Host "  TF_VAR_dns_zone_resource_group..." -NoNewline
+    if ([string]::IsNullOrEmpty($dnsRg)) {
+        Write-Host " NOT SET" -ForegroundColor Yellow
+        Write-Host "    Required when dns_zone_name is set: azd env set TF_VAR_dns_zone_resource_group '<rg>'" -ForegroundColor Gray
+        [void]$issues.Add("TF_VAR_dns_zone_resource_group is required when TF_VAR_dns_zone_name is set")
     }
     else {
-        Write-Host " NOT SET (subscription 'MCI-ENERGY-OSDU-DEVELOPER' not found)" -ForegroundColor Yellow
-        Write-Host "    Set with: azd env set TF_VAR_dns_zone_subscription_id '<subscription-id>'" -ForegroundColor Gray
+        Write-Host " $dnsRg" -ForegroundColor Green
     }
-}
-else {
-    Write-Host " $dnsSub" -ForegroundColor Green
+
+    $dnsSub = [Environment]::GetEnvironmentVariable("TF_VAR_dns_zone_subscription_id")
+    Write-Host "  TF_VAR_dns_zone_subscription_id..." -NoNewline
+    if ([string]::IsNullOrEmpty($dnsSub)) {
+        Write-Host " NOT SET" -ForegroundColor Yellow
+        Write-Host "    Required when dns_zone_name is set: azd env set TF_VAR_dns_zone_subscription_id '<sub-id>'" -ForegroundColor Gray
+        [void]$issues.Add("TF_VAR_dns_zone_subscription_id is required when TF_VAR_dns_zone_name is set")
+    }
+    else {
+        Write-Host " $dnsSub" -ForegroundColor Green
+    }
 }
 
 # --- TF_VAR_postgresql_password: generate random if not set ---

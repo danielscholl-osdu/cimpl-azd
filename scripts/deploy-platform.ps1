@@ -111,14 +111,19 @@ $externalDnsClientId = terraform output -raw EXTERNAL_DNS_CLIENT_ID 2>$null
 $tenantId = terraform output -raw AZURE_TENANT_ID 2>$null
 Pop-Location
 
-# Determine if ExternalDNS should be enabled (DNS zone configured + identity exists)
-$enableExternalDns = (-not [string]::IsNullOrEmpty($dnsZoneName)) -and `
-                     ($dnsZoneName -ne "") -and `
-                     (-not [string]::IsNullOrEmpty($externalDnsClientId)) -and `
-                     ($externalDnsClientId -ne "")
+# Determine if ExternalDNS should be enabled.
+# Require full DNS zone configuration (name, resource group, subscription) and identity (client + tenant).
+$hasDnsZoneConfig = (-not [string]::IsNullOrEmpty($dnsZoneName)) -and `
+                     (-not [string]::IsNullOrEmpty($dnsZoneRg)) -and `
+                     (-not [string]::IsNullOrEmpty($dnsZoneSubId))
+
+$hasIdentityConfig = (-not [string]::IsNullOrEmpty($externalDnsClientId)) -and `
+                      (-not [string]::IsNullOrEmpty($tenantId))
+
+$enableExternalDns = if ($hasDnsZoneConfig -and $hasIdentityConfig) { "true" } else { "false" }
 
 Write-Host "  LetsEncrypt issuer: $(if ($useLetsencryptProd -eq 'true') { 'production' } else { 'staging' })" -ForegroundColor Gray
-Write-Host "  ExternalDNS: $(if ($enableExternalDns) { 'enabled' } else { 'disabled' })" -ForegroundColor Gray
+Write-Host "  ExternalDNS: $(if ($enableExternalDns -eq 'true') { 'enabled' } else { 'disabled' })" -ForegroundColor Gray
 
 # Run terraform apply
 Write-Host "  Running terraform apply..." -ForegroundColor Gray
@@ -212,7 +217,7 @@ if ($ip) {
     Write-Host "  External IP: $ip"
     Write-Host ""
     Write-Host "  Next steps:" -ForegroundColor Yellow
-    if ($enableExternalDns) {
+    if ($enableExternalDns -eq "true") {
         Write-Host "    1. DNS A record will be auto-created by ExternalDNS" -ForegroundColor Gray
     }
     else {
