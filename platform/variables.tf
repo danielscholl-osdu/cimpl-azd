@@ -48,6 +48,12 @@ variable "enable_minio" {
   default     = true
 }
 
+variable "enable_redis" {
+  description = "Enable Redis cache deployment"
+  type        = bool
+  default     = true
+}
+
 variable "enable_cert_manager" {
   description = "Enable cert-manager deployment"
   type        = bool
@@ -113,6 +119,12 @@ variable "postgresql_username" {
   description = "PostgreSQL application database owner username"
   type        = string
   default     = "osdu"
+}
+
+variable "redis_password" {
+  description = "Redis authentication password"
+  type        = string
+  sensitive   = true
 }
 
 variable "minio_root_user" {

@@ -212,6 +212,18 @@ else {
     Write-Host " set" -ForegroundColor Green
 }
 
+# --- TF_VAR_redis_password: generate random if not set ---
+$redisPassword = [Environment]::GetEnvironmentVariable("TF_VAR_redis_password")
+Write-Host "  TF_VAR_redis_password..." -NoNewline
+if ([string]::IsNullOrEmpty($redisPassword)) {
+    $generatedRedisPassword = New-RandomPassword
+    azd env set TF_VAR_redis_password $generatedRedisPassword 2>$null
+    Write-Host " generated" -ForegroundColor Green
+}
+else {
+    Write-Host " set" -ForegroundColor Green
+}
+
 # --- TF_VAR_minio_root_user: default to minioadmin ---
 $minioUser = [Environment]::GetEnvironmentVariable("TF_VAR_minio_root_user")
 Write-Host "  TF_VAR_minio_root_user..." -NoNewline
