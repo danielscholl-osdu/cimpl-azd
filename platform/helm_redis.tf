@@ -80,6 +80,15 @@ resource "helm_release" "redis" {
     # Replication architecture: master + replicas (no sentinel)
     architecture: replication
 
+    # Image override: Bitnami moved free images to bitnamilegacy/ in Aug 2025
+    global:
+      security:
+        allowInsecureImages: true
+    image:
+      registry: docker.io
+      repository: bitnamilegacy/redis
+      tag: 7.4.2-debian-12-r0
+
     # Authentication
     auth:
       enabled: true
