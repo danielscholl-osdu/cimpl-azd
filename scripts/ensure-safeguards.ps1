@@ -287,7 +287,14 @@ if ($isAutomatic) {
     Write-Host "  AKS Automatic detected - verifying probe exemption propagation..." -ForegroundColor Cyan
     Write-Host "  Namespaces will be created by Terraform in Phase 2" -ForegroundColor Gray
 
-    $exemptionMaxWait = if ($env:SAFEGUARDS_WAIT_TIMEOUT) { [int]$env:SAFEGUARDS_WAIT_TIMEOUT } else { 1200 }  # 20 min
+    $exemptionMaxWaitDefault = 1200  # 20 min
+    $exemptionMaxWait = $exemptionMaxWaitDefault
+    if ($env:SAFEGUARDS_WAIT_TIMEOUT) {
+        if (-not [int]::TryParse($env:SAFEGUARDS_WAIT_TIMEOUT, [ref]$exemptionMaxWait)) {
+            Write-Host "  WARNING: SAFEGUARDS_WAIT_TIMEOUT '$($env:SAFEGUARDS_WAIT_TIMEOUT)' is not a valid integer; using default ${exemptionMaxWaitDefault}s." -ForegroundColor Yellow
+            $exemptionMaxWait = $exemptionMaxWaitDefault
+        }
+    }
     $exemptionInterval = 30
     $exemptionElapsed = 0
     $exemptionReady = $false
@@ -333,7 +340,7 @@ spec:
 "@
 
     while (-not $exemptionReady -and $exemptionElapsed -lt $exemptionMaxWait) {
-        $result = $testJobYaml | kubectl apply --dry-run=server -f - 2>&1
+        $result = $testJobYaml | kubectl create --dry-run=server -f - 2>&1
         if ($LASTEXITCODE -eq 0) {
             $exemptionReady = $true
             Write-Host "  Probe exemption: Propagated" -ForegroundColor Green
@@ -346,9 +353,11 @@ spec:
                 $exemptionElapsed += $exemptionInterval
             }
             else {
-                # Error is unrelated to probes — exemption is working (or not needed)
-                $exemptionReady = $true
-                Write-Host "  Probe exemption: OK (no probe-related denial)" -ForegroundColor Green
+                # Non-probe error: fail fast so the user can diagnose connectivity/RBAC/schema issues
+                Write-Host "  ERROR: kubectl dry-run failed (not probe-related):" -ForegroundColor Red
+                Write-Host "  $output" -ForegroundColor DarkGray
+                Write-Host "  Resolve the issue above and re-run this script." -ForegroundColor Yellow
+                exit 1
             }
         }
     }
