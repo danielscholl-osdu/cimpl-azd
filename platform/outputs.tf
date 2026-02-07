@@ -63,7 +63,7 @@ output "get_postgresql_password_command" {
 
 output "get_redis_password_command" {
   description = "Command to get Redis password"
-  value       = var.enable_redis ? "kubectl get secret redis-credentials -n redis -o jsonpath='{.data.redis-password}' | base64 -d" : ""
+  value       = var.enable_redis ? "kubectl get secret redis-credentials -n redis -o jsonpath=\"{.data['redis-password']}\" | base64 -d" : ""
 }
 
 output "get_ingress_ip_command" {

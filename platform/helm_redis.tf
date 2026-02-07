@@ -59,7 +59,7 @@ resource "kubernetes_secret" "redis_password" {
   }
 
   data = {
-    redis-password = var.redis_password
+    "redis-password" = var.redis_password
   }
 
   depends_on = [kubernetes_namespace.redis]
