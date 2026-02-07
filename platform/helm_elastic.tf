@@ -218,22 +218,12 @@ resource "kubectl_manifest" "elasticsearch" {
                     limits:
                       memory: 4Gi
                       cpu: 2
-                  # Health probes for AKS Automatic safeguards compliance
-                  readinessProbe:
-                    httpGet:
-                      path: /
-                      port: 9200
-                      scheme: HTTP
-                    initialDelaySeconds: 30
-                    periodSeconds: 10
-                    timeoutSeconds: 5
-                    failureThreshold: 3
+                  # Liveness probe: tcpSocket avoids ES 8.x auth requirements (401 on httpGet)
+                  # Readiness probe is omitted — ECK injects its own authenticated readiness probe
                   livenessProbe:
-                    httpGet:
-                      path: /
+                    tcpSocket:
                       port: 9200
-                      scheme: HTTP
-                    initialDelaySeconds: 60
+                    initialDelaySeconds: 90
                     periodSeconds: 30
                     timeoutSeconds: 10
                     failureThreshold: 3

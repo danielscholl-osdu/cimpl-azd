@@ -280,13 +280,86 @@ else {
 Write-Host "`n[4/4] Final verification..." -ForegroundColor Cyan
 
 if ($isAutomatic) {
-    # AKS Automatic: Skip exclusion dry-run testing - exclusions don't work
-    # Workloads must be compliant with Deployment Safeguards
-    # NOTE: Do NOT create namespaces here - let Terraform manage them in Phase 2
-    # This avoids "namespace already exists" conflicts during terraform apply
-    Write-Host "  AKS Automatic detected - skipping exclusion dry-run test" -ForegroundColor Yellow
-    Write-Host "  All workloads must be compliant with Deployment Safeguards" -ForegroundColor Yellow
-    Write-Host "  Namespaces will be created by Terraform in Phase 2" -ForegroundColor Green
+    # AKS Automatic: Workloads must comply with Deployment Safeguards.
+    # The CNPG probe exemption (Azure Policy waiver) can take up to 20 min to
+    # propagate from Azure Policy to the in-cluster Gatekeeper constraint.
+    # Verify propagation by dry-running a Job without probes before proceeding.
+    Write-Host "  AKS Automatic detected - verifying probe exemption propagation..." -ForegroundColor Cyan
+    Write-Host "  Namespaces will be created by Terraform in Phase 2" -ForegroundColor Gray
+
+    $exemptionMaxWait = if ($env:SAFEGUARDS_WAIT_TIMEOUT) { [int]$env:SAFEGUARDS_WAIT_TIMEOUT } else { 1200 }  # 20 min
+    $exemptionInterval = 30
+    $exemptionElapsed = 0
+    $exemptionReady = $false
+
+    # Job that is fully safeguards-compliant EXCEPT for probes.
+    # If the probe exemption has propagated, this dry-run succeeds.
+    $testJobYaml = @"
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: probe-exemption-test
+  namespace: default
+spec:
+  template:
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: probe-exemption-test
+      containers:
+      - name: test
+        image: mcr.microsoft.com/cbl-mariner/base/core:2.0
+        command: ["true"]
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+      restartPolicy: Never
+"@
+
+    while (-not $exemptionReady -and $exemptionElapsed -lt $exemptionMaxWait) {
+        $result = $testJobYaml | kubectl apply --dry-run=server -f - 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            $exemptionReady = $true
+            Write-Host "  Probe exemption: Propagated" -ForegroundColor Green
+        }
+        else {
+            $output = "$result"
+            if ($output -match "livenessProbe|readinessProbe|Probe|probe") {
+                Write-Host "  Waiting for probe exemption propagation... ($exemptionElapsed`s / $($exemptionMaxWait)s)" -ForegroundColor Gray
+                Start-Sleep -Seconds $exemptionInterval
+                $exemptionElapsed += $exemptionInterval
+            }
+            else {
+                # Error is unrelated to probes — exemption is working (or not needed)
+                $exemptionReady = $true
+                Write-Host "  Probe exemption: OK (no probe-related denial)" -ForegroundColor Green
+            }
+        }
+    }
+
+    if (-not $exemptionReady) {
+        Write-Host "  WARNING: Probe exemption not detected after $($exemptionMaxWait)s" -ForegroundColor Yellow
+        Write-Host "  CNPG initdb Job may be blocked by deployment safeguards." -ForegroundColor Yellow
+        Write-Host "  You can retry later: ./scripts/deploy-platform.ps1" -ForegroundColor Gray
+        Write-Host "  Or bypass: SKIP_SAFEGUARDS_WAIT=true ./scripts/ensure-safeguards.ps1" -ForegroundColor Gray
+        exit 1
+    }
 }
 else {
     # Standard AKS: Verify exclusions are effective via server-side dry-run
