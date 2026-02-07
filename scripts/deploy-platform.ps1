@@ -16,16 +16,23 @@ Write-Host "==================================================================" 
 Write-Host "  Phase 2: Deploy Platform Layer"                                   -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Cyan
 
-# Get resource group and cluster name from terraform outputs or environment
+# Get resource group, cluster name, and subscription from environment or terraform outputs
 $resourceGroup = $env:AZURE_RESOURCE_GROUP
 $clusterName = $env:AZURE_AKS_CLUSTER_NAME
+$subscriptionId = $env:AZURE_SUBSCRIPTION_ID
 
 if ([string]::IsNullOrEmpty($resourceGroup) -or [string]::IsNullOrEmpty($clusterName)) {
     Write-Host "  Getting values from terraform outputs..." -ForegroundColor Gray
     Push-Location $PSScriptRoot/../infra
-    $resourceGroup = terraform output -raw AZURE_RESOURCE_GROUP 2>$null
-    $clusterName = terraform output -raw AZURE_AKS_CLUSTER_NAME 2>$null
+    if ([string]::IsNullOrEmpty($resourceGroup)) { $resourceGroup = terraform output -raw AZURE_RESOURCE_GROUP 2>$null }
+    if ([string]::IsNullOrEmpty($clusterName)) { $clusterName = terraform output -raw AZURE_AKS_CLUSTER_NAME 2>$null }
+    if ([string]::IsNullOrEmpty($subscriptionId)) { $subscriptionId = terraform output -raw AZURE_SUBSCRIPTION_ID 2>$null }
     Pop-Location
+}
+
+if ([string]::IsNullOrEmpty($subscriptionId)) {
+    Write-Host "Subscription ID not provided; falling back to current az account..." -ForegroundColor Gray
+    $subscriptionId = az account show --query id -o tsv 2>$null
 }
 
 if ([string]::IsNullOrEmpty($resourceGroup) -or [string]::IsNullOrEmpty($clusterName)) {
@@ -35,6 +42,12 @@ if ([string]::IsNullOrEmpty($resourceGroup) -or [string]::IsNullOrEmpty($cluster
 
 Write-Host "  Resource Group: $resourceGroup" -ForegroundColor Gray
 Write-Host "  Cluster: $clusterName" -ForegroundColor Gray
+if (-not [string]::IsNullOrEmpty($subscriptionId)) {
+    Write-Host "  Subscription: $subscriptionId" -ForegroundColor Gray
+}
+
+# Build common subscription argument for az commands
+$subscriptionArgs = if (-not [string]::IsNullOrEmpty($subscriptionId)) { @("--subscription", $subscriptionId) } else { @() }
 
 #region Step 1: Verify kubeconfig
 Write-Host ""
@@ -45,7 +58,7 @@ Write-Host "=================================================================="
 $nodes = kubectl get nodes --no-headers 2>$null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "  Kubeconfig not configured, configuring now..." -ForegroundColor Yellow
-    az aks get-credentials -g $resourceGroup -n $clusterName --overwrite-existing
+    az aks get-credentials -g $resourceGroup -n $clusterName @subscriptionArgs --overwrite-existing
     kubelogin convert-kubeconfig -l azurecli
     # Re-fetch nodes after configuring kubeconfig
     $nodes = kubectl get nodes --no-headers 2>$null

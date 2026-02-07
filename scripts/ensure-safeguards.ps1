@@ -16,16 +16,23 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "=== Phase 1: Ensuring Safeguards Readiness ===" -ForegroundColor Cyan
 
-# Get resource group and cluster name from terraform outputs or environment
+# Get resource group, cluster name, and subscription from environment or terraform outputs
 $resourceGroup = $env:AZURE_RESOURCE_GROUP
 $clusterName = $env:AZURE_AKS_CLUSTER_NAME
+$subscriptionId = $env:AZURE_SUBSCRIPTION_ID
 
 if ([string]::IsNullOrEmpty($resourceGroup) -or [string]::IsNullOrEmpty($clusterName)) {
     Write-Host "Getting values from terraform outputs..." -ForegroundColor Gray
     Push-Location $PSScriptRoot/../infra
-    $resourceGroup = terraform output -raw AZURE_RESOURCE_GROUP 2>$null
-    $clusterName = terraform output -raw AZURE_AKS_CLUSTER_NAME 2>$null
+    if ([string]::IsNullOrEmpty($resourceGroup)) { $resourceGroup = terraform output -raw AZURE_RESOURCE_GROUP 2>$null }
+    if ([string]::IsNullOrEmpty($clusterName)) { $clusterName = terraform output -raw AZURE_AKS_CLUSTER_NAME 2>$null }
+    if ([string]::IsNullOrEmpty($subscriptionId)) { $subscriptionId = terraform output -raw AZURE_SUBSCRIPTION_ID 2>$null }
     Pop-Location
+}
+
+if ([string]::IsNullOrEmpty($subscriptionId)) {
+    Write-Host "Subscription ID not provided; falling back to current az account..." -ForegroundColor Gray
+    $subscriptionId = az account show --query id -o tsv 2>$null
 }
 
 if ([string]::IsNullOrEmpty($resourceGroup) -or [string]::IsNullOrEmpty($clusterName)) {
@@ -35,10 +42,16 @@ if ([string]::IsNullOrEmpty($resourceGroup) -or [string]::IsNullOrEmpty($cluster
 
 Write-Host "Resource Group: $resourceGroup" -ForegroundColor Gray
 Write-Host "Cluster Name: $clusterName" -ForegroundColor Gray
+if (-not [string]::IsNullOrEmpty($subscriptionId)) {
+    Write-Host "Subscription: $subscriptionId" -ForegroundColor Gray
+}
+
+# Build common subscription argument for az commands
+$subscriptionArgs = if (-not [string]::IsNullOrEmpty($subscriptionId)) { @("--subscription", $subscriptionId) } else { @() }
 
 # Step 1: Get kubeconfig
 Write-Host "`n[1/4] Configuring kubeconfig..." -ForegroundColor Cyan
-az aks get-credentials -g $resourceGroup -n $clusterName --overwrite-existing
+az aks get-credentials -g $resourceGroup -n $clusterName @subscriptionArgs --overwrite-existing
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Failed to get kubeconfig" -ForegroundColor Red
     exit 1
@@ -57,6 +70,16 @@ while ($rbacElapsed -lt $rbacMaxWait) {
     if ($canCreate -eq "yes") {
         Write-Host "  RBAC permissions: OK" -ForegroundColor Green
         break
+    }
+    # Detect authentication errors that won't resolve with time
+    $output = "$canCreate"
+    if ($output -match "\bAADSTS\b|\bauthentication failed\b|\bunauthorized\b|\blogin\s+failed\b|token expired|invalid token|token not found|credential expired|invalid credential|credentials? not found") {
+        Write-Host "  ERROR: Authentication failed (not an RBAC propagation issue)" -ForegroundColor Red
+        Write-Host "  Detail: $($output.Substring(0, [Math]::Min(200, $output.Length)))" -ForegroundColor Gray
+        Write-Host "  Please re-authenticate:" -ForegroundColor Yellow
+        Write-Host "    az logout" -ForegroundColor Gray
+        Write-Host "    az login" -ForegroundColor Gray
+        exit 1
     }
     Write-Host "  Waiting for RBAC propagation... ($rbacElapsed`s)" -ForegroundColor Gray
     Start-Sleep -Seconds $rbacWaitInterval
@@ -79,7 +102,7 @@ Write-Host "`n[2/4] Checking cluster configuration..." -ForegroundColor Cyan
 
 # Detect AKS Automatic (safeguards cannot be modified)
 # Note: Using 2>$null to discard stderr (aks-preview warnings) since we only need the SKU value
-$clusterSkuOutput = az aks show -g $resourceGroup -n $clusterName --query "sku.name" -o tsv 2>$null
+$clusterSkuOutput = az aks show -g $resourceGroup -n $clusterName @subscriptionArgs --query "sku.name" -o tsv 2>$null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "  ERROR: Failed to determine AKS cluster SKU via 'az aks show'." -ForegroundColor Red
     Write-Host "  Ensure you are logged in (az login), have access to the subscription, and the cluster exists." -ForegroundColor Red
@@ -130,7 +153,7 @@ else {
 
         # Try new command first (az aks safeguards update), fallback to old for CLI compatibility
         Write-Host "  Trying az aks safeguards update..." -ForegroundColor Gray
-        $safeguardsResult = az aks safeguards update -g $resourceGroup -n $clusterName `
+        $safeguardsResult = az aks safeguards update -g $resourceGroup -n $clusterName @subscriptionArgs `
             --level Warn `
             --excluded-ns @excludedNsList `
             --only-show-errors 2>&1
@@ -138,7 +161,7 @@ else {
         if ($LASTEXITCODE -ne 0) {
             Write-Host "  Fallback: trying az aks update --safeguards-level..." -ForegroundColor Gray
             $excludedNsComma = $excludedNsList -join ","
-            $safeguardsResult = az aks update -g $resourceGroup -n $clusterName `
+            $safeguardsResult = az aks update -g $resourceGroup -n $clusterName @subscriptionArgs `
                 --safeguards-level Warning `
                 --safeguards-excluded-ns $excludedNsComma `
                 --only-show-errors 2>&1
@@ -177,7 +200,7 @@ if ($env:SKIP_SAFEGUARDS_WAIT -eq "true") {
 
 # Check if Azure Policy add-on is enabled on the cluster
 Write-Host "  Checking Azure Policy add-on status..." -ForegroundColor Gray
-$clusterInfo = az aks show -g $resourceGroup -n $clusterName --query "addonProfiles.azurepolicy.enabled" -o tsv 2>$null
+$clusterInfo = az aks show -g $resourceGroup -n $clusterName @subscriptionArgs --query "addonProfiles.azurepolicy.enabled" -o tsv 2>$null
 
 if ($clusterInfo -ne "true") {
     Write-Host "  Azure Policy add-on not enabled on cluster" -ForegroundColor Yellow
