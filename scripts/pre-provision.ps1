@@ -109,14 +109,27 @@ $acmeEmail = [Environment]::GetEnvironmentVariable("TF_VAR_acme_email")
 Write-Host "  TF_VAR_acme_email..." -NoNewline
 if ([string]::IsNullOrEmpty($acmeEmail)) {
     if ($account) {
-        $detectedEmail = az ad signed-in-user show --query userPrincipalName -o tsv 2>$null
-        if (-not [string]::IsNullOrEmpty($detectedEmail)) {
+        # Try 'mail' property first (works for both member and guest users)
+        $detectedEmail = az ad signed-in-user show --query mail -o tsv 2>$null
+
+        # Fallback: parse UPN for guest users (user_domain.com#EXT#@tenant → user@domain.com)
+        if ([string]::IsNullOrEmpty($detectedEmail) -or $detectedEmail -eq "null") {
+            $upn = az ad signed-in-user show --query userPrincipalName -o tsv 2>$null
+            if (-not [string]::IsNullOrEmpty($upn) -and $upn -match '^(.+)#EXT#@') {
+                $detectedEmail = $Matches[1] -replace '_([^_]+)$', '@$1'
+            }
+            elseif (-not [string]::IsNullOrEmpty($upn) -and $upn -notmatch '#') {
+                $detectedEmail = $upn
+            }
+        }
+
+        if (-not [string]::IsNullOrEmpty($detectedEmail) -and $detectedEmail -ne "null" -and $detectedEmail -notmatch '#') {
             azd env set TF_VAR_acme_email $detectedEmail 2>$null
             Write-Host " auto-detected ($detectedEmail)" -ForegroundColor Green
         }
         else {
             Write-Host " NOT SET" -ForegroundColor Yellow
-            Write-Host "    Could not auto-detect email from Azure AD" -ForegroundColor Gray
+            Write-Host "    Could not auto-detect a valid email from Azure AD" -ForegroundColor Gray
             Write-Host "    Set with: azd env set TF_VAR_acme_email 'you@example.com'" -ForegroundColor Gray
             [void]$issues.Add("TF_VAR_acme_email could not be auto-detected")
         }
