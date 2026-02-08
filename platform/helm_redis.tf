@@ -71,7 +71,7 @@ resource "helm_release" "redis" {
   name             = "redis"
   repository       = "oci://registry-1.docker.io/bitnamicharts"
   chart            = "redis"
-  version          = "20.6.3"
+  version          = "23.0.5"
   namespace        = "redis"
   create_namespace = false
   timeout          = 600
@@ -79,15 +79,6 @@ resource "helm_release" "redis" {
   values = [<<-YAML
     # Replication architecture: master + replicas (no sentinel)
     architecture: replication
-
-    # Image override: Bitnami moved free images to bitnamilegacy/ in Aug 2025
-    global:
-      security:
-        allowInsecureImages: true
-    image:
-      registry: docker.io
-      repository: bitnamilegacy/redis
-      tag: 7.4.2-debian-12-r0
 
     # Authentication
     auth:

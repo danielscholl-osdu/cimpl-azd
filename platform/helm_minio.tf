@@ -13,7 +13,7 @@ resource "helm_release" "minio" {
 
   # Use postrender to inject health probes for AKS Automatic safeguards compliance
   # The upstream chart doesn't support probe configuration via values
-  postrender {
+  postrender = {
     binary_path = "${path.module}/postrender-minio.sh"
   }
 
