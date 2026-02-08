@@ -80,6 +80,17 @@ resource "helm_release" "redis" {
     # Replication architecture: master + replicas (no sentinel)
     architecture: replication
 
+    # Image override: Bitnami free tier defaults to 'latest' tag, which AKS Automatic
+    # Gatekeeper policy rejects (K8sAzureV2ContainerNoLatestImage). Pin to bitnamilegacy
+    # with a versioned tag for reproducible deployments.
+    global:
+      security:
+        allowInsecureImages: true
+    image:
+      registry: docker.io
+      repository: bitnamilegacy/redis
+      tag: 8.2.1-debian-12-r0
+
     # Authentication
     auth:
       enabled: true
