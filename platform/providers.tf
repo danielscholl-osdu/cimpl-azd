@@ -2,7 +2,7 @@
 # Uses kubeconfig from cluster provisioning
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     config_path = var.kubeconfig_path
   }
 }

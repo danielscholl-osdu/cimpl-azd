@@ -8,81 +8,79 @@ resource "helm_release" "cert_manager" {
   name             = "cert-manager"
   repository       = "https://charts.jetstack.io"
   chart            = "cert-manager"
-  version          = "v1.17.0"
+  version          = "v1.19.3"
   namespace        = "cert-manager"
   create_namespace = true
 
   # Use postrender to inject health probes for cainjector
   # The upstream chart doesn't support probe configuration for cainjector
-  postrender {
+  postrender = {
     binary_path = "${path.module}/postrender-cert-manager.sh"
   }
 
-  set {
-    name  = "crds.enabled"
-    value = "true"
-  }
-
-  # Disable startupapicheck - the post-install Job fails AKS Automatic safeguards
-  # which require probes on all containers (Jobs shouldn't have probes as they run to completion)
-  set {
-    name  = "startupapicheck.enabled"
-    value = "false"
-  }
-
-  # Controller resources (AKS Automatic safeguards compliance)
-  set {
-    name  = "resources.requests.cpu"
-    value = "50m"
-  }
-  set {
-    name  = "resources.requests.memory"
-    value = "64Mi"
-  }
-  set {
-    name  = "resources.limits.cpu"
-    value = "500m"
-  }
-  set {
-    name  = "resources.limits.memory"
-    value = "256Mi"
-  }
-
-  # Webhook resources
-  set {
-    name  = "webhook.resources.requests.cpu"
-    value = "50m"
-  }
-  set {
-    name  = "webhook.resources.requests.memory"
-    value = "64Mi"
-  }
-  set {
-    name  = "webhook.resources.limits.cpu"
-    value = "200m"
-  }
-  set {
-    name  = "webhook.resources.limits.memory"
-    value = "128Mi"
-  }
-
-  # CAInjector resources
-  set {
-    name  = "cainjector.resources.requests.cpu"
-    value = "50m"
-  }
-  set {
-    name  = "cainjector.resources.requests.memory"
-    value = "64Mi"
-  }
-  set {
-    name  = "cainjector.resources.limits.cpu"
-    value = "500m"
-  }
-  set {
-    name  = "cainjector.resources.limits.memory"
-    value = "256Mi"
-  }
+  set = [
+    {
+      name  = "crds.enabled"
+      value = "true"
+    },
+    # Disable startupapicheck - the post-install Job fails AKS Automatic safeguards
+    # which require probes on all containers (Jobs shouldn't have probes as they run to completion)
+    {
+      name  = "startupapicheck.enabled"
+      value = "false"
+    },
+    # Controller resources (AKS Automatic safeguards compliance)
+    {
+      name  = "resources.requests.cpu"
+      value = "50m"
+    },
+    {
+      name  = "resources.requests.memory"
+      value = "64Mi"
+    },
+    {
+      name  = "resources.limits.cpu"
+      value = "500m"
+    },
+    {
+      name  = "resources.limits.memory"
+      value = "256Mi"
+    },
+    # Webhook resources
+    {
+      name  = "webhook.resources.requests.cpu"
+      value = "50m"
+    },
+    {
+      name  = "webhook.resources.requests.memory"
+      value = "64Mi"
+    },
+    {
+      name  = "webhook.resources.limits.cpu"
+      value = "200m"
+    },
+    {
+      name  = "webhook.resources.limits.memory"
+      value = "128Mi"
+    },
+    # CAInjector resources
+    {
+      name  = "cainjector.resources.requests.cpu"
+      value = "50m"
+    },
+    {
+      name  = "cainjector.resources.requests.memory"
+      value = "64Mi"
+    },
+    {
+      name  = "cainjector.resources.limits.cpu"
+      value = "500m"
+    },
+    {
+      name  = "cainjector.resources.limits.memory"
+      value = "256Mi"
+    },
+  ]
 }
 
 # ============================================================================

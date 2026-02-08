@@ -71,7 +71,7 @@ resource "helm_release" "redis" {
   name             = "redis"
   repository       = "oci://registry-1.docker.io/bitnamicharts"
   chart            = "redis"
-  version          = "20.6.3"
+  version          = "24.1.3"
   namespace        = "redis"
   create_namespace = false
   timeout          = 600
@@ -80,14 +80,16 @@ resource "helm_release" "redis" {
     # Replication architecture: master + replicas (no sentinel)
     architecture: replication
 
-    # Image override: Bitnami moved free images to bitnamilegacy/ in Aug 2025
+    # Image override: Bitnami free tier defaults to 'latest' tag, which AKS Automatic
+    # Gatekeeper policy rejects (K8sAzureV2ContainerNoLatestImage). Pin to bitnamilegacy
+    # with a versioned tag for reproducible deployments.
     global:
       security:
         allowInsecureImages: true
     image:
       registry: docker.io
       repository: bitnamilegacy/redis
-      tag: 7.4.2-debian-12-r0
+      tag: 8.2.1-debian-12-r0
 
     # Authentication
     auth:

@@ -164,16 +164,22 @@ cimpl-azd/
 
 **Always use this pattern when modifying deployment scripts.**
 
-### Issue 3: Helm Provider Version Pinning
-**IMPORTANT:** The platform layer uses Helm provider `~> 2.17.0` (pinned in `platform/versions.tf`). Do NOT upgrade to Helm provider 3.x without migration plan - it has breaking changes (`set` → `set_value`).
+### Issue 3: Helm Provider v3 Syntax
+The platform layer uses Helm provider `~> 3.1` and Kubernetes provider `~> 3.0` (pinned in `platform/versions.tf`). Key syntax differences from v2:
+- `set {}` blocks are now `set = [{ name = "...", value = "..." }, ...]` (list-of-objects)
+- `postrender {}` blocks are now `postrender = { binary_path = "..." }` (object assignment)
+- `kubernetes_namespace` / `kubernetes_secret` resource names are kept (deprecated but functional; v1 rename deferred)
 
-### Issue 4: Bitnami Chart Image Verification
-Bitnami Helm charts require verified images. Charts using non-standard registries need:
-```hcl
-set {
-  name  = "global.security.allowInsecureImages"
-  value = "true"
-}
+### Issue 4: Bitnami Chart Image Pinning
+Bitnami free-tier charts default to `image.tag: latest`, which AKS Automatic Gatekeeper rejects (`K8sAzureV2ContainerNoLatestImage`). Pin to `bitnamilegacy/` images with versioned tags:
+```yaml
+global:
+  security:
+    allowInsecureImages: true
+image:
+  registry: docker.io
+  repository: bitnamilegacy/redis
+  tag: 8.2.1-debian-12-r0
 ```
 
 ### Issue 5: PostgreSQL Version Pinning

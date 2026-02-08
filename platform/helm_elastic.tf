@@ -4,37 +4,38 @@ resource "helm_release" "elastic_operator" {
   name             = "elastic-operator"
   repository       = "https://helm.elastic.co"
   chart            = "eck-operator"
-  version          = "2.16.0"
+  version          = "3.3.0"
   namespace        = "elastic-system"
   create_namespace = true
 
-  set {
-    name  = "installCRDs"
-    value = "true"
-  }
-
-  # Resources for AKS Automatic safeguards compliance
-  set {
-    name  = "resources.requests.cpu"
-    value = "100m"
-  }
-  set {
-    name  = "resources.requests.memory"
-    value = "150Mi"
-  }
-  set {
-    name  = "resources.limits.cpu"
-    value = "1"
-  }
-  set {
-    name  = "resources.limits.memory"
-    value = "1Gi"
-  }
+  set = [
+    {
+      name  = "installCRDs"
+      value = "true"
+    },
+    # Resources for AKS Automatic safeguards compliance
+    {
+      name  = "resources.requests.cpu"
+      value = "100m"
+    },
+    {
+      name  = "resources.requests.memory"
+      value = "150Mi"
+    },
+    {
+      name  = "resources.limits.cpu"
+      value = "1"
+    },
+    {
+      name  = "resources.limits.memory"
+      value = "1Gi"
+    },
+  ]
 
   # Postrender with kustomize to inject health probes for AKS Automatic safeguards compliance
   # The ECK operator chart does not expose probe configuration, so we use kustomize to patch
   # the StatefulSet with tcpSocket probes on webhook port 9443
-  postrender {
+  postrender = {
     binary_path = "${path.module}/kustomize/eck-operator-postrender.sh"
   }
 }

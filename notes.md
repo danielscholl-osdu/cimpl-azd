@@ -167,16 +167,15 @@ FATAL: database files are incompatible with server
 
 ---
 
-### Issue 5: Helm Provider Version Compatibility
+### Issue 5: Helm Provider Version Compatibility (RESOLVED)
 
-**Problem**: Helm provider 3.x introduced breaking changes (e.g., `set` block syntax changes to `set_value`).
+**Problem**: Helm provider 3.x introduced breaking changes (`set {}` blocks → `set = [...]` list syntax, `postrender {}` → `postrender = {}`).
 
-**Current Workaround**:
-- Pin Helm provider to `~> 2.17.0` in versions.tf
-
-**Proposed Fix**:
-- Documented in versions.tf
-- Will need migration plan for Helm provider 3.x
+**Resolution**:
+- Migrated to Helm provider `~> 3.1` and Kubernetes provider `~> 3.0`
+- Converted all `set {}` blocks to `set = [...]` list-of-objects syntax
+- Converted all `postrender {}` blocks to `postrender = {}` object assignment
+- Kept deprecated `kubernetes_namespace`/`kubernetes_secret` resource names (v1 rename deferred to provider v4)
 
 ---
 

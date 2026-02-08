@@ -4,27 +4,29 @@ resource "helm_release" "cnpg_operator" {
   name             = "cnpg"
   repository       = "https://cloudnative-pg.github.io/charts"
   chart            = "cloudnative-pg"
-  version          = "0.23.0"
+  version          = "0.27.1"
   namespace        = "cnpg-system"
   create_namespace = true
 
   # Resources for AKS Automatic safeguards compliance
-  set {
-    name  = "resources.requests.cpu"
-    value = "100m"
-  }
-  set {
-    name  = "resources.requests.memory"
-    value = "256Mi"
-  }
-  set {
-    name  = "resources.limits.cpu"
-    value = "1"
-  }
-  set {
-    name  = "resources.limits.memory"
-    value = "512Mi"
-  }
+  set = [
+    {
+      name  = "resources.requests.cpu"
+      value = "100m"
+    },
+    {
+      name  = "resources.requests.memory"
+      value = "256Mi"
+    },
+    {
+      name  = "resources.limits.cpu"
+      value = "1"
+    },
+    {
+      name  = "resources.limits.memory"
+      value = "512Mi"
+    },
+  ]
 }
 
 # Namespace for PostgreSQL cluster
