@@ -156,7 +156,15 @@ if ($hasDnsZoneConfig -and [string]::IsNullOrEmpty($externalDnsClientId)) {
     Write-Host "  DNS zone configured but ExternalDNS identity not found — applying infra layer..." -ForegroundColor Yellow
     Push-Location $PSScriptRoot/../infra
     $env:ARM_SUBSCRIPTION_ID = $subscriptionId
-    terraform apply -auto-approve @stateArgs
+    # azd stores infra variables in main.tfvars.json alongside the state file
+    $infraVarFileArgs = @()
+    if (-not [string]::IsNullOrEmpty($envName)) {
+        $infraVarFile = "$PSScriptRoot/../.azure/$envName/infra/main.tfvars.json"
+        if (Test-Path $infraVarFile) {
+            $infraVarFileArgs = @("-var-file=$infraVarFile")
+        }
+    }
+    terraform apply -auto-approve @stateArgs @infraVarFileArgs
     if ($LASTEXITCODE -eq 0) {
         $externalDnsClientId = terraform output -raw @stateArgs EXTERNAL_DNS_CLIENT_ID 2>$null
         if ($LASTEXITCODE -ne 0) { $externalDnsClientId = "" }
