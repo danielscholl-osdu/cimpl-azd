@@ -29,6 +29,11 @@ resource "helm_release" "cert_manager" {
       name  = "startupapicheck.enabled"
       value = "false"
     },
+    # Enable Gateway API support for ACME HTTP-01 solver
+    {
+      name  = "featureGates"
+      value = "ExperimentalGatewayAPISupport=true"
+    },
     # Controller resources (AKS Automatic safeguards compliance)
     {
       name  = "resources.requests.cpu"
@@ -138,8 +143,11 @@ resource "kubectl_manifest" "cluster_issuer_staging" {
           name: letsencrypt-staging
         solvers:
           - http01:
-              ingress:
-                class: istio
+              gatewayHTTPRoute:
+                parentRefs:
+                  - name: istio
+                    namespace: aks-istio-ingress
+                    kind: Gateway
   YAML
 
   depends_on = [helm_release.cert_manager]
@@ -161,8 +169,11 @@ resource "kubectl_manifest" "cluster_issuer" {
           name: letsencrypt-prod
         solvers:
           - http01:
-              ingress:
-                class: istio
+              gatewayHTTPRoute:
+                parentRefs:
+                  - name: istio
+                    namespace: aks-istio-ingress
+                    kind: Gateway
   YAML
 
   depends_on = [helm_release.cert_manager]

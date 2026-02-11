@@ -16,6 +16,22 @@ resource "kubectl_manifest" "gateway_api_crds" {
   server_side_apply = true
 }
 
+# Ensure the AKS-managed Istio ingress gateway service uses a public LoadBalancer.
+# AKS Automatic may default to internal LBs; this annotation overrides that.
+resource "kubernetes_annotations" "istio_gateway_public" {
+  count       = var.enable_gateway ? 1 : 0
+  api_version = "v1"
+  kind        = "Service"
+  metadata {
+    name      = "aks-istio-ingressgateway-external"
+    namespace = "aks-istio-ingress"
+  }
+  annotations = {
+    "service.beta.kubernetes.io/azure-load-balancer-internal" = "false"
+  }
+  force = true
+}
+
 # Gateway for external HTTPS access (AKS-managed Istio)
 # References the AKS Istio external ingress gateway service
 resource "kubectl_manifest" "gateway" {

@@ -146,11 +146,31 @@ if ($LASTEXITCODE -ne 0) {
 }
 Pop-Location
 
-# Determine if ExternalDNS should be enabled.
-# Require full DNS zone configuration (name, resource group, subscription) and identity (client + tenant).
+# Determine if DNS zone is fully configured
 $hasDnsZoneConfig = (-not [string]::IsNullOrEmpty($dnsZoneName)) -and `
                      (-not [string]::IsNullOrEmpty($dnsZoneRg)) -and `
                      (-not [string]::IsNullOrEmpty($dnsZoneSubId))
+
+# Fix #67: If DNS zone configured but ExternalDNS identity missing, re-apply infra layer
+if ($hasDnsZoneConfig -and [string]::IsNullOrEmpty($externalDnsClientId)) {
+    Write-Host "  DNS zone configured but ExternalDNS identity not found — applying infra layer..." -ForegroundColor Yellow
+    Push-Location $PSScriptRoot/../infra
+    $env:ARM_SUBSCRIPTION_ID = $subscriptionId
+    terraform apply -auto-approve @stateArgs
+    if ($LASTEXITCODE -eq 0) {
+        $externalDnsClientId = terraform output -raw @stateArgs EXTERNAL_DNS_CLIENT_ID 2>$null
+        if ($LASTEXITCODE -ne 0) { $externalDnsClientId = "" }
+        $tenantId = terraform output -raw @stateArgs AZURE_TENANT_ID 2>$null
+        if ($LASTEXITCODE -ne 0) { $tenantId = "" }
+        Write-Host "  ExternalDNS identity created" -ForegroundColor Green
+    } else {
+        Write-Host "  WARNING: Infra re-apply failed, ExternalDNS will be disabled" -ForegroundColor Yellow
+    }
+    Pop-Location
+}
+
+# Determine if ExternalDNS should be enabled.
+# Require full DNS zone configuration (name, resource group, subscription) and identity (client + tenant).
 
 $hasIdentityConfig = (-not [string]::IsNullOrEmpty($externalDnsClientId)) -and `
                       (-not [string]::IsNullOrEmpty($tenantId))
