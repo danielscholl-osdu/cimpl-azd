@@ -135,9 +135,13 @@ AKS Automatic provides:
 
 | Pool | Purpose | VM Size | Count | Taints | Managed By |
 |------|---------|---------|-------|--------|------------|
-| system | Critical system components | Standard_D4s_v5 | 2 | CriticalAddonsOnly | AKS (VMSS) |
+| system | Critical system components | `var.system_pool_vm_size` (default: Standard_D4s_v5) | 2 | CriticalAddonsOnly | AKS (VMSS) |
 | default | General workloads (MinIO) | Auto-provisioned | Auto | None | NAP (Karpenter) |
 | stateful | Elasticsearch + PostgreSQL | D-series (4-8 vCPU) | Auto | workload=stateful:NoSchedule | NAP (Karpenter) |
+
+**System Pool Variables**:
+- `system_pool_vm_size` — VM SKU for system nodes (default: `Standard_D4s_v5`)
+- `system_pool_availability_zones` — Zones for system nodes (default: `["1", "2", "3"]`)
 
 ### Why Karpenter (NAP) for Stateful Workloads?
 
@@ -571,6 +575,29 @@ All Azure resources include:
 - PostgreSQL uses `reclaimPolicy: Retain` (pg-storageclass)
 - Data persists even if pods are deleted
 - Manual cleanup required after intentional deletion
+
+---
+
+## Troubleshooting
+
+### OverconstrainedZonalAllocationRequest
+
+AKS Automatic mandates ephemeral OS disks on system pool VMs. Combined with 3-zone pinning and a specific VM SKU, this can cause `OverconstrainedZonalAllocationRequest` failures when any zone lacks capacity.
+
+**Workaround**: Reduce the system pool to zones with available capacity:
+
+```bash
+# Skip zone 2 (example for centralus capacity issues)
+azd env set TF_VAR_system_pool_availability_zones '["1", "3"]'
+
+# Or try a different VM size
+azd env set TF_VAR_system_pool_vm_size 'Standard_D4as_v5'
+
+# Then redeploy
+azd up
+```
+
+The stateful workload pool uses Karpenter (NAP) with dynamic SKU selection, so it is not affected by this issue.
 
 ---
 
