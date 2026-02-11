@@ -21,9 +21,9 @@ Detailed visual diagrams are available in Excalidraw format:
 │  │  │                 AKS Automatic: cimpl-<env>                        │ │  │
 │  │  │                                                                   │ │  │
 │  │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │ │  │
-│  │  │  │   System    │  │   Default   │  │      Stateful           │  │ │  │
+│  │  │  │   System    │  │   Default   │  │   Stateful (Karpenter)  │  │ │  │
 │  │  │  │  Node Pool  │  │  Node Pool  │  │      Node Pool          │  │ │  │
-│  │  │  │  (2 nodes)  │  │  (auto)     │  │      (3 nodes)          │  │ │  │
+│  │  │  │  (2 nodes)  │  │  (auto)     │  │      (auto)             │  │ │  │
 │  │  │  │             │  │             │  │                         │  │ │  │
 │  │  │  │ - Istio     │  │ - MinIO     │  │ - Elasticsearch (3)     │  │ │  │
 │  │  │  │ - CoreDNS   │  │ - cert-mgr  │  │ - PostgreSQL HA (3)     │  │ │  │
@@ -53,7 +53,6 @@ The deployment is split into three distinct layers, each with its own terraform 
 - Azure Resource Group with tags
 - AKS Automatic cluster
 - System node pool (critical workloads)
-- Stateful node pool (tainted for ES + PostgreSQL)
 - Istio service mesh (AKS-managed)
 - Azure RBAC integration
 - Workload Identity support
@@ -84,6 +83,7 @@ service_mesh_profile = { mode = "Istio" }
 - CloudNativePG (CNPG) Operator + 3-instance HA PostgreSQL cluster
 - MinIO (standalone, S3-compatible object storage)
 - Gateway API configuration (Istio)
+- Karpenter NodePool + AKSNodeClass for stateful workloads (NAP)
 - Custom StorageClasses for Elasticsearch and PostgreSQL
 
 **Terraform Resources**:
@@ -104,6 +104,8 @@ helm_release.minio
 kubectl_manifest.gateway_api_crds (for_each)
 kubectl_manifest.gateway
 kubectl_manifest.http_route
+kubectl_manifest.karpenter_nodepool_stateful
+kubectl_manifest.karpenter_aksnodeclass_stateful
 ```
 
 **Gateway API CRDs**: Gateway API Custom Resource Definitions are managed declaratively via Terraform `kubectl_manifest` resources using `for_each`, with the CRD file pinned at `platform/crds/gateway-api-v1.2.1.yaml`. This replaces the previous `local-exec` approach that used `kubectl apply` and `kubectl wait`, providing better state tracking and idempotent management.
@@ -131,11 +133,21 @@ AKS Automatic provides:
 
 ### Node Pools
 
-| Pool | Purpose | VM Size | Count | Taints |
-|------|---------|---------|-------|--------|
-| system | Critical system components | Standard_D4lds_v5 | 2 | CriticalAddonsOnly |
-| default | General workloads (MinIO) | Auto-provisioned | Auto | None |
-| stateful | Elasticsearch + PostgreSQL | Standard_D4as_v5 | 3 | workload=stateful:NoSchedule |
+| Pool | Purpose | VM Size | Count | Taints | Managed By |
+|------|---------|---------|-------|--------|------------|
+| system | Critical system components | Standard_D4s_v5 | 2 | CriticalAddonsOnly | AKS (VMSS) |
+| default | General workloads (MinIO) | Auto-provisioned | Auto | None | NAP (Karpenter) |
+| stateful | Elasticsearch + PostgreSQL | D-series (4-8 vCPU) | Auto | workload=stateful:NoSchedule | NAP (Karpenter) |
+
+### Why Karpenter (NAP) for Stateful Workloads?
+
+The stateful node pool uses AKS Node Auto-Provisioning (NAP), powered by Karpenter, instead of a traditional VMSS-based agent pool. This change was made because:
+
+1. **Eliminates `OverconstrainedZonalAllocationRequest` failures**: Traditional VMSS pools pin a single VM SKU (e.g., `Standard_D4as_v5`) across all 3 availability zones. When any zone lacks capacity for that exact SKU, cluster creation fails entirely.
+2. **Dynamic SKU selection**: Karpenter selects from any D-series VM with 4-8 vCPUs and premium storage support, choosing the best available option per zone.
+3. **Automatic scaling**: Nodes are provisioned on-demand when pods are pending and consolidated when empty, rather than maintaining a fixed pool.
+
+The Karpenter `NodePool` and `AKSNodeClass` CRDs are deployed in the platform layer (`platform/k8s_karpenter.tf`). Workloads target these nodes via the same `agentpool: stateful` label and `workload=stateful:NoSchedule` toleration used previously.
 
 ### Network Configuration
 

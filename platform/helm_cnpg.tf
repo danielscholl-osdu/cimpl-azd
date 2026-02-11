@@ -199,6 +199,8 @@ resource "kubectl_manifest" "postgresql_cluster" {
     kubernetes_namespace.postgresql,
     kubectl_manifest.pg_storage_class,
     kubernetes_secret.postgresql_superuser,
-    kubernetes_secret.postgresql_user
+    kubernetes_secret.postgresql_user,
+    kubectl_manifest.karpenter_nodepool_stateful,
+    kubectl_manifest.karpenter_aksnodeclass_stateful
   ]
 }

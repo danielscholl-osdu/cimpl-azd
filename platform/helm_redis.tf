@@ -234,6 +234,8 @@ resource "helm_release" "redis" {
   depends_on = [
     kubernetes_namespace.redis,
     kubectl_manifest.redis_storage_class,
-    kubernetes_secret.redis_password
+    kubernetes_secret.redis_password,
+    kubectl_manifest.karpenter_nodepool_stateful,
+    kubectl_manifest.karpenter_aksnodeclass_stateful
   ]
 }
