@@ -251,6 +251,10 @@ resource "kubectl_manifest" "kibana" {
       count: 1
       elasticsearchRef:
         name: elasticsearch
+%{if local.has_ingress_hostname~}
+      config:
+        server.publicBaseUrl: "https://${local.kibana_hostname}"
+%{endif~}
       http:
         tls:
           selfSignedCertificate:

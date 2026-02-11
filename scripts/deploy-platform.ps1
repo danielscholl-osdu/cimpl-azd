@@ -7,7 +7,7 @@
 # Prerequisites:
 # - Phase 1 completed successfully (safeguards in warn mode)
 # - kubeconfig already configured
-# - Environment variables set: TF_VAR_acme_email, TF_VAR_kibana_hostname
+# - Environment variables set: TF_VAR_acme_email, CIMPL_INGRESS_PREFIX
 
 $ErrorActionPreference = "Stop"
 
@@ -97,11 +97,11 @@ if (-not (Test-Path ".terraform")) {
 
 # Get variables from environment
 $acmeEmail = $env:TF_VAR_acme_email
-$kibanaHostname = $env:TF_VAR_kibana_hostname
+$ingressPrefix = $env:CIMPL_INGRESS_PREFIX
 
-if ([string]::IsNullOrEmpty($acmeEmail) -or [string]::IsNullOrEmpty($kibanaHostname)) {
-    Write-Host "  ERROR: Missing TF_VAR_acme_email or TF_VAR_kibana_hostname" -ForegroundColor Red
-    Write-Host "    Set these in .azure/<env>/.env" -ForegroundColor Gray
+if ([string]::IsNullOrEmpty($acmeEmail)) {
+    Write-Host "  ERROR: Missing TF_VAR_acme_email" -ForegroundColor Red
+    Write-Host "    Set with: azd env set TF_VAR_acme_email 'you@example.com'" -ForegroundColor Gray
     Pop-Location
     exit 1
 }
@@ -194,7 +194,7 @@ terraform apply -auto-approve `
     -var="cluster_name=$clusterName" `
     -var="resource_group_name=$resourceGroup" `
     -var="acme_email=$acmeEmail" `
-    -var="kibana_hostname=$kibanaHostname" `
+    -var="ingress_prefix=$ingressPrefix" `
     -var="use_letsencrypt_production=$useLetsencryptProd" `
     -var="enable_external_dns=$enableExternalDns" `
     -var="dns_zone_name=$dnsZoneName" `
@@ -288,14 +288,23 @@ Write-Host "  Resource Group: $resourceGroup"
 if ($ip) {
     Write-Host "  External IP: $ip"
     Write-Host ""
+    # Derive Kibana hostname from ingress prefix + DNS zone
+    $kibanaHost = if (-not [string]::IsNullOrEmpty($ingressPrefix) -and -not [string]::IsNullOrEmpty($dnsZoneName)) {
+        "$ingressPrefix-kibana.$dnsZoneName"
+    } else { "" }
+
     Write-Host "  Next steps:" -ForegroundColor Yellow
-    if ($enableExternalDns -eq "true") {
+    if ($enableExternalDns -eq "true" -and -not [string]::IsNullOrEmpty($kibanaHost)) {
         Write-Host "    1. DNS A record will be auto-created by ExternalDNS" -ForegroundColor Gray
+        Write-Host "    2. Access Kibana: https://$kibanaHost" -ForegroundColor Gray
+    }
+    elseif (-not [string]::IsNullOrEmpty($kibanaHost)) {
+        Write-Host "    1. Create DNS A record: $kibanaHost -> $ip" -ForegroundColor Gray
+        Write-Host "    2. Access Kibana: https://$kibanaHost" -ForegroundColor Gray
     }
     else {
-        Write-Host "    1. Create DNS A record: $kibanaHostname -> $ip" -ForegroundColor Gray
+        Write-Host "    1. Configure DNS zone for external access" -ForegroundColor Gray
     }
-    Write-Host "    2. Access Kibana: https://$kibanaHostname" -ForegroundColor Gray
     Write-Host "    3. Get Elasticsearch password:" -ForegroundColor Gray
     Write-Host "       kubectl get secret elasticsearch-es-elastic-user -n elastic-search -o jsonpath='{.data.elastic}' | base64 -d" -ForegroundColor DarkGray
 }
