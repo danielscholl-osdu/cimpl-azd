@@ -53,6 +53,11 @@ variable "system_pool_availability_zones" {
   description = "Availability zones for the AKS system node pool (reduce to avoid capacity issues)"
   type        = list(string)
   default     = ["1", "2", "3"]
+
+  validation {
+    condition     = length(var.system_pool_availability_zones) > 0
+    error_message = "system_pool_availability_zones must specify at least one availability zone."
+  }
 }
 
 # Derived names using environment_name for uniqueness
