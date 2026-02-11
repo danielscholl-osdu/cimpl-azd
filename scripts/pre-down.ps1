@@ -50,7 +50,13 @@ else {
 
         # List TXT record sets and find those owned by this cluster
         $txtJson = az network dns record-set txt list -g $dnsRg -z $dnsZone @subArgs -o json 2>$null
-        $txtRecords = if ($txtJson) { $txtJson | ConvertFrom-Json } else { @() }
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  WARNING: Failed to list DNS records in zone '$dnsZone'. Check permissions and zone existence." -ForegroundColor Yellow
+            $txtRecords = @()
+        }
+        else {
+            $txtRecords = if ($txtJson) { $txtJson | ConvertFrom-Json } else { @() }
+        }
 
         $ownedNames = [System.Collections.ArrayList]::new()
         foreach ($rec in $txtRecords) {
@@ -107,9 +113,16 @@ Write-Host "=================================================================="
 $resourceGroup = $env:AZURE_RESOURCE_GROUP
 
 if ([string]::IsNullOrEmpty($resourceGroup)) {
-    # Try to get from infra terraform outputs
+    # Try to get from infra terraform outputs (prefer azd-managed state path)
+    $envName = $env:AZURE_ENV_NAME
+    $infraState = "$PSScriptRoot/../.azure/$envName/infra/terraform.tfstate"
     Push-Location $PSScriptRoot/../infra
-    $resourceGroup = terraform output -raw AZURE_RESOURCE_GROUP 2>$null
+    if (Test-Path $infraState) {
+        $resourceGroup = terraform output -raw "-state=$infraState" AZURE_RESOURCE_GROUP 2>$null
+    }
+    else {
+        $resourceGroup = terraform output -raw AZURE_RESOURCE_GROUP 2>$null
+    }
     Pop-Location
 }
 
