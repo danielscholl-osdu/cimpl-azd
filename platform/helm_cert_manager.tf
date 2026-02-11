@@ -29,10 +29,10 @@ resource "helm_release" "cert_manager" {
       name  = "startupapicheck.enabled"
       value = "false"
     },
-    # Enable Gateway API support for ACME HTTP-01 solver
+    # Enable Gateway API support for ACME HTTP-01 solver (v1.15+ config flag)
     {
-      name  = "featureGates"
-      value = "ExperimentalGatewayAPISupport=true"
+      name  = "config.enableGatewayAPI"
+      value = "true"
     },
     # Controller resources (AKS Automatic safeguards compliance)
     {
