@@ -199,9 +199,20 @@ elseif ($account) {
     # Auto-discover DNS zones in current subscription
     $subId = $account.id
     $zonesJson = az network dns zone list --subscription $subId --query "[].{name:name, id:id, resourceGroup:resourceGroup}" -o json 2>$null
-    $zones = if ($zonesJson) { $zonesJson | ConvertFrom-Json } else { @() }
+    $zoneListExitCode = $LASTEXITCODE
 
-    if ($zones.Count -eq 1) {
+    if ($zoneListExitCode -ne 0) {
+        # Command failed — permissions or auth issue
+        Write-Host " failed to list DNS zones" -ForegroundColor Yellow
+        Write-Host "    The 'az network dns zone list' command failed (exit code: $zoneListExitCode)" -ForegroundColor Yellow
+        Write-Host "    Check Azure CLI authentication and permissions for subscription $subId" -ForegroundColor Gray
+        Write-Host "    ExternalDNS will be disabled unless you manually configure DNS zone settings" -ForegroundColor Gray
+        [void]$issues.Add("Failed to list DNS zones - check Azure CLI auth and permissions")
+    }
+    else {
+        $zones = if ($zonesJson) { $zonesJson | ConvertFrom-Json } else { @() }
+
+        if ($zones.Count -eq 1) {
         # Single zone found — auto-configure
         $discoveredZone = $zones[0].name
         $discoveredRg = $zones[0].resourceGroup
@@ -235,6 +246,7 @@ elseif ($account) {
         # No zones found
         Write-Host " no DNS zones found (ExternalDNS disabled)" -ForegroundColor Gray
         Write-Host "    To enable: azd env set TF_VAR_dns_zone_name 'your.dns.zone'" -ForegroundColor Gray
+    }
     }
 }
 else {

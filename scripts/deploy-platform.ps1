@@ -121,7 +121,15 @@ $infraStateFile = "$PSScriptRoot/../.azure/$envName/infra/terraform.tfstate"
 if (Test-Path $infraStateFile) {
     Push-Location $PSScriptRoot/../infra
     $externalDnsClientId = terraform output -raw "-state=$infraStateFile" EXTERNAL_DNS_CLIENT_ID 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  WARNING: Could not read EXTERNAL_DNS_CLIENT_ID from infra state" -ForegroundColor Yellow
+        $externalDnsClientId = ""
+    }
     $tenantId = terraform output -raw "-state=$infraStateFile" AZURE_TENANT_ID 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  WARNING: Could not read AZURE_TENANT_ID from infra state" -ForegroundColor Yellow
+        $tenantId = ""
+    }
     Pop-Location
 }
 else {
