@@ -233,7 +233,9 @@ resource "kubectl_manifest" "elasticsearch" {
   depends_on = [
     helm_release.elastic_operator,
     kubernetes_namespace.elastic_search,
-    kubectl_manifest.elastic_storage_class
+    kubectl_manifest.elastic_storage_class,
+    kubectl_manifest.karpenter_nodepool_stateful,
+    kubectl_manifest.karpenter_aksnodeclass_stateful
   ]
 }
 
