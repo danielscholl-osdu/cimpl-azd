@@ -103,30 +103,18 @@ module "aks" {
     system_assigned = true
   }
 
-  # Default Node Pool (System) - AKS Automatic uses standard_d4lds_v5 for system pool
+  # Default Node Pool (System) - Standard_D4s_v5 avoids ephemeral disk constraint
   default_agent_pool = {
     name                         = "system"
-    vm_size                      = "standard_d4lds_v5"
+    vm_size                      = "Standard_D4s_v5"
     count_of                     = 2
     os_sku                       = "AzureLinux"
     availability_zones           = ["1", "2", "3"]
     only_critical_addons_enabled = true
   }
 
-  # Stateful Workload Node Pool (Elasticsearch, PostgreSQL, etc.)
-  agent_pools = {
-    stateful = {
-      name               = "stateful"
-      vm_size            = "Standard_D4as_v5"
-      count_of           = 3
-      os_sku             = "AzureLinux"
-      availability_zones = ["1", "2", "3"]
-      node_labels = {
-        "workload" = "stateful"
-      }
-      node_taints = ["workload=stateful:NoSchedule"]
-    }
-  }
+  # Stateful workloads use Karpenter NodePool (NAP) instead of traditional VMSS pool.
+  # See platform/k8s_karpenter.tf for the NodePool + AKSNodeClass CRDs.
 
   tags = local.common_tags
 }
