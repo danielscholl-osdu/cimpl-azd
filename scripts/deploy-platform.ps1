@@ -134,8 +134,14 @@ if (Test-Path $infraStateFile) {
 }
 else {
     Write-Host "  WARNING: Infra state not found at $infraStateFile" -ForegroundColor Yellow
-    $externalDnsClientId = ""
-    $tenantId = ""
+    Write-Host "  Attempting fallback to local infra state (non-azd workflow)..." -ForegroundColor Gray
+    # Fallback: try local infra state (non-azd workflows)
+    Push-Location $PSScriptRoot/../infra
+    $externalDnsClientId = terraform output -raw EXTERNAL_DNS_CLIENT_ID 2>$null
+    if ($LASTEXITCODE -ne 0) { $externalDnsClientId = "" }
+    $tenantId = terraform output -raw AZURE_TENANT_ID 2>$null
+    if ($LASTEXITCODE -ne 0) { $tenantId = "" }
+    Pop-Location
 }
 
 # Determine if ExternalDNS should be enabled.
