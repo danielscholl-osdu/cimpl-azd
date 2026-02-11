@@ -23,10 +23,11 @@ variable "acme_email" {
   type        = string
 }
 
-# Kibana/Ingress configuration
-variable "kibana_hostname" {
-  description = "Hostname for Kibana external access"
+# Ingress configuration
+variable "ingress_prefix" {
+  description = "Unique prefix for ingress hostnames (auto-generated or user-override)"
   type        = string
+  default     = ""
 }
 
 # Feature flags (following ROSA pattern)

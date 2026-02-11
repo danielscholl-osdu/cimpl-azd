@@ -142,17 +142,25 @@ else {
     Write-Host " $acmeEmail" -ForegroundColor Green
 }
 
-# --- TF_VAR_kibana_hostname: default to kibana.localhost ---
-$kibanaHostname = [Environment]::GetEnvironmentVariable("TF_VAR_kibana_hostname")
-Write-Host "  TF_VAR_kibana_hostname..." -NoNewline
-if ([string]::IsNullOrEmpty($kibanaHostname)) {
-    $defaultHostname = "kibana.localhost"
-    azd env set TF_VAR_kibana_hostname $defaultHostname 2>$null
-    Write-Host " using default ($defaultHostname)" -ForegroundColor Green
-    Write-Host "    Override: azd env set TF_VAR_kibana_hostname 'your.domain.com'" -ForegroundColor Gray
+# --- CIMPL_INGRESS_PREFIX: unique prefix for ingress hostnames ---
+$ingressPrefix = [Environment]::GetEnvironmentVariable("CIMPL_INGRESS_PREFIX")
+Write-Host "  CIMPL_INGRESS_PREFIX..." -NoNewline
+if ([string]::IsNullOrEmpty($ingressPrefix)) {
+    # Generate 8-char random alphanumeric prefix (lowercase + digits)
+    $chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $bytes = New-Object 'System.Byte[]' 8
+        $rng.GetBytes($bytes)
+        $prefixChars = for ($i = 0; $i -lt 8; $i++) { $chars[$bytes[$i] % $chars.Length] }
+        $ingressPrefix = -join $prefixChars
+    } finally { $rng.Dispose() }
+    azd env set CIMPL_INGRESS_PREFIX $ingressPrefix 2>$null
+    Write-Host " generated ($ingressPrefix)" -ForegroundColor Green
+    Write-Host "    Override: azd env set CIMPL_INGRESS_PREFIX 'myteam'" -ForegroundColor Gray
 }
 else {
-    Write-Host " $kibanaHostname" -ForegroundColor Green
+    Write-Host " $ingressPrefix" -ForegroundColor Green
 }
 
 # --- TF_VAR_use_letsencrypt_production: default to false (staging) ---
@@ -224,15 +232,7 @@ elseif ($account) {
         Write-Host " auto-discovered ($discoveredZone)" -ForegroundColor Green
         Write-Host "    Resource Group: $discoveredRg" -ForegroundColor Gray
         Write-Host "    ExternalDNS will be enabled automatically" -ForegroundColor Gray
-
-        # Auto-set kibana hostname if not explicitly overridden
-        $kibanaCheck = [Environment]::GetEnvironmentVariable("TF_VAR_kibana_hostname")
-        if ([string]::IsNullOrEmpty($kibanaCheck) -or $kibanaCheck -eq "kibana.localhost") {
-            $autoKibana = "kibana.$discoveredZone"
-            azd env set TF_VAR_kibana_hostname $autoKibana 2>$null
-            Write-Host "  TF_VAR_kibana_hostname... auto-configured ($autoKibana)" -ForegroundColor Green
-            Write-Host "    Override: azd env set TF_VAR_kibana_hostname 'custom.domain.com'" -ForegroundColor Gray
-        }
+        Write-Host "    Ingress hostnames: <prefix>-<service>.$discoveredZone" -ForegroundColor Gray
     }
     elseif ($zones.Count -gt 1) {
         # Multiple zones — user must pick

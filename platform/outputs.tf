@@ -7,7 +7,7 @@ output "elasticsearch_url" {
 
 output "kibana_url" {
   description = "Kibana external URL"
-  value       = var.enable_elasticsearch && var.enable_gateway ? "https://${var.kibana_hostname}" : ""
+  value       = var.enable_elasticsearch && var.enable_gateway ? "https://${local.kibana_hostname}" : ""
 }
 
 output "kibana_internal_url" {

@@ -1,6 +1,10 @@
+# Derive ingress hostnames from prefix + DNS zone
+# Pattern: {prefix}-{service}.{dns_zone}  e.g. a3kf9x2m-kibana.developer.msft-osdu-test.org
 # Gateway API CRDs (required for Istio Gateway API support)
 # Managed in Terraform state via local CRD file instead of remote kubectl apply
 locals {
+  kibana_hostname      = var.ingress_prefix != "" && var.dns_zone_name != "" ? "${var.ingress_prefix}-kibana.${var.dns_zone_name}" : ""
+  has_ingress_hostname = local.kibana_hostname != ""
   gateway_api_crd_file = "${path.module}/crds/gateway-api-v1.2.1.yaml"
   gateway_api_crds = [
     for doc in split("---", file(local.gateway_api_crd_file)) :
@@ -35,7 +39,7 @@ resource "kubernetes_annotations" "istio_gateway_public" {
 # Gateway for external HTTPS access (AKS-managed Istio)
 # References the AKS Istio external ingress gateway service
 resource "kubectl_manifest" "gateway" {
-  count = var.enable_gateway ? 1 : 0
+  count = var.enable_gateway && local.has_ingress_hostname ? 1 : 0
 
   yaml_body = <<-YAML
     apiVersion: gateway.networking.k8s.io/v1
@@ -58,7 +62,7 @@ resource "kubectl_manifest" "gateway" {
         - name: https
           protocol: HTTPS
           port: 443
-          hostname: "${var.kibana_hostname}"
+          hostname: "${local.kibana_hostname}"
           tls:
             mode: Terminate
             certificateRefs:
@@ -75,7 +79,7 @@ resource "kubectl_manifest" "gateway" {
 
 # HTTPRoute for Kibana
 resource "kubectl_manifest" "kibana_route" {
-  count = var.enable_gateway && var.enable_elasticsearch ? 1 : 0
+  count = var.enable_gateway && var.enable_elasticsearch && local.has_ingress_hostname ? 1 : 0
 
   yaml_body = <<-YAML
     apiVersion: gateway.networking.k8s.io/v1
@@ -88,7 +92,7 @@ resource "kubectl_manifest" "kibana_route" {
         - name: istio
           namespace: aks-istio-ingress
       hostnames:
-        - "${var.kibana_hostname}"
+        - "${local.kibana_hostname}"
       rules:
         - matches:
             - path:
@@ -136,7 +140,7 @@ resource "kubectl_manifest" "kibana_reference_grant" {
 
 # TLS Certificate for Kibana (in aks-istio-ingress namespace)
 resource "kubectl_manifest" "kibana_certificate" {
-  count = var.enable_gateway && var.enable_cert_manager ? 1 : 0
+  count = var.enable_gateway && var.enable_cert_manager && local.has_ingress_hostname ? 1 : 0
 
   yaml_body = <<-YAML
     apiVersion: cert-manager.io/v1
@@ -148,9 +152,9 @@ resource "kubectl_manifest" "kibana_certificate" {
       secretName: kibana-tls
       duration: 2160h
       renewBefore: 360h
-      commonName: "${var.kibana_hostname}"
+      commonName: "${local.kibana_hostname}"
       dnsNames:
-        - "${var.kibana_hostname}"
+        - "${local.kibana_hostname}"
       issuerRef:
         name: ${local.active_cluster_issuer}
         kind: ClusterIssuer
