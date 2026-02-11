@@ -166,17 +166,13 @@ else {
     Write-Host " $useProd" -ForegroundColor Green
 }
 
-# --- DNS zone vars: opt-in only (leave empty to disable ExternalDNS) ---
+# --- DNS zone: auto-discover or use explicit value ---
 $dnsZone = [Environment]::GetEnvironmentVariable("TF_VAR_dns_zone_name")
 Write-Host "  TF_VAR_dns_zone_name..." -NoNewline
-if ([string]::IsNullOrEmpty($dnsZone)) {
-    Write-Host " not set (ExternalDNS disabled)" -ForegroundColor Gray
-    Write-Host "    To enable: azd env set TF_VAR_dns_zone_name 'your.dns.zone'" -ForegroundColor Gray
-}
-else {
+if (-not [string]::IsNullOrEmpty($dnsZone)) {
+    # Explicit value set — validate related vars
     Write-Host " $dnsZone" -ForegroundColor Green
 
-    # Only check related DNS vars when dns_zone_name is set
     $dnsRg = [Environment]::GetEnvironmentVariable("TF_VAR_dns_zone_resource_group")
     Write-Host "  TF_VAR_dns_zone_resource_group..." -NoNewline
     if ([string]::IsNullOrEmpty($dnsRg)) {
@@ -198,6 +194,51 @@ else {
     else {
         Write-Host " $dnsSub" -ForegroundColor Green
     }
+}
+elseif ($account) {
+    # Auto-discover DNS zones in current subscription
+    $subId = $account.id
+    $zonesJson = az network dns zone list --subscription $subId --query "[].{name:name, id:id, resourceGroup:resourceGroup}" -o json 2>$null
+    $zones = if ($zonesJson) { $zonesJson | ConvertFrom-Json } else { @() }
+
+    if ($zones.Count -eq 1) {
+        # Single zone found — auto-configure
+        $discoveredZone = $zones[0].name
+        $discoveredRg = $zones[0].resourceGroup
+
+        azd env set TF_VAR_dns_zone_name $discoveredZone 2>$null
+        azd env set TF_VAR_dns_zone_resource_group $discoveredRg 2>$null
+        azd env set TF_VAR_dns_zone_subscription_id $subId 2>$null
+
+        Write-Host " auto-discovered ($discoveredZone)" -ForegroundColor Green
+        Write-Host "    Resource Group: $discoveredRg" -ForegroundColor Gray
+        Write-Host "    ExternalDNS will be enabled automatically" -ForegroundColor Gray
+
+        # Auto-set kibana hostname if not explicitly overridden
+        $kibanaCheck = [Environment]::GetEnvironmentVariable("TF_VAR_kibana_hostname")
+        if ([string]::IsNullOrEmpty($kibanaCheck) -or $kibanaCheck -eq "kibana.localhost") {
+            $autoKibana = "kibana.$discoveredZone"
+            azd env set TF_VAR_kibana_hostname $autoKibana 2>$null
+            Write-Host "  TF_VAR_kibana_hostname... auto-configured ($autoKibana)" -ForegroundColor Green
+            Write-Host "    Override: azd env set TF_VAR_kibana_hostname 'custom.domain.com'" -ForegroundColor Gray
+        }
+    }
+    elseif ($zones.Count -gt 1) {
+        # Multiple zones — user must pick
+        Write-Host " multiple DNS zones found" -ForegroundColor Yellow
+        foreach ($z in $zones) {
+            Write-Host "    - $($z.name) (rg: $($z.resourceGroup))" -ForegroundColor Gray
+        }
+        Write-Host "    To select: azd env set TF_VAR_dns_zone_name '<zone-name>'" -ForegroundColor Gray
+    }
+    else {
+        # No zones found
+        Write-Host " no DNS zones found (ExternalDNS disabled)" -ForegroundColor Gray
+        Write-Host "    To enable: azd env set TF_VAR_dns_zone_name 'your.dns.zone'" -ForegroundColor Gray
+    }
+}
+else {
+    Write-Host " SKIPPED (not logged in)" -ForegroundColor Yellow
 }
 
 # --- TF_VAR_postgresql_password: generate random if not set ---
