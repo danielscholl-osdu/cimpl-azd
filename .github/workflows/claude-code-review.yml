@@ -3,21 +3,9 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -29,34 +17,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          review_pr: true
-          review_with_plan: false
-          # Direct review prompt — CLAUDE.md at repo root provides project-specific context.
-          # The action reads CLAUDE.md automatically for review guidance.
-          review_prompt: |
-            Review this PR thoroughly using the project-specific checklist in CLAUDE.md.
+          # CLAUDE.md at repo root provides project-specific review context automatically.
+          # The prompt below directs Claude to do a thorough, checklist-driven review.
+          prompt: |
+            Review the PR diff for ${{ github.repository }}#${{ github.event.pull_request.number }}.
 
-            Focus on finding real bugs, not style nits. Specifically check:
+            Read CLAUDE.md at the repo root for the project-specific code review checklist, then review every changed file against it.
 
-            1. PowerShell: Missing $LASTEXITCODE checks after external commands (az, terraform, kubectl).
-               This is the #1 source of silent failures in this codebase.
-            2. PowerShell: Unquoted variable interpolation in command arguments (e.g., -state=$var must be "-state=$var").
+            Focus on finding real bugs, not style nits. Key areas for this codebase:
+
+            1. PowerShell: Missing $LASTEXITCODE checks after external commands (az, terraform, kubectl) — silent failures.
+            2. PowerShell: Unquoted variable interpolation in arguments (e.g., -state=$var must be "-state=$var").
             3. Terraform: AKS Automatic safeguards compliance (probes, resources, no :latest tags, seccomp).
             4. Terraform: Helm set blocks with boolean-like string values missing type = "string".
             5. Cross-layer: Correct state file paths for azd-managed terraform state.
             6. Security: No hardcoded secrets, credentials, or sensitive values.
 
-            For each issue found, provide:
-            - The exact file and line
-            - What's wrong and why it matters
-            - A concrete fix
-
-            Do NOT say "no issues found" unless you have actually verified each item above against the diff.
-
+            For each issue found, cite the exact file and line, explain why it matters, and suggest a fix.
+            If no real issues exist, briefly state what you verified rather than a generic "no issues found".
