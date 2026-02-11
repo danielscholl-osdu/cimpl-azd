@@ -42,6 +42,19 @@ variable "dns_zone_subscription_id" {
   default     = ""
 }
 
+# System node pool configuration
+variable "system_pool_vm_size" {
+  description = "VM size for the AKS system node pool"
+  type        = string
+  default     = "Standard_D4s_v5"
+}
+
+variable "system_pool_availability_zones" {
+  description = "Availability zones for the AKS system node pool (reduce to avoid capacity issues)"
+  type        = list(string)
+  default     = ["1", "2", "3"]
+}
+
 # Derived names using environment_name for uniqueness
 locals {
   # Resource naming: cimpl-<env_name> allows multiple deployments

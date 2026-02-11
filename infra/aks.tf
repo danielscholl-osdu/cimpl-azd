@@ -115,10 +115,10 @@ module "aks" {
   #   Automatic requirements; stateful workloads rely on dedicated Karpenter pools.
   default_agent_pool = {
     name                         = "system"
-    vm_size                      = "Standard_D4s_v5"
+    vm_size                      = var.system_pool_vm_size
     count_of                     = 2
     os_sku                       = "AzureLinux"
-    availability_zones           = ["1", "2", "3"]
+    availability_zones           = var.system_pool_availability_zones
     only_critical_addons_enabled = true
   }
 
