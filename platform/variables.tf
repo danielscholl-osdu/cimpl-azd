@@ -73,6 +73,12 @@ variable "enable_external_dns" {
   default     = false
 }
 
+variable "enable_stateful_nodepool" {
+  description = "Deploy Karpenter NodePool for stateful workloads"
+  type        = bool
+  default     = true
+}
+
 variable "use_letsencrypt_production" {
   description = "Use Let's Encrypt production issuer (default: false = staging)"
   type        = bool

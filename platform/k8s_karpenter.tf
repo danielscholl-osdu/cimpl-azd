@@ -6,6 +6,8 @@
 # OverconstrainedZonalAllocationRequest failures caused by pinning a single SKU.
 
 resource "kubectl_manifest" "karpenter_nodepool_stateful" {
+  count = var.enable_stateful_nodepool ? 1 : 0
+
   yaml_body = <<-YAML
     apiVersion: karpenter.sh/v1
     kind: NodePool
@@ -46,14 +48,18 @@ resource "kubectl_manifest" "karpenter_nodepool_stateful" {
             name: stateful
       disruption:
         consolidationPolicy: WhenEmpty
-        consolidateAfter: 30s
+        consolidateAfter: 5m
       limits:
         cpu: "64"
         memory: 256Gi
   YAML
+
+  wait = true
 }
 
 resource "kubectl_manifest" "karpenter_aksnodeclass_stateful" {
+  count = var.enable_stateful_nodepool ? 1 : 0
+
   yaml_body = <<-YAML
     apiVersion: karpenter.azure.com/v1alpha2
     kind: AKSNodeClass
@@ -63,4 +69,6 @@ resource "kubectl_manifest" "karpenter_aksnodeclass_stateful" {
       imageFamily: AzureLinux
       osDiskSizeGB: 128
   YAML
+
+  wait = true
 }
