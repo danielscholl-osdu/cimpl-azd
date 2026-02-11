@@ -245,7 +245,7 @@ kubectl get pods -A | grep -v Running
 # Check component status
 kubectl get elasticsearch -n elasticsearch
 kubectl get pods -n postgresql
-kubectl get pods -n platform -l app=minio
+kubectl get pods -n platform -l 'minio.service/variant=api'
 
 # View safeguards violations
 kubectl get constraints -o wide

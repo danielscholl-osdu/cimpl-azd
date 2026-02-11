@@ -326,7 +326,7 @@ kubectl get pods -n postgresql
 kubectl exec -it postgresql-0 -n postgresql -- pg_isready
 
 # Check MinIO
-kubectl get pods -n platform -l app=minio
+kubectl get pods -n platform -l 'minio.service/variant=api'
 
 # Get Elasticsearch password
 kubectl get secret elasticsearch-es-elastic-user -n elasticsearch -o jsonpath='{.data.elastic}' | base64 -d

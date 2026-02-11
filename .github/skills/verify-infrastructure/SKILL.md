@@ -116,11 +116,11 @@ kubectl exec -it postgresql-0 -n postgresql -- psql -U postgres -c "SELECT 1"
 #### MinIO
 ```bash
 # Pod status
-kubectl get pods -n platform -l app=minio
+kubectl get pods -n platform -l 'minio.service/variant=api'
 # Expected: Running, Ready
 
 # Service accessible
-kubectl get svc -n platform -l app=minio
+kubectl get svc -n platform -l 'minio.service/variant=api'
 ```
 
 #### cert-manager

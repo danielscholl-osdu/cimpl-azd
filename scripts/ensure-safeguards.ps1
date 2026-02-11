@@ -374,7 +374,7 @@ else {
 
     # For Standard AKS, we need to create namespaces for the dry-run test
     # These will be managed by Terraform later, but we need them for testing exclusions
-    $targetNamespaces = @("platform", "elasticsearch", "postgresql")
+    $targetNamespaces = @("platform", "elasticsearch", "postgresql", "redis")
 
     foreach ($ns in $targetNamespaces) {
         $nsExists = kubectl get namespace $ns --no-headers 2>$null

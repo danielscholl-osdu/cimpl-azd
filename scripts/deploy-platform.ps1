@@ -265,7 +265,7 @@ else {
 }
 
 # Verify MinIO
-$minioPods = kubectl get pods -n platform -l app=minio -o jsonpath='{.items[*].status.phase}' 2>$null
+$minioPods = kubectl get pods -n platform -l 'minio.service/variant=api' -o jsonpath='{.items[*].status.phase}' 2>$null
 if ($minioPods -like "*Running*") {
     Write-Host "  MinIO: Running" -ForegroundColor Green
 }
