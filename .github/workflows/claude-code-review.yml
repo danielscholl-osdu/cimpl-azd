@@ -36,9 +36,27 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
+          review_pr: true
+          review_with_plan: false
+          # Direct review prompt — CLAUDE.md at repo root provides project-specific context.
+          # The action reads CLAUDE.md automatically for review guidance.
+          review_prompt: |
+            Review this PR thoroughly using the project-specific checklist in CLAUDE.md.
+
+            Focus on finding real bugs, not style nits. Specifically check:
+
+            1. PowerShell: Missing $LASTEXITCODE checks after external commands (az, terraform, kubectl).
+               This is the #1 source of silent failures in this codebase.
+            2. PowerShell: Unquoted variable interpolation in command arguments (e.g., -state=$var must be "-state=$var").
+            3. Terraform: AKS Automatic safeguards compliance (probes, resources, no :latest tags, seccomp).
+            4. Terraform: Helm set blocks with boolean-like string values missing type = "string".
+            5. Cross-layer: Correct state file paths for azd-managed terraform state.
+            6. Security: No hardcoded secrets, credentials, or sensitive values.
+
+            For each issue found, provide:
+            - The exact file and line
+            - What's wrong and why it matters
+            - A concrete fix
+
+            Do NOT say "no issues found" unless you have actually verified each item above against the diff.
 

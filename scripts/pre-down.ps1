@@ -76,12 +76,22 @@ else {
                 $aExists = az network dns record-set a show -g $dnsRg -z $dnsZone -n $name @subArgs 2>$null
                 if ($LASTEXITCODE -eq 0 -and $aExists) {
                     az network dns record-set a delete -g $dnsRg -z $dnsZone -n $name @subArgs -y 2>$null | Out-Null
-                    Write-Host "  Removed: $name.$dnsZone (A)" -ForegroundColor Gray
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-Host "  WARNING: Failed to delete A record $name.$dnsZone" -ForegroundColor Yellow
+                    }
+                    else {
+                        Write-Host "  Removed: $name.$dnsZone (A)" -ForegroundColor Gray
+                    }
                 }
 
                 # Delete the TXT record
                 az network dns record-set txt delete -g $dnsRg -z $dnsZone -n $name @subArgs -y 2>$null | Out-Null
-                Write-Host "  Removed: $name.$dnsZone (TXT)" -ForegroundColor Gray
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Host "  WARNING: Failed to delete TXT record $name.$dnsZone" -ForegroundColor Yellow
+                }
+                else {
+                    Write-Host "  Removed: $name.$dnsZone (TXT)" -ForegroundColor Gray
+                }
             }
         }
     }
