@@ -46,7 +46,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: elastic-operator
-  namespace: elastic-system
+  namespace: platform
 spec:
   serviceName: elastic-operator
   replicas: 1

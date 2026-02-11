@@ -100,7 +100,7 @@ resource "kubectl_manifest" "kibana_route" {
                 value: /
           backendRefs:
             - name: kibana-kb-http
-              namespace: elastic-search
+              namespace: elasticsearch
               port: 5601
   YAML
 
@@ -110,7 +110,7 @@ resource "kubectl_manifest" "kibana_route" {
   ]
 }
 
-# ReferenceGrant to allow HTTPRoute in aks-istio-ingress to reference Service in elastic-search
+# ReferenceGrant to allow HTTPRoute in aks-istio-ingress to reference Service in elasticsearch
 resource "kubectl_manifest" "kibana_reference_grant" {
   count = var.enable_gateway && var.enable_elasticsearch ? 1 : 0
 
@@ -119,7 +119,7 @@ resource "kubectl_manifest" "kibana_reference_grant" {
     kind: ReferenceGrant
     metadata:
       name: allow-istio-ingress
-      namespace: elastic-search
+      namespace: elasticsearch
     spec:
       from:
         - group: gateway.networking.k8s.io
@@ -133,7 +133,7 @@ resource "kubectl_manifest" "kibana_reference_grant" {
 
   depends_on = [
     kubectl_manifest.gateway_api_crds,
-    kubernetes_namespace.elastic_search,
+    kubernetes_namespace.elasticsearch,
     kubectl_manifest.kibana
   ]
 }

@@ -6,10 +6,12 @@ resource "helm_release" "minio" {
   repository       = "https://charts.min.io/"
   chart            = "minio"
   version          = "5.4.0"
-  namespace        = "minio"
-  create_namespace = true
-  timeout          = 600
-  wait             = false
+  namespace        = "platform"
+  create_namespace = false
+
+  depends_on = [kubernetes_namespace.platform]
+  timeout    = 600
+  wait       = false
 
   # Use postrender to inject health probes for AKS Automatic safeguards compliance
   # The upstream chart doesn't support probe configuration via values

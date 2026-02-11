@@ -2,7 +2,7 @@
 
 output "elasticsearch_url" {
   description = "Elasticsearch internal URL"
-  value       = var.enable_elasticsearch ? "http://elasticsearch-es-http.elastic-search.svc.cluster.local:9200" : ""
+  value       = var.enable_elasticsearch ? "http://elasticsearch-es-http.elasticsearch.svc.cluster.local:9200" : ""
 }
 
 output "kibana_url" {
@@ -12,7 +12,7 @@ output "kibana_url" {
 
 output "kibana_internal_url" {
   description = "Kibana internal URL"
-  value       = var.enable_elasticsearch ? "http://kibana-kb-http.elastic-search.svc.cluster.local:5601" : ""
+  value       = var.enable_elasticsearch ? "http://kibana-kb-http.elasticsearch.svc.cluster.local:5601" : ""
 }
 
 output "postgresql_host" {
@@ -42,18 +42,18 @@ output "redis_port" {
 
 output "minio_endpoint" {
   description = "MinIO internal API endpoint"
-  value       = var.enable_minio ? "minio.minio.svc.cluster.local:9000" : ""
+  value       = var.enable_minio ? "minio.platform.svc.cluster.local:9000" : ""
 }
 
 output "minio_console_endpoint" {
   description = "MinIO console endpoint"
-  value       = var.enable_minio ? "minio.minio.svc.cluster.local:9001" : ""
+  value       = var.enable_minio ? "minio.platform.svc.cluster.local:9001" : ""
 }
 
 # Commands for debugging/access
 output "get_elasticsearch_password_command" {
   description = "Command to get Elasticsearch password"
-  value       = var.enable_elasticsearch ? "kubectl get secret elasticsearch-es-elastic-user -n elastic-search -o jsonpath='{.data.elastic}' | base64 -d" : ""
+  value       = var.enable_elasticsearch ? "kubectl get secret elasticsearch-es-elastic-user -n elasticsearch -o jsonpath='{.data.elastic}' | base64 -d" : ""
 }
 
 output "get_postgresql_password_command" {

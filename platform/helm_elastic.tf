@@ -5,8 +5,10 @@ resource "helm_release" "elastic_operator" {
   repository       = "https://helm.elastic.co"
   chart            = "eck-operator"
   version          = "3.3.0"
-  namespace        = "elastic-system"
-  create_namespace = true
+  namespace        = "platform"
+  create_namespace = false
+
+  depends_on = [kubernetes_namespace.platform]
 
   set = [
     {
@@ -41,15 +43,14 @@ resource "helm_release" "elastic_operator" {
 }
 
 # Namespace for Elasticsearch
-resource "kubernetes_namespace" "elastic_search" {
+resource "kubernetes_namespace" "elasticsearch" {
   count = var.enable_elasticsearch ? 1 : 0
   metadata {
-    name = "elastic-search"
+    name = "elasticsearch"
     labels = {
       "istio-injection" = "enabled"
     }
   }
-
 }
 
 # Istio STRICT mTLS for Elasticsearch namespace
@@ -61,13 +62,13 @@ resource "kubectl_manifest" "elasticsearch_peer_authentication" {
     kind: PeerAuthentication
     metadata:
       name: elasticsearch-strict-mtls
-      namespace: elastic-search
+      namespace: elasticsearch
     spec:
       mtls:
         mode: STRICT
   YAML
 
-  depends_on = [kubernetes_namespace.elastic_search]
+  depends_on = [kubernetes_namespace.elasticsearch]
 }
 
 # Custom StorageClass for Elasticsearch (Premium LRS with Retain policy)
@@ -105,7 +106,7 @@ resource "kubectl_manifest" "elasticsearch" {
     kind: Elasticsearch
     metadata:
       name: elasticsearch
-      namespace: elastic-search
+      namespace: elasticsearch
     spec:
       version: 8.15.2
       http:
@@ -146,7 +147,7 @@ resource "kubectl_manifest" "elasticsearch" {
       #   - NOT be reachable via elasticsearch-es-transport service
       #   - Potentially fail to join the cluster properly
       #
-      # Verify after changes: kubectl get svc -n elastic-search -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.selector}{"\n"}{end}'
+      # Verify after changes: kubectl get svc -n elasticsearch -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.selector}{"\n"}{end}'
       # ============================================================================
       nodeSets:
         - name: default
@@ -232,7 +233,7 @@ resource "kubectl_manifest" "elasticsearch" {
 
   depends_on = [
     helm_release.elastic_operator,
-    kubernetes_namespace.elastic_search,
+    kubernetes_namespace.elasticsearch,
     kubectl_manifest.elastic_storage_class,
     kubectl_manifest.karpenter_nodepool_stateful,
     kubectl_manifest.karpenter_aksnodeclass_stateful
@@ -247,7 +248,7 @@ resource "kubectl_manifest" "kibana" {
     kind: Kibana
     metadata:
       name: kibana
-      namespace: elastic-search
+      namespace: elasticsearch
     spec:
       version: 8.15.2
       count: 1

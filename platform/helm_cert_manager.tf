@@ -9,8 +9,10 @@ resource "helm_release" "cert_manager" {
   repository       = "https://charts.jetstack.io"
   chart            = "cert-manager"
   version          = "v1.19.3"
-  namespace        = "cert-manager"
-  create_namespace = true
+  namespace        = "platform"
+  create_namespace = false
+
+  depends_on = [kubernetes_namespace.platform]
 
   # Use postrender to inject health probes for cainjector
   # The upstream chart doesn't support probe configuration for cainjector

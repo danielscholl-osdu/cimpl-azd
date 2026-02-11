@@ -133,15 +133,11 @@ else {
     $excludedNsList = @(
         "kube-system",
         "gatekeeper-system",
-        "elastic-system",
-        "elastic-search",
-        "cert-manager",
+        "platform",
+        "elasticsearch",
         "aks-istio-ingress",
-        "cnpg-system",
         "postgresql",
-        "minio",
-        "redis",
-        "external-dns"
+        "redis"
     )
 
     $maxRetries = 3
@@ -378,7 +374,7 @@ else {
 
     # For Standard AKS, we need to create namespaces for the dry-run test
     # These will be managed by Terraform later, but we need them for testing exclusions
-    $targetNamespaces = @("elastic-search", "postgresql", "minio", "cert-manager", "elastic-system")
+    $targetNamespaces = @("platform", "elasticsearch", "postgresql")
 
     foreach ($ns in $targetNamespaces) {
         $nsExists = kubectl get namespace $ns --no-headers 2>$null

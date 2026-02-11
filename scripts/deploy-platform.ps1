@@ -229,7 +229,7 @@ $nodeCount = ($nodes -split "`n" | Where-Object { $_ }).Count
 Write-Host "  Nodes: $nodeCount ready" -ForegroundColor Green
 
 # Verify Elasticsearch
-$es = kubectl get elasticsearch -n elastic-search -o jsonpath='{.items[0].status.health}' 2>$null
+$es = kubectl get elasticsearch -n elasticsearch -o jsonpath='{.items[0].status.health}' 2>$null
 if ($es) {
     Write-Host "  Elasticsearch: $es" -ForegroundColor $(if ($es -eq "green") { "Green" } else { "Yellow" })
 }
@@ -238,7 +238,7 @@ else {
 }
 
 # Verify Kibana
-$kibana = kubectl get kibana -n elastic-search -o jsonpath='{.items[0].status.health}' 2>$null
+$kibana = kubectl get kibana -n elasticsearch -o jsonpath='{.items[0].status.health}' 2>$null
 if ($kibana) {
     Write-Host "  Kibana: $kibana" -ForegroundColor $(if ($kibana -eq "green") { "Green" } else { "Yellow" })
 }
@@ -265,7 +265,7 @@ else {
 }
 
 # Verify MinIO
-$minioPods = kubectl get pods -n minio -o jsonpath='{.items[*].status.phase}' 2>$null
+$minioPods = kubectl get pods -n platform -l app=minio -o jsonpath='{.items[*].status.phase}' 2>$null
 if ($minioPods -like "*Running*") {
     Write-Host "  MinIO: Running" -ForegroundColor Green
 }
@@ -306,7 +306,7 @@ if ($ip) {
         Write-Host "    1. Configure DNS zone for external access" -ForegroundColor Gray
     }
     Write-Host "    3. Get Elasticsearch password:" -ForegroundColor Gray
-    Write-Host "       kubectl get secret elasticsearch-es-elastic-user -n elastic-search -o jsonpath='{.data.elastic}' | base64 -d" -ForegroundColor DarkGray
+    Write-Host "       kubectl get secret elasticsearch-es-elastic-user -n elasticsearch -o jsonpath='{.data.elastic}' | base64 -d" -ForegroundColor DarkGray
 }
 Write-Host ""
 exit 0

@@ -23,6 +23,14 @@ locals {
   }
 }
 
+# Shared namespace for all platform operators and infrastructure components
+# (cert-manager, CNPG operator, ECK operator, ExternalDNS, MinIO)
+resource "kubernetes_namespace" "platform" {
+  metadata {
+    name = "platform"
+  }
+}
+
 # Note: Individual components are in separate files:
 # - helm_cert_manager.tf
 # - helm_elastic.tf

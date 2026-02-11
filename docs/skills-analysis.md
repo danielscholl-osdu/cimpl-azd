@@ -113,7 +113,7 @@ kubectl get pods -A | grep -v Running
 kubectl get constraints -o wide
 
 # Component-specific checks
-kubectl get elasticsearch -n elastic-search
+kubectl get elasticsearch -n elasticsearch
 kubectl exec -it postgresql-0 -n postgresql -- pg_isready
 ```
 

@@ -73,16 +73,16 @@ kubectl get k8sazurev3containerlimits -o wide
 #### Elasticsearch
 ```bash
 # Cluster status
-kubectl get elasticsearch -n elastic-search
+kubectl get elasticsearch -n elasticsearch
 # Expected: HEALTH=green, PHASE=Ready
 
 # All pods running
-kubectl get pods -n elastic-search
+kubectl get pods -n elasticsearch
 # Expected: All pods Running, READY x/x
 
 # Cluster health API
-kubectl exec -it elasticsearch-es-default-0 -n elastic-search -- \
-  curl -s -k -u "elastic:$(kubectl get secret elasticsearch-es-elastic-user -n elastic-search -o jsonpath='{.data.elastic}' | base64 -d)" \
+kubectl exec -it elasticsearch-es-default-0 -n elasticsearch -- \
+  curl -s -k -u "elastic:$(kubectl get secret elasticsearch-es-elastic-user -n elasticsearch -o jsonpath='{.data.elastic}' | base64 -d)" \
   https://localhost:9200/_cluster/health
 # Expected: "status":"green"
 ```
@@ -90,11 +90,11 @@ kubectl exec -it elasticsearch-es-default-0 -n elastic-search -- \
 #### Kibana
 ```bash
 # Kibana status
-kubectl get kibana -n elastic-search
+kubectl get kibana -n elasticsearch
 # Expected: HEALTH=green
 
 # Pod running
-kubectl get pods -n elastic-search -l kibana.k8s.elastic.co/name=kibana
+kubectl get pods -n elasticsearch -l kibana.k8s.elastic.co/name=kibana
 # Expected: Running, Ready
 ```
 
@@ -116,17 +116,17 @@ kubectl exec -it postgresql-0 -n postgresql -- psql -U postgres -c "SELECT 1"
 #### MinIO
 ```bash
 # Pod status
-kubectl get pods -n minio
+kubectl get pods -n platform -l app=minio
 # Expected: Running, Ready
 
 # Service accessible
-kubectl get svc -n minio
+kubectl get svc -n platform -l app=minio
 ```
 
 #### cert-manager
 ```bash
 # Pods running
-kubectl get pods -n cert-manager
+kubectl get pods -n platform -l app.kubernetes.io/instance=cert-manager
 # Expected: All Running
 
 # Certificates issued
