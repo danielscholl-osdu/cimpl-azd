@@ -263,11 +263,11 @@ kubectl get pods -A | grep -v Running
 kubectl get constraints -o wide
 
 # Check Elasticsearch health
-kubectl get elasticsearch -n elastic-search
-kubectl get pods -n elastic-search
+kubectl get elasticsearch -n elasticsearch
+kubectl get pods -n elasticsearch
 
 # Get Elasticsearch password
-kubectl get secret elasticsearch-es-elastic-user -n elastic-search -o jsonpath='{.data.elastic}' | base64 -d
+kubectl get secret elasticsearch-es-elastic-user -n elasticsearch -o jsonpath='{.data.elastic}' | base64 -d
 
 # Check Istio ingress
 kubectl get svc -n aks-istio-ingress aks-istio-ingressgateway-external

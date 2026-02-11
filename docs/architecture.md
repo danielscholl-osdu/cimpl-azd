@@ -258,7 +258,7 @@ This is configured directly in the Elasticsearch CR in `platform/helm_elastic.tf
 
 **Verification**: After ECK upgrades or configuration changes, verify all service selectors remain unique:
 ```bash
-kubectl get svc -n elastic-search -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.selector}{"\n"}{end}'
+kubectl get svc -n elasticsearch -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.selector}{"\n"}{end}'
 ```
 
 ### PostgreSQL (CloudNativePG)
@@ -289,7 +289,7 @@ kubectl get svc -n elastic-search -o jsonpath='{range .items[*]}{.metadata.name}
 ```
 
 **Configuration**:
-- Operator: CNPG chart `cloudnative-pg` v0.23.0 (namespace: `cnpg-system`)
+- Operator: CNPG chart `cloudnative-pg` v0.27.1 (namespace: `platform`)
 - Instances: 3 (synchronous quorum replication: `minSyncReplicas: 1, maxSyncReplicas: 1`)
 - Replication slots: HA enabled
 - Database: `osdu` (owner: `osdu`)
@@ -312,7 +312,7 @@ MinIO standalone instance for S3-compatible object storage (dev/test).
 - Storage: 10Gi managed-csi PVC
 - API Port: 9000
 - Console Port: 9001
-- Connection: `minio.minio.svc.cluster.local:9000`
+- Connection: `minio.platform.svc.cluster.local:9000` (namespace: `platform`)
 - Runs on default (auto-provisioned) node pool
 
 ### cert-manager
@@ -370,19 +370,17 @@ Gatekeeper policies enforcing:
 **Excluded Namespaces** (configured in `scripts/ensure-safeguards.ps1`):
 - kube-system (Kubernetes system)
 - gatekeeper-system (Policy controller)
-- elastic-system (ECK operator)
-- elastic-search (Elasticsearch/Kibana)
-- cnpg-system (CNPG operator)
-- cert-manager (TLS certificates)
+- platform (Operators: cert-manager, CNPG, ECK, ExternalDNS, MinIO)
+- elasticsearch (Elasticsearch/Kibana)
 - aks-istio-ingress (Istio ingress)
 - postgresql (Database)
-- minio (Object storage)
+- redis (Cache)
 
 **Azure Policy Exemption**: CNPG operator Jobs (initdb, join) are short-lived and cannot have health probes. An Azure Policy Exemption for `ensureProbesConfiguredInKubernetesCluster` is applied at the cluster level in `infra/aks.tf`.
 
 ### Istio STRICT mTLS
 
-Both the Elasticsearch (`elastic-search`) and PostgreSQL (`postgresql`) namespaces have Istio STRICT mTLS enforced via `PeerAuthentication` resources. This ensures all pod-to-pod traffic within each namespace is encrypted at the mesh layer, even though application-level TLS is disabled (ECK's `selfSignedCertificate.disabled: true`). Istio handles encryption transparently via sidecar proxies.
+The Elasticsearch (`elasticsearch`), PostgreSQL (`postgresql`), and Redis (`redis`) data namespaces have Istio STRICT mTLS enforced via `PeerAuthentication` resources. This ensures all pod-to-pod traffic within each namespace is encrypted at the mesh layer, even though application-level TLS is disabled (ECK's `selfSignedCertificate.disabled: true`). Istio handles encryption transparently via sidecar proxies.
 
 - Elasticsearch: `PeerAuthentication` managed in `platform/helm_elastic.tf`
 - PostgreSQL: `PeerAuthentication` managed in `platform/helm_cnpg.tf`
@@ -404,7 +402,7 @@ Both the Elasticsearch (`elastic-search`) and PostgreSQL (`postgresql`) namespac
 1. DNS: kibana.example.com ──► External IP (Azure LB)
 2. Azure LB ──► Istio Ingress Gateway Pod (aks-istio-ingress ns)
 3. Gateway ──► VirtualService routing rule
-4. VirtualService ──► Kibana Service (elastic-search ns)
+4. VirtualService ──► Kibana Service (elasticsearch ns)
 5. Service ──► Kibana Pod
 ```
 
@@ -418,10 +416,10 @@ PostgreSQL Client (read-only):
   Pod ──► postgresql-ro.postgresql.svc.cluster.local:5432 ──► PG Replicas
 
 MinIO Client:
-  Pod ──► minio.minio.svc.cluster.local:9000 ──► MinIO Pod
+  Pod ──► minio.platform.svc.cluster.local:9000 ──► MinIO Pod
 
 Elasticsearch Client:
-  Pod ──► elasticsearch-es-http.elastic-search.svc.cluster.local:9200 ──► ES Pods
+  Pod ──► elasticsearch-es-http.elasticsearch.svc.cluster.local:9200 ──► ES Pods
 ```
 
 ---
@@ -514,7 +512,7 @@ All resources follow the pattern: `<prefix>-<project>-<environment>`
 | Resource Group | `rg-cimpl-<env>` | rg-cimpl-dev |
 | AKS Cluster | `cimpl-<env>` | cimpl-dev |
 | Node Pools | `system`, `stateful` | - |
-| Namespaces | Descriptive | elastic-search, postgresql |
+| Namespaces | Descriptive | platform, elasticsearch, postgresql, redis |
 
 ### Tagging Strategy
 

@@ -1,21 +1,15 @@
 # ExternalDNS for automatic DNS record management via Gateway API HTTPRoutes
 
-resource "kubernetes_namespace" "external_dns" {
-  count = var.enable_external_dns ? 1 : 0
-
-  metadata {
-    name = "external-dns"
-  }
-}
-
 resource "helm_release" "external_dns" {
   count            = var.enable_external_dns ? 1 : 0
   name             = "external-dns"
   repository       = "oci://registry-1.docker.io/bitnamicharts"
   chart            = "external-dns"
   version          = "9.0.3"
-  namespace        = kubernetes_namespace.external_dns[0].metadata[0].name
+  namespace        = "platform"
   create_namespace = false
+
+  depends_on = [kubernetes_namespace.platform]
 
   set = [
     # Use official image (Bitnami images require paid subscription since Aug 2025)

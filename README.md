@@ -104,7 +104,7 @@ After deployment:
 kubectl get svc -n aks-istio-ingress aks-istio-ingressgateway-external
 
 # Get Elasticsearch password
-kubectl get secret elasticsearch-es-elastic-user -n elastic-search -o jsonpath='{.data.elastic}' | base64 -d
+kubectl get secret elasticsearch-es-elastic-user -n elasticsearch -o jsonpath='{.data.elastic}' | base64 -d
 ```
 
 Configure DNS to point your Kibana hostname to the external IP, then access:
@@ -243,9 +243,9 @@ kubectl get nodes
 kubectl get pods -A | grep -v Running
 
 # Check component status
-kubectl get elasticsearch -n elastic-search
+kubectl get elasticsearch -n elasticsearch
 kubectl get pods -n postgresql
-kubectl get pods -n minio
+kubectl get pods -n platform -l 'minio.service/variant=api'
 
 # View safeguards violations
 kubectl get constraints -o wide

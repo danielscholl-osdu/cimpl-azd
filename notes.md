@@ -24,7 +24,7 @@ The following improvements were completed in the latest sprint:
 
 - **kubectl pre-provision check** (PR #35): kubectl is now validated during pre-provision with minimum version 1.28.0
 - **Gateway API CRDs Terraform-managed** (PR for Issue #2): CRDs are now managed via `kubectl_manifest` with `for_each` instead of `local-exec` scripts, pinned at `platform/crds/gateway-api-v1.2.1.yaml`
-- **Istio STRICT mTLS for Elasticsearch** (PR #34): PeerAuthentication enforces STRICT mTLS in the `elastic-search` namespace
+- **Istio STRICT mTLS for Elasticsearch** (PR #34): PeerAuthentication enforces STRICT mTLS in the `elasticsearch` namespace
 - **Credentials externalized** (PR #36): PostgreSQL and MinIO credentials are now configurable via Terraform variables (`TF_VAR_postgresql_password`, `TF_VAR_minio_root_user`, `TF_VAR_minio_root_password`)
 - **`ignore_changes = all` removed** (PR #37): Lifecycle blocks removed from all four Helm releases (elastic, postgresql, minio, cert_manager), enabling proper Terraform drift detection
 
@@ -205,7 +205,7 @@ FATAL: database files are incompatible with server
 ```
 admission webhook "validation.gatekeeper.sh" denied the request: [azurepolicy-k8sazurev1uniqueserviceselecto-...] same selector as service <minio-console> in namespace <minio>
 admission webhook "validation.gatekeeper.sh" denied the request: [azurepolicy-k8sazurev1uniqueserviceselecto-...] same selector as service <postgresql> in namespace <postgresql>
-admission webhook "validation.gatekeeper.sh" denied the request: [azurepolicy-k8sazurev1uniqueserviceselecto-...] same selector as service <elasticsearch-es-transport> in namespace <elastic-search>
+admission webhook "validation.gatekeeper.sh" denied the request: [azurepolicy-k8sazurev1uniqueserviceselecto-...] same selector as service <elasticsearch-es-transport> in namespace <elasticsearch>
 ```
 
 **Resolution**:
@@ -229,7 +229,7 @@ admission webhook "validation.gatekeeper.sh" denied the request: [azurepolicy-k8
 
 This approach uses ECK's documented service customization capabilities rather than external kustomize patches.
 
-**Verification** (run after ECK upgrades): `kubectl get svc -n elastic-search -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.selector}{"\n"}{end}'`
+**Verification** (run after ECK upgrades): `kubectl get svc -n elasticsearch -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.selector}{"\n"}{end}'`
 
 **References**:
 - [Kubernetes Common Labels](https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/)
@@ -318,19 +318,19 @@ kubectl get pods -A
 kubectl get constraints -o wide
 
 # Check Elasticsearch
-kubectl get elasticsearch -n elastic-search
-kubectl get pods -n elastic-search
+kubectl get elasticsearch -n elasticsearch
+kubectl get pods -n elasticsearch
 
 # Check PostgreSQL
 kubectl get pods -n postgresql
 kubectl exec -it postgresql-0 -n postgresql -- pg_isready
 
 # Check MinIO
-kubectl get pods -n minio
+kubectl get pods -n platform -l 'minio.service/variant=api'
 
 # Get Elasticsearch password
-kubectl get secret elasticsearch-es-elastic-user -n elastic-search -o jsonpath='{.data.elastic}' | base64 -d
+kubectl get secret elasticsearch-es-elastic-user -n elasticsearch -o jsonpath='{.data.elastic}' | base64 -d
 
 # Reconfigure safeguards manually (space-separated namespaces)
-az aks safeguards update -g <rg> -n <cluster> --level Warn --excluded-ns elastic-system elastic-search cert-manager aks-istio-ingress postgresql minio
+az aks safeguards update -g <rg> -n <cluster> --level Warn --excluded-ns platform elasticsearch aks-istio-ingress postgresql redis
 ```

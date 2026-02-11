@@ -5,8 +5,10 @@ resource "helm_release" "cnpg_operator" {
   repository       = "https://cloudnative-pg.github.io/charts"
   chart            = "cloudnative-pg"
   version          = "0.27.1"
-  namespace        = "cnpg-system"
-  create_namespace = true
+  namespace        = "platform"
+  create_namespace = false
+
+  depends_on = [kubernetes_namespace.platform]
 
   # Resources for AKS Automatic safeguards compliance
   set = [
