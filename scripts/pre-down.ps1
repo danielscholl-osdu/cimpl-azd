@@ -16,18 +16,113 @@ Write-Host "==================================================================" 
 Write-Host "  Pre-Down: Resource Cleanup"                                       -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Cyan
 
+#region Clean DNS Records
+Write-Host ""
+Write-Host "=================================================================="
+Write-Host "  [1/3] Cleaning DNS Records"
+Write-Host "=================================================================="
+
+$dnsZone = $env:TF_VAR_dns_zone_name
+$dnsRg = $env:TF_VAR_dns_zone_resource_group
+$dnsSub = $env:TF_VAR_dns_zone_subscription_id
+
+if ([string]::IsNullOrEmpty($dnsZone) -or [string]::IsNullOrEmpty($dnsRg)) {
+    Write-Host "  No DNS zone configured, skipping" -ForegroundColor Gray
+}
+else {
+    Write-Host "  DNS Zone: $dnsZone ($dnsRg)" -ForegroundColor Gray
+
+    # Determine the cluster name used as ExternalDNS owner ID
+    $clusterName = $env:AZURE_AKS_CLUSTER_NAME
+    if ([string]::IsNullOrEmpty($clusterName)) {
+        # Try inferring from the environment name (matches platform naming convention)
+        $envName = $env:AZURE_ENV_NAME
+        if (-not [string]::IsNullOrEmpty($envName)) {
+            $clusterName = "cimpl-$envName"
+        }
+    }
+
+    if ([string]::IsNullOrEmpty($clusterName)) {
+        Write-Host "  Could not determine cluster name, skipping DNS cleanup" -ForegroundColor Yellow
+    }
+    else {
+        $subArgs = if (-not [string]::IsNullOrEmpty($dnsSub)) { @("--subscription", $dnsSub) } else { @() }
+
+        # List TXT record sets and find those owned by this cluster
+        $txtJson = az network dns record-set txt list -g $dnsRg -z $dnsZone @subArgs -o json 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  WARNING: Failed to list DNS records in zone '$dnsZone'. Check permissions and zone existence." -ForegroundColor Yellow
+            $txtRecords = @()
+        }
+        else {
+            $txtRecords = if ($txtJson) { $txtJson | ConvertFrom-Json } else { @() }
+        }
+
+        $ownedNames = [System.Collections.ArrayList]::new()
+        foreach ($rec in $txtRecords) {
+            # Skip the SOA @ record
+            if ($rec.name -eq "@") { continue }
+            foreach ($entry in $rec.txtRecords) {
+                $val = ($entry.value -join "")
+                if ($val -match "external-dns/owner=$clusterName") {
+                    [void]$ownedNames.Add($rec.name)
+                    break
+                }
+            }
+        }
+
+        if ($ownedNames.Count -eq 0) {
+            Write-Host "  No DNS records owned by $clusterName" -ForegroundColor Gray
+        }
+        else {
+            Write-Host "  Found $($ownedNames.Count) records owned by $clusterName" -ForegroundColor Gray
+
+            foreach ($name in $ownedNames) {
+                # Delete the A record if it exists
+                $aExists = az network dns record-set a show -g $dnsRg -z $dnsZone -n $name @subArgs 2>$null
+                if ($LASTEXITCODE -eq 0 -and $aExists) {
+                    az network dns record-set a delete -g $dnsRg -z $dnsZone -n $name @subArgs -y 2>$null | Out-Null
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-Host "  WARNING: Failed to delete A record $name.$dnsZone" -ForegroundColor Yellow
+                    }
+                    else {
+                        Write-Host "  Removed: $name.$dnsZone (A)" -ForegroundColor Gray
+                    }
+                }
+
+                # Delete the TXT record
+                az network dns record-set txt delete -g $dnsRg -z $dnsZone -n $name @subArgs -y 2>$null | Out-Null
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Host "  WARNING: Failed to delete TXT record $name.$dnsZone" -ForegroundColor Yellow
+                }
+                else {
+                    Write-Host "  Removed: $name.$dnsZone (TXT)" -ForegroundColor Gray
+                }
+            }
+        }
+    }
+}
+#endregion
+
 #region Delete Resource Group
 Write-Host ""
 Write-Host "=================================================================="
-Write-Host "  [1/2] Deleting Resource Group"
+Write-Host "  [2/3] Deleting Resource Group"
 Write-Host "=================================================================="
 
 $resourceGroup = $env:AZURE_RESOURCE_GROUP
 
 if ([string]::IsNullOrEmpty($resourceGroup)) {
-    # Try to get from infra terraform outputs
+    # Try to get from infra terraform outputs (prefer azd-managed state path)
+    $envName = $env:AZURE_ENV_NAME
+    $infraState = "$PSScriptRoot/../.azure/$envName/infra/terraform.tfstate"
     Push-Location $PSScriptRoot/../infra
-    $resourceGroup = terraform output -raw AZURE_RESOURCE_GROUP 2>$null
+    if (Test-Path $infraState) {
+        $resourceGroup = terraform output -raw "-state=$infraState" AZURE_RESOURCE_GROUP 2>$null
+    }
+    else {
+        $resourceGroup = terraform output -raw AZURE_RESOURCE_GROUP 2>$null
+    }
     Pop-Location
 }
 
@@ -57,7 +152,7 @@ else {
 #region Clear Terraform State
 Write-Host ""
 Write-Host "=================================================================="
-Write-Host "  [2/2] Clearing Terraform State"
+Write-Host "  [3/3] Clearing Terraform State"
 Write-Host "=================================================================="
 
 # Clear platform layer state

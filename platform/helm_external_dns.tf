@@ -5,9 +5,6 @@ resource "kubernetes_namespace" "external_dns" {
 
   metadata {
     name = "external-dns"
-    labels = {
-      "istio.io/rev" = "asm-1-28"
-    }
   }
 }
 
@@ -21,6 +18,24 @@ resource "helm_release" "external_dns" {
   create_namespace = false
 
   set = [
+    # Use official image (Bitnami images require paid subscription since Aug 2025)
+    {
+      name  = "global.security.allowInsecureImages"
+      value = "true"
+      type  = "string"
+    },
+    {
+      name  = "image.registry"
+      value = "registry.k8s.io"
+    },
+    {
+      name  = "image.repository"
+      value = "external-dns/external-dns"
+    },
+    {
+      name  = "image.tag"
+      value = "v0.15.1"
+    },
     # Azure DNS provider
     {
       name  = "provider"
@@ -60,18 +75,20 @@ resource "helm_release" "external_dns" {
       value = var.tenant_id
     },
     {
-      name  = "azure.useManagedIdentityExtension"
+      name  = "azure.useWorkloadIdentityExtension"
       value = "true"
+      type  = "string"
     },
     # Workload Identity: ServiceAccount annotation
     {
       name  = "serviceAccount.annotations.azure\\.workload\\.identity/client-id"
       value = var.external_dns_client_id
     },
-    # Workload Identity: Pod label
+    # Workload Identity: Pod label (type=string prevents Helm interpreting "true" as bool)
     {
       name  = "podLabels.azure\\.workload\\.identity/use"
       value = "true"
+      type  = "string"
     },
     # Resource requests/limits for AKS Automatic safeguards compliance
     {
