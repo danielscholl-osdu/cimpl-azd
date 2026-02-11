@@ -1,0 +1,15 @@
+{
+  "servers": {
+    "terraform": {
+      "command": "/opt/homebrew/bin/terraform-ls",
+      "args": ["serve"],
+      "filetypes": ["terraform"],
+      "rootPatterns": [".terraform.lock.hcl", ".terraform", "main.tf"],
+      "initializationOptions": {
+        "experimentalFeatures": {
+          "prefillRequiredFields": true
+        }
+      }
+    }
+  }
+}

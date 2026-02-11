@@ -11,35 +11,59 @@
 $ErrorActionPreference = "Stop"
 $scriptDir = $PSScriptRoot
 
-Write-Host "=== Post-Provision: Two-Phase Deployment ===" -ForegroundColor Cyan
-Write-Host "Phase 1: Ensure safeguards readiness" -ForegroundColor Gray
-Write-Host "Phase 2: Deploy platform layer" -ForegroundColor Gray
 Write-Host ""
+Write-Host "==================================================================" -ForegroundColor Cyan
+Write-Host "  Post-Provision: Two-Phase Deployment"                             -ForegroundColor Cyan
+Write-Host "==================================================================" -ForegroundColor Cyan
+Write-Host "  Phase 1: Ensure safeguards readiness" -ForegroundColor Gray
+Write-Host "  Phase 2: Deploy platform layer" -ForegroundColor Gray
 
-# Phase 1: Ensure safeguards are ready
-Write-Host "Starting Phase 1..." -ForegroundColor Cyan
+#region Phase 1
+Write-Host ""
+Write-Host "=================================================================="
+Write-Host "  Starting Phase 1: Ensure Safeguards Readiness"
+Write-Host "=================================================================="
+
 & "$scriptDir/ensure-safeguards.ps1"
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "`nPhase 1 failed. Safeguards not ready." -ForegroundColor Red
-    Write-Host "Please check Azure Policy/Gatekeeper status and retry." -ForegroundColor Yellow
-    Write-Host "`nTo retry manually:" -ForegroundColor Gray
-    Write-Host "  ./scripts/ensure-safeguards.ps1" -ForegroundColor DarkGray
-    Write-Host "  ./scripts/deploy-platform.ps1" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "==================================================================" -ForegroundColor Red
+    Write-Host "  Phase 1 FAILED: Safeguards not ready"                             -ForegroundColor Red
+    Write-Host "==================================================================" -ForegroundColor Red
+    Write-Host "  Check Azure Policy/Gatekeeper status and retry." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  To retry manually:" -ForegroundColor Gray
+    Write-Host "    ./scripts/ensure-safeguards.ps1" -ForegroundColor DarkGray
+    Write-Host "    ./scripts/deploy-platform.ps1" -ForegroundColor DarkGray
     exit 1
 }
+#endregion
 
+#region Phase 2
 Write-Host ""
+Write-Host "=================================================================="
+Write-Host "  Starting Phase 2: Deploy Platform Layer"
+Write-Host "=================================================================="
 
-# Phase 2: Deploy platform layer
-Write-Host "Starting Phase 2..." -ForegroundColor Cyan
 & "$scriptDir/deploy-platform.ps1"
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "`nPhase 2 failed. Platform deployment incomplete." -ForegroundColor Red
-    Write-Host "Safeguards are ready, so you can retry platform deployment:" -ForegroundColor Yellow
-    Write-Host "  ./scripts/deploy-platform.ps1" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "==================================================================" -ForegroundColor Red
+    Write-Host "  Phase 2 FAILED: Platform deployment incomplete"                   -ForegroundColor Red
+    Write-Host "==================================================================" -ForegroundColor Red
+    Write-Host "  Safeguards are ready, so you can retry platform deployment:" -ForegroundColor Yellow
+    Write-Host "    ./scripts/deploy-platform.ps1" -ForegroundColor DarkGray
     exit 1
 }
+#endregion
 
-Write-Host "`n=== Post-Provision Complete ===" -ForegroundColor Green
+#region Summary
+Write-Host ""
+Write-Host "==================================================================" -ForegroundColor Green
+Write-Host "  Post-Provision Complete"                                          -ForegroundColor Green
+Write-Host "==================================================================" -ForegroundColor Green
+Write-Host ""
+exit 0
+#endregion

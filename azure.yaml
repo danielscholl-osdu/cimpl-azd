@@ -25,6 +25,13 @@ hooks:
     shell: pwsh
     run: ./scripts/post-provision.ps1
 
+  # Pre-down: Destroy platform layer before cluster teardown
+  predown:
+    interactive: true
+    continueOnError: false
+    shell: pwsh
+    run: ./scripts/pre-down.ps1
+
 # Future: Services layer (Layer 3) will be added here
 # services:
 #   osdu-platform:
