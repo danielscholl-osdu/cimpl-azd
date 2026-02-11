@@ -117,24 +117,8 @@ $dnsZoneSubId = $env:TF_VAR_dns_zone_subscription_id
 # Get UAMI client ID and tenant ID from infra terraform outputs
 # azd manages infra state at .azure/<env>/infra/terraform.tfstate, not in the source dir
 $envName = $env:AZURE_ENV_NAME
-$infraStateFile = "$PSScriptRoot/../.azure/$envName/infra/terraform.tfstate"
-if (Test-Path $infraStateFile) {
-    Push-Location $PSScriptRoot/../infra
-    $externalDnsClientId = terraform output -raw "-state=$infraStateFile" EXTERNAL_DNS_CLIENT_ID 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "  WARNING: Could not read EXTERNAL_DNS_CLIENT_ID from infra state" -ForegroundColor Yellow
-        $externalDnsClientId = ""
-    }
-    $tenantId = terraform output -raw "-state=$infraStateFile" AZURE_TENANT_ID 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "  WARNING: Could not read AZURE_TENANT_ID from infra state" -ForegroundColor Yellow
-        $tenantId = ""
-    }
-    Pop-Location
-}
-else {
-    Write-Host "  WARNING: Infra state not found at $infraStateFile" -ForegroundColor Yellow
-    Write-Host "  Attempting fallback to local infra state (non-azd workflow)..." -ForegroundColor Gray
+if ([string]::IsNullOrEmpty($envName)) {
+    Write-Host "  WARNING: AZURE_ENV_NAME not set; using local infra state (non-azd workflow)" -ForegroundColor Yellow
     # Fallback: try local infra state (non-azd workflows)
     Push-Location $PSScriptRoot/../infra
     $externalDnsClientId = terraform output -raw EXTERNAL_DNS_CLIENT_ID 2>$null
@@ -142,6 +126,34 @@ else {
     $tenantId = terraform output -raw AZURE_TENANT_ID 2>$null
     if ($LASTEXITCODE -ne 0) { $tenantId = "" }
     Pop-Location
+}
+else {
+    $infraStateFile = "$PSScriptRoot/../.azure/$envName/infra/terraform.tfstate"
+    if (Test-Path $infraStateFile) {
+        Push-Location $PSScriptRoot/../infra
+        $externalDnsClientId = terraform output -raw "-state=$infraStateFile" EXTERNAL_DNS_CLIENT_ID 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  WARNING: Could not read EXTERNAL_DNS_CLIENT_ID from infra state" -ForegroundColor Yellow
+            $externalDnsClientId = ""
+        }
+        $tenantId = terraform output -raw "-state=$infraStateFile" AZURE_TENANT_ID 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  WARNING: Could not read AZURE_TENANT_ID from infra state" -ForegroundColor Yellow
+            $tenantId = ""
+        }
+        Pop-Location
+    }
+    else {
+        Write-Host "  WARNING: Infra state not found at $infraStateFile" -ForegroundColor Yellow
+        Write-Host "  Attempting fallback to local infra state (non-azd workflow)..." -ForegroundColor Gray
+        # Fallback: try local infra state (non-azd workflows)
+        Push-Location $PSScriptRoot/../infra
+        $externalDnsClientId = terraform output -raw EXTERNAL_DNS_CLIENT_ID 2>$null
+        if ($LASTEXITCODE -ne 0) { $externalDnsClientId = "" }
+        $tenantId = terraform output -raw AZURE_TENANT_ID 2>$null
+        if ($LASTEXITCODE -ne 0) { $tenantId = "" }
+        Pop-Location
+    }
 }
 
 # Determine if ExternalDNS should be enabled.

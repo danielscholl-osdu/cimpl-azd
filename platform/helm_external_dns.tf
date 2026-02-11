@@ -22,7 +22,6 @@ resource "helm_release" "external_dns" {
     {
       name  = "global.security.allowInsecureImages"
       value = "true"
-      type  = "string"
     },
     {
       name  = "image.registry"
@@ -77,7 +76,6 @@ resource "helm_release" "external_dns" {
     {
       name  = "azure.useWorkloadIdentityExtension"
       value = "true"
-      type  = "string"
     },
     # Workload Identity: ServiceAccount annotation
     {
