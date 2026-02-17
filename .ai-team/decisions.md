@@ -92,3 +92,14 @@ Scribe merges inbox entries here and deduplicates.
 **By:** Holden
 **What:** Created 28 issues (#78–#105) in danielscholl-osdu/cimpl-azd organized by 6 phases: Phase 0.5 (postrender framework), Phase 1 (missing infrastructure: Keycloak, RabbitMQ, Airflow, Common, Elastic Bootstrap), Phase 2 (foundation services: Partition, Entitlements), Phase 3 (core services: Legal, Schema, Storage, Search, Indexer, File), Phase 4 (extended services: Notification, Dataset, Register, Policy, Secret, Unit, Workflow), Phase 5 (domain services + bootstrap data: Wellbore, Wellbore Worker, CRS Conversion, CRS Catalog, EDS-DMS, Bootstrap Data). Master tracking issue is #105.
 **Why:** Tracking the full migration from ROSA to AKS parity. Labels created for phase grouping (`phase:0`–`phase:5`), layer assignment (`layer:platform`, `layer:services`), and squad ownership (`squad:amos`, `squad:alex`, `squad:holden`). Each issue includes ROSA reference details (chart, version, image tag), AKS implementation targets, acceptance criteria, and dependency links.
+
+### 2026-02-17: User directive — prefer gpt-5.2-codex for coding
+**By:** Daniel Scholl (via Copilot)
+**What:** Default to gpt-5.2-codex for all coding tasks. Haiku is not good enough for most coding work in this project. Non-coding tasks (logs, triage, docs) can still use haiku.
+**Why:** User request — captured for team memory
+
+
+### 2026-02-17: User directive — prefer gpt-5.2-codex for coding
+**By:** Daniel Scholl (via Copilot)
+**What:** Default to gpt-5.2-codex for all coding tasks. Haiku is not good enough for most coding work in this project. Non-coding tasks (logs, triage, docs) can still use haiku.
+**Why:** User request — captured for team memory

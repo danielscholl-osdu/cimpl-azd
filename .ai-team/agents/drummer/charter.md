@@ -34,3 +34,9 @@ Quality assurance and validation specialist for all layers of the cimpl-azd depl
   ```
 - PowerShell scripts must check $LASTEXITCODE after external commands
 - Helm provider v3 uses set = [...] not set {} blocks
+
+## Model
+Preferred: gpt-5.2-codex
+
+## Model
+Preferred: gpt-5.2-codex

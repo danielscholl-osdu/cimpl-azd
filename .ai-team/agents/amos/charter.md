@@ -31,3 +31,9 @@ Platform middleware specialist owning the platform/ Terraform layer — all stat
 - Istio sidecar injection via namespace label istio.io/rev: asm-1-28
 - NET_ADMIN/NET_RAW capabilities are blocked on AKS Automatic (affects istio-init)
 - Reference ROSA components at reference-rosa/terraform/master-chart/infra/
+
+## Model
+Preferred: gpt-5.2-codex
+
+## Model
+Preferred: gpt-5.2-codex

@@ -31,3 +31,9 @@ OSDU services specialist responsible for porting all ~20 OSDU microservices from
 - Dependency chain: Common → Airflow/Elastic/PostgreSQL → Keycloak → Services
 - All containers need probes, resource requests, seccomp, pinned image tags
 - Helm provider v3 syntax required
+
+## Model
+Preferred: gpt-5.2-codex
+
+## Model
+Preferred: gpt-5.2-codex

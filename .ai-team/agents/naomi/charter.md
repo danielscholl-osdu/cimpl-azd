@@ -28,3 +28,9 @@ Infrastructure specialist owning the AKS cluster layer (infra/) and cloud-level 
 - State managed by azd at .azure/<env>/infra/terraform.tfstate
 - deploy-platform.ps1 reads infra outputs via `-state=` flag
 - PowerShell scripts must check $LASTEXITCODE after external commands
+
+## Model
+Preferred: gpt-5.2-codex
+
+## Model
+Preferred: gpt-5.2-codex
