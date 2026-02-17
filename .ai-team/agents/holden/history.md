@@ -27,3 +27,5 @@ Completed comprehensive ROSA-to-AKS parity analysis covering 8 infra components 
 - Layers 1 and 2 are built; Layer 3 (OSDU services) is the next frontier
 
 ## Learnings
+
+📌 **2026-02-17:** Team investigation findings merged into decisions registry — All 3 agents contributed findings (Amos: Common/Elastic Bootstrap clarifications; Alex: service chart compliance patterns; Copilot: user directives on Keycloak, RabbitMQ, Airflow Redis-sharing, Bootstrap Data). New user directives confirm OCI registry sourcing and Bootstrap Data implementation required.
