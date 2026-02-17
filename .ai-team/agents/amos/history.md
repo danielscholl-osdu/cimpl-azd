@@ -14,4 +14,6 @@
 
 📌 **2026-02-17:** ROSA parity gap analysis complete (Holden) — AKS-managed Istio is correct approach; CloudNativePG upgrade (3-instance HA, RW endpoint at postgresql-rw.postgresql.svc.cluster.local); service namespace strategy decision needed before Phase 2 platform deployment.
 
+📌 **2026-02-17:** User directives clarified (Daniel Scholl) — Keycloak deployment required; RabbitMQ deployment required; Airflow can share existing Redis instead of deploying its own; Elasticsearch already running (investigate Elastic Bootstrap status).
+
 ## Learnings

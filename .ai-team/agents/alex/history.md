@@ -14,4 +14,6 @@
 
 📌 **2026-02-17:** ROSA parity gap analysis complete (Holden) — Gap analysis identified all ~22 OSDU services as missing from AKS. Key findings: 4 missing infra components (Common, Keycloak, RabbitMQ, Airflow); AKS-managed Istio vs ROSA self-managed requires service chart adaptation (no istio-init, no ambient mode); service namespace strategy and PostgreSQL RW endpoint updates needed.
 
+📌 **2026-02-17:** User directives clarified (Daniel Scholl) — Keycloak required (cannot use Entra ID); RabbitMQ required by OSDU services directly; Airflow can share existing Redis; Elasticsearch already running (need to investigate Elastic Bootstrap status).
+
 ## Learnings

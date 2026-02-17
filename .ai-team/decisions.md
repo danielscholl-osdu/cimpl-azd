@@ -27,3 +27,22 @@ Scribe merges inbox entries here and deduplicates.
 **By:** Holden
 **What:** ROSA deploys all infra and services into a single `osdu` namespace. AKS currently uses per-component namespaces for infra. Recommendation is to use a single `osdu` namespace for all OSDU services to match ROSA's inter-service communication patterns.
 **Why:** Namespace choice affects service DNS resolution, RBAC, network policies, and chart configuration. Must be decided before Phase 2.
+### 2026-02-17: User directive — Keycloak required
+**By:** Daniel Scholl (via Copilot)
+**What:** Entra ID cannot replace Keycloak. Keycloak must be deployed as an infrastructure component.
+**Why:** User request — captured for team memory
+
+### 2026-02-17: User directive — RabbitMQ required by OSDU services
+**By:** Daniel Scholl (via Copilot)
+**What:** RabbitMQ is used by OSDU services directly, not just Airflow. Must be deployed.
+**Why:** User request — captured for team memory
+
+### 2026-02-17: User directive — Airflow can share existing Redis
+**By:** Daniel Scholl (via Copilot)
+**What:** Airflow should use the existing Redis deployment rather than deploying its own.
+**Why:** User request — captured for team memory
+
+### 2026-02-17: User directive — Elasticsearch already running
+**By:** Daniel Scholl (via Copilot)
+**What:** Elasticsearch is already deployed and running on AKS. Elastic Bootstrap status needs investigation.
+**Why:** User request — captured for team memory

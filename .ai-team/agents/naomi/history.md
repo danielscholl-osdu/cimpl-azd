@@ -13,4 +13,6 @@
 
 📌 **2026-02-17:** ROSA parity gap analysis complete (Holden) — 4 missing infra components identified (Common, Keycloak, RabbitMQ, Airflow); all ~22 OSDU services missing. Key decisions: AKS-managed Istio confirmed (self-managed blocked by NET_ADMIN/NET_RAW), CloudNativePG is an upgrade (services must use postgresql-rw endpoint), service namespace strategy needs Daniel's input.
 
+📌 **2026-02-17:** User directives clarified (Daniel Scholl) — Keycloak must be deployed as infra component (Entra ID cannot replace); RabbitMQ deployment required; Airflow should share existing Redis; Elasticsearch already running (check Elastic Bootstrap status).
+
 ## Learnings
