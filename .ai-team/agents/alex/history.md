@@ -65,3 +65,5 @@
 📌 **2026-02-17:** Alex investigation findings merged into decisions registry — OSDU Service Charts Require Postrender Patches (all 24 services have zero probes/resources/seccomp; shared postrender approach recommended); All CIMPL Service Images Default to :latest (must override with pinned tags on AKS Automatic); OETP Server recommended for exclusion from Phase 1; Subscriber Key sourcing options clarified (env var pattern, needs sensitive marking).
 
 📌 **2026-02-17:** User directive for OCI registry sourcing merged — service charts/images pull from OSDU community repositories in GitLab (community.opengroup.org).
+
+📌 **2026-02-17:** GitHub issues logged and organized (#78–#105) for Phase 0.5–5 migration. Alex assigned 20 issues (Phase 2–5 OSDU services: Partition, Entitlements, Legal, Schema, Storage, Search, Indexer, File, Notification, Dataset, Register, Policy, Secret, Unit, Workflow, Wellbore, Wellbore Worker, CRS Conversion, CRS Catalog, EDS-DMS, Bootstrap Data).

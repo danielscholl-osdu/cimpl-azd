@@ -29,3 +29,13 @@ Completed comprehensive ROSA-to-AKS parity analysis covering 8 infra components 
 ## Learnings
 
 📌 **2026-02-17:** Team investigation findings merged into decisions registry — All 3 agents contributed findings (Amos: Common/Elastic Bootstrap clarifications; Alex: service chart compliance patterns; Copilot: user directives on Keycloak, RabbitMQ, Airflow Redis-sharing, Bootstrap Data). New user directives confirm OCI registry sourcing and Bootstrap Data implementation required.
+
+📌 **2026-02-17:** Created 28 GitHub issues (#78–#105) for ROSA→AKS migration, organized by phase:
+- **Phase 0.5:** #78 (postrender framework) — critical path, assigned to Amos
+- **Phase 1:** #79 (Keycloak), #80 (RabbitMQ), #81 (Airflow), #82 (Common), #83 (Elastic Bootstrap) — assigned to Amos
+- **Phase 2:** #84 (Partition), #85 (Entitlements) — assigned to Alex
+- **Phase 3:** #86 (Legal), #87 (Schema), #88 (Storage), #89 (Search), #90 (Indexer), #91 (File) — assigned to Alex
+- **Phase 4:** #92 (Notification), #93 (Dataset), #94 (Register), #95 (Policy), #96 (Secret), #97 (Unit), #98 (Workflow) — assigned to Alex
+- **Phase 5:** #99 (Wellbore), #100 (Wellbore Worker), #101 (CRS Conversion), #102 (CRS Catalog), #103 (EDS-DMS), #104 (Bootstrap Data) — assigned to Alex
+- **Tracking:** #105 (master tracking issue) — assigned to Holden
+- **Label scheme:** `phase:0`–`phase:5`, `layer:platform`/`layer:services`/`layer:infra`, `squad:amos`/`squad:alex`/`squad:holden`, `squad`, `enhancement`, `blocked`

@@ -38,3 +38,5 @@
 📌 **2026-02-17:** Amos investigation findings merged into decisions registry — Common Chart clarified (no standalone module needed unless single osdu namespace adopted; lightweight k8s_common.tf as alternative); Elastic Bootstrap identified as Phase 2 dependency (need k8s_elastic_bootstrap.tf Job to configure ES index templates, ILM policies, aliases).
 
 📌 **2026-02-17:** User directive for Bootstrap Data requirement merged — Bootstrap Data modules (commented-out in ROSA) must be implemented on AKS for parity.
+
+📌 **2026-02-17:** GitHub issues logged and organized (#78–#105) for Phase 0.5–5 migration. Amos assigned 7 issues (Phase 0.5 postrender + Phase 1 infra: Keycloak, RabbitMQ, Airflow, Common, Elastic Bootstrap, safeguards compliance).

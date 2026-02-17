@@ -20,3 +20,12 @@
 | Drummer | Tester | .ai-team/agents/drummer/charter.md | ✅ Active |
 | Scribe | Session Logger | .ai-team/agents/scribe/charter.md | ✅ Active |
 | Ralph | Work Monitor | — | 🔄 Monitor |
+
+## Issue Source
+
+| Field | Value |
+|-------|-------|
+| **Repository** | danielscholl-osdu/cimpl-azd |
+| **Connected** | 2026-02-17 |
+| **Filters** | squad label |
+| **Tracking Issue** | #105 |

@@ -87,3 +87,8 @@ Scribe merges inbox entries here and deduplicates.
 **By:** Alex (Services Dev)
 **What:** `cimpl_subscriber_private_key_id` is injected into every service pod as a Helm `set_sensitive` value mapped to `data.subscriberPrivateKeyId`. This becomes a Kubernetes Secret mounted as an environment variable (via Helm's standard set_sensitive mechanism). The value is a plain string identifier ("Subscriber ID"), not a file-based key.
 **Why:** For AKS, we need to decide how to source this value — options include azd env variable, Azure Key Vault reference, or Kubernetes Secret. The current ROSA approach (Terraform variable) works fine but the value should be marked `sensitive = true` in our Terraform outputs.
+
+### 2026-02-17: GitHub issues created for ROSA→AKS migration
+**By:** Holden
+**What:** Created 28 issues (#78–#105) in danielscholl-osdu/cimpl-azd organized by 6 phases: Phase 0.5 (postrender framework), Phase 1 (missing infrastructure: Keycloak, RabbitMQ, Airflow, Common, Elastic Bootstrap), Phase 2 (foundation services: Partition, Entitlements), Phase 3 (core services: Legal, Schema, Storage, Search, Indexer, File), Phase 4 (extended services: Notification, Dataset, Register, Policy, Secret, Unit, Workflow), Phase 5 (domain services + bootstrap data: Wellbore, Wellbore Worker, CRS Conversion, CRS Catalog, EDS-DMS, Bootstrap Data). Master tracking issue is #105.
+**Why:** Tracking the full migration from ROSA to AKS parity. Labels created for phase grouping (`phase:0`–`phase:5`), layer assignment (`layer:platform`, `layer:services`), and squad ownership (`squad:amos`, `squad:alex`, `squad:holden`). Each issue includes ROSA reference details (chart, version, image tag), AKS implementation targets, acceptance criteria, and dependency links.
