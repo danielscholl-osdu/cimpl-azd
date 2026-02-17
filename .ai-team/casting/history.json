@@ -1,0 +1,22 @@
+{
+  "universe_usage_history": [
+    {
+      "assignment_id": "cimpl-azd-001",
+      "universe": "The Expanse",
+      "timestamp": "2026-02-17T18:01:24Z"
+    }
+  ],
+  "assignment_cast_snapshots": {
+    "cimpl-azd-001": {
+      "universe": "The Expanse",
+      "agent_map": {
+        "holden": "Holden",
+        "naomi": "Naomi",
+        "amos": "Amos",
+        "alex": "Alex",
+        "drummer": "Drummer"
+      },
+      "created_at": "2026-02-17T18:01:24Z"
+    }
+  }
+}
