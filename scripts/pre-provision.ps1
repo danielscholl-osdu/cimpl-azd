@@ -265,6 +265,30 @@ else {
     Write-Host " set" -ForegroundColor Green
 }
 
+# --- TF_VAR_keycloak_db_password: generate random if not set ---
+$keycloakPassword = [Environment]::GetEnvironmentVariable("TF_VAR_keycloak_db_password")
+Write-Host "  TF_VAR_keycloak_db_password..." -NoNewline
+if ([string]::IsNullOrEmpty($keycloakPassword)) {
+    $generatedKeycloakPassword = New-RandomPassword
+    azd env set TF_VAR_keycloak_db_password $generatedKeycloakPassword 2>$null
+    Write-Host " generated" -ForegroundColor Green
+}
+else {
+    Write-Host " set" -ForegroundColor Green
+}
+
+# --- TF_VAR_airflow_db_password: generate random if not set ---
+$airflowPassword = [Environment]::GetEnvironmentVariable("TF_VAR_airflow_db_password")
+Write-Host "  TF_VAR_airflow_db_password..." -NoNewline
+if ([string]::IsNullOrEmpty($airflowPassword)) {
+    $generatedAirflowPassword = New-RandomPassword
+    azd env set TF_VAR_airflow_db_password $generatedAirflowPassword 2>$null
+    Write-Host " generated" -ForegroundColor Green
+}
+else {
+    Write-Host " set" -ForegroundColor Green
+}
+
 # --- TF_VAR_redis_password: generate random if not set ---
 $redisPassword = [Environment]::GetEnvironmentVariable("TF_VAR_redis_password")
 Write-Host "  TF_VAR_redis_password..." -NoNewline

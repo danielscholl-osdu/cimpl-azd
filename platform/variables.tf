@@ -37,6 +37,12 @@ variable "enable_elasticsearch" {
   default     = true
 }
 
+variable "enable_elastic_bootstrap" {
+  description = "Enable Elastic Bootstrap job deployment"
+  type        = bool
+  default     = true
+}
+
 variable "enable_postgresql" {
   description = "Enable PostgreSQL deployment"
   type        = bool
@@ -51,6 +57,12 @@ variable "enable_minio" {
 
 variable "enable_redis" {
   description = "Enable Redis cache deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_rabbitmq" {
+  description = "Enable RabbitMQ deployment"
   type        = bool
   default     = true
 }
@@ -122,6 +134,18 @@ variable "postgresql_password" {
   sensitive   = true
 }
 
+variable "keycloak_db_password" {
+  description = "Keycloak database password"
+  type        = string
+  sensitive   = true
+}
+
+variable "airflow_db_password" {
+  description = "Airflow database password"
+  type        = string
+  sensitive   = true
+}
+
 variable "postgresql_username" {
   description = "PostgreSQL application database owner username"
   type        = string
@@ -130,6 +154,24 @@ variable "postgresql_username" {
 
 variable "redis_password" {
   description = "Redis authentication password"
+  type        = string
+  sensitive   = true
+}
+
+variable "rabbitmq_username" {
+  description = "RabbitMQ username"
+  type        = string
+  default     = "rabbitmq"
+}
+
+variable "rabbitmq_password" {
+  description = "RabbitMQ password"
+  type        = string
+  sensitive   = true
+}
+
+variable "rabbitmq_erlang_cookie" {
+  description = "RabbitMQ Erlang cookie"
   type        = string
   sensitive   = true
 }

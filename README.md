@@ -9,6 +9,7 @@ This project deploys a complete platform stack on Azure Kubernetes Service (AKS)
 - **AKS Automatic** - Managed Kubernetes with auto-scaling and built-in Istio
 - **Elasticsearch** - Search and analytics engine (3-node cluster)
 - **Kibana** - Elasticsearch visualization
+- **Elastic Bootstrap** - Post-deploy index templates, ILM policies, and aliases
 - **PostgreSQL** - Relational database
 - **MinIO** - S3-compatible object storage
 - **cert-manager** - Automatic TLS certificate management
@@ -27,6 +28,7 @@ Layer 1: Cluster Infrastructure (infra/)
 Layer 2: Platform Components (platform/)
     └─ cert-manager + ClusterIssuer
     └─ ECK Operator + Elasticsearch + Kibana
+    └─ Elastic Bootstrap job (index templates + ILM + aliases)
     └─ PostgreSQL (Bitnami chart)
     └─ MinIO (official chart)
     └─ Gateway API configuration
@@ -178,6 +180,7 @@ cimpl-azd/
 │   ├── versions.tf             # Version constraints
 │   ├── helm_cert_manager.tf    # cert-manager
 │   ├── helm_elastic.tf         # ECK + Elasticsearch + Kibana
+│   ├── k8s_elastic_bootstrap.tf # Elastic Bootstrap job
 │   ├── helm_postgresql.tf      # PostgreSQL
 │   ├── helm_minio.tf           # MinIO
 │   └── k8s_gateway.tf          # Gateway API config
@@ -200,8 +203,13 @@ cimpl-azd/
 | `TF_VAR_acme_email` | Yes | Email for Let's Encrypt certificates |
 | `TF_VAR_kibana_hostname` | Yes | Hostname for Kibana external access |
 | `TF_VAR_postgresql_password` | No | PostgreSQL admin password (auto-generated if not set) |
+| `TF_VAR_keycloak_db_password` | No | Keycloak database password (auto-generated if not set) |
+| `TF_VAR_airflow_db_password` | No | Airflow database password (auto-generated if not set) |
 | `TF_VAR_minio_root_user` | No | MinIO root username (default: minioadmin) |
 | `TF_VAR_minio_root_password` | No | MinIO root password (auto-generated if not set) |
+| `TF_VAR_rabbitmq_username` | No | RabbitMQ username (default: rabbitmq) |
+| `TF_VAR_rabbitmq_password` | No | RabbitMQ password (auto-generated if not set) |
+| `TF_VAR_rabbitmq_erlang_cookie` | No | RabbitMQ Erlang cookie (auto-generated if not set) |
 | `AZURE_LOCATION` | No | Azure region (default: eastus2) |
 
 ### AKS Cluster Specifications
@@ -222,6 +230,7 @@ cimpl-azd/
 | Elasticsearch | 8.15.2 | 3x 128Gi Premium SSD |
 | Kibana | 8.15.2 | - |
 | PostgreSQL | 18.x | 8Gi managed-csi |
+| RabbitMQ | 4.1.0 | 3x 8Gi managed-csi-premium |
 | MinIO | Latest | 10Gi managed-csi |
 | cert-manager | 1.16.2 | - |
 
