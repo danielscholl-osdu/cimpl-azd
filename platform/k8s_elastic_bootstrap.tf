@@ -5,7 +5,7 @@ resource "helm_release" "elastic_bootstrap" {
   name             = "elastic-bootstrap"
   repository       = "oci://community.opengroup.org:5555/osdu/platform/deployment-and-operations/base-containers-cimpl/elastic-bootstrap/cimpl-helm"
   chart            = "elastic-bootstrap"
-  version          = "0.0.7-latest"
+  version          = "0.0.7-latest" # CIMPL chart version format (matches ROSA reference).
   namespace        = "elasticsearch"
   create_namespace = false
 
