@@ -1,23 +1,27 @@
 - op: add
-  path: /spec/ttlSecondsAfterFinished
-  value: 3600
-- op: add
-  path: /spec/template/spec/securityContext/seccompProfile
+  path: /spec/template/spec/securityContext
   value:
-    type: RuntimeDefault
+    seccompProfile:
+      type: RuntimeDefault
 - op: add
   path: /spec/template/spec/initContainers
   value:
     - name: wait-for-elasticsearch
-      image: curlimages/curl:8.5.0
+      image: curlimages/curl:8.12.1
       command:
         - sh
         - -c
         - |
-          until curl -fsS "http://elasticsearch-es-http.elasticsearch.svc:9200/_cluster/health?wait_for_status=yellow&timeout=30s"; do
+          until curl -fsS -k -u "elastic:${ES_PASSWORD}" "https://elasticsearch-es-http.elasticsearch.svc:9200/_cluster/health?wait_for_status=yellow&timeout=30s"; do
             echo "Waiting for Elasticsearch to become healthy..."
             sleep 10
           done
+      env:
+        - name: ES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch-es-elastic-user
+              key: elastic
       resources:
         requests:
           cpu: 50m
