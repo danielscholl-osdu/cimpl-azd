@@ -72,12 +72,19 @@ azd env set AZURE_CONTACT_EMAIL "your-email@example.com"
 # Required: ACME email for Let's Encrypt certificates
 azd env set TF_VAR_acme_email "your-email@example.com"
 
-# Required: Hostname for Kibana external access
-azd env set TF_VAR_kibana_hostname "kibana.yourdomain.com"
+# Required: DNS zone for ingress (ExternalDNS + TLS certificates)
+azd env set TF_VAR_dns_zone_name "yourdomain.com"
+azd env set TF_VAR_dns_zone_resource_group "your-dns-rg"
+azd env set TF_VAR_dns_zone_subscription_id "your-subscription-id"
 
 # Optional: Azure region (default: eastus2)
 azd env set AZURE_LOCATION "eastus2"
+
+# Optional: Override the auto-generated ingress prefix
+# azd env set CIMPL_INGRESS_PREFIX "myteam"
 ```
+
+> **Note:** An ingress prefix (`CIMPL_INGRESS_PREFIX`) is auto-generated during pre-provision if not set. Hostnames are derived as `<prefix>.<dns_zone_name>` (e.g., `a1b2c3d4-kibana.yourdomain.com`).
 
 ### 3. Deploy
 
@@ -210,7 +217,10 @@ To add a new service overlay:
 |----------|----------|-------------|
 | `AZURE_CONTACT_EMAIL` | Yes | Contact email for resource tagging |
 | `TF_VAR_acme_email` | Yes | Email for Let's Encrypt certificates |
-| `TF_VAR_kibana_hostname` | Yes | Hostname for Kibana external access |
+| `TF_VAR_dns_zone_name` | Yes | Azure DNS zone name (e.g., `yourdomain.com`) |
+| `TF_VAR_dns_zone_resource_group` | Yes | Resource group containing the DNS zone |
+| `TF_VAR_dns_zone_subscription_id` | Yes | Subscription ID containing the DNS zone |
+| `CIMPL_INGRESS_PREFIX` | No | Ingress hostname prefix (auto-generated if not set) |
 | `TF_VAR_postgresql_password` | No | PostgreSQL admin password (auto-generated if not set) |
 | `TF_VAR_keycloak_db_password` | No | Keycloak database password (auto-generated if not set) |
 | `TF_VAR_airflow_db_password` | No | Airflow database password (auto-generated if not set) |

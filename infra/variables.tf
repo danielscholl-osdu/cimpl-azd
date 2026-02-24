@@ -46,7 +46,7 @@ variable "dns_zone_subscription_id" {
 variable "system_pool_vm_size" {
   description = "VM size for the AKS system node pool"
   type        = string
-  default     = "Standard_D4s_v5"
+  default     = "Standard_D4lds_v5"
 }
 
 variable "system_pool_availability_zones" {

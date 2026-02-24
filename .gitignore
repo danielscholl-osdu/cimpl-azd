@@ -21,6 +21,7 @@ override.tf.json
 
 # Agent (exclude agent instructions but allow other .github files)
 .github/agents/
+agent-registry.json
 
 # Environment files
 .env

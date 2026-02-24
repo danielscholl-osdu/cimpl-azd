@@ -1,0 +1,84 @@
+name: Squad Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # Only run on promote merges
+    if: startsWith(github.event.head_commit.message, 'chore: release v')
+    runs-on: ubuntu-latest
+    env:
+      CHECKPOINT_DISABLE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version from commit message
+        id: version
+        run: |
+          # Extract version from commit message: "chore: release v1.2.3"
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          VERSION=$(echo "$COMMIT_MSG" | grep -oP 'v\d+\.\d+\.\d+' | head -1)
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not extract version from commit message: $COMMIT_MSG"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing $VERSION"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
+
+      - name: Validate Terraform formatting
+        run: |
+          terraform fmt -check -recursive ./infra
+          terraform fmt -check -recursive ./platform
+
+      - name: Stamp CHANGELOG
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          VERSION_NUM="${VERSION#v}"
+          DATE=$(date +%Y-%m-%d)
+
+          # Replace [Unreleased] with the version and date
+          if grep -q "## \[Unreleased\]" CHANGELOG.md; then
+            sed -i "s/## \[Unreleased\]/## [${VERSION_NUM}] - ${DATE}/" CHANGELOG.md
+
+            # Add new Unreleased section at the top
+            sed -i "/## \[${VERSION_NUM}\]/i ## [Unreleased]\n" CHANGELOG.md
+
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add CHANGELOG.md
+            git commit -m "chore: stamp CHANGELOG for ${VERSION}"
+            git push origin main
+          fi
+
+      - name: Create git tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "$VERSION"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          VERSION_NUM="${VERSION#v}"
+
+          # Extract changelog section for this version
+          NOTES=$(awk "/^## \[${VERSION_NUM}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
+
+          if [ -z "$NOTES" ]; then
+            gh release create "$VERSION" --generate-notes --title "$VERSION"
+          else
+            echo "$NOTES" | gh release create "$VERSION" --notes-file - --title "$VERSION"
+          fi

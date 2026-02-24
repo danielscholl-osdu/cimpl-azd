@@ -1,0 +1,56 @@
+name: Squad CI
+
+on:
+  pull_request:
+    branches: [dev, preview, main, insider]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [dev, insider]
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-format:
+    name: Terraform Format Check
+    runs-on: ubuntu-latest
+    env:
+      CHECKPOINT_DISABLE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
+
+      - name: Check infra/ formatting
+        run: terraform fmt -check -recursive
+        working-directory: ./infra
+
+      - name: Check platform/ formatting
+        run: terraform fmt -check -recursive
+        working-directory: ./platform
+
+  powershell-syntax:
+    name: PowerShell Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate PowerShell scripts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $scripts = Get-ChildItem -Path ./scripts -Filter "*.ps1" -Recurse
+          $hasErrors = $false
+          foreach ($script in $scripts) {
+            Write-Host "Checking $($script.Name)..."
+            try {
+              $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $script.FullName -Raw), [ref]$null)
+              Write-Host "  OK" -ForegroundColor Green
+            } catch {
+              Write-Host "  FAILED: $($_.Exception.Message)" -ForegroundColor Red
+              $hasErrors = $true
+            }
+          }
+          if ($hasErrors) { exit 1 }
