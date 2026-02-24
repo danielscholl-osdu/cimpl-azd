@@ -44,3 +44,5 @@
 ### 2026-02-24: Generic kustomize postrender framework
 - Added `platform/kustomize/postrender.sh` to apply shared AKS safeguard components via SERVICE_NAME overlays.
 - Created shared components (`components/seccomp`, `components/security-context`, `components/topology-spread`) and a `services/partition` template with probes/resources.
+
+- 2026-02-24: Added AKS elastic-bootstrap Helm release with postrendered Job patches (probes/resources/TTL) and secret-sourced Elasticsearch credentials to initialize OSDU index templates, ILM policies, and aliases.

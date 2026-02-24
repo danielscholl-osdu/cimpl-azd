@@ -80,6 +80,7 @@ service_mesh_profile = { mode = "Istio" }
 **Components**:
 - cert-manager with Let's Encrypt ClusterIssuer
 - ECK Operator + Elasticsearch + Kibana
+- Elastic Bootstrap job (index templates, ILM policies, aliases)
 - CloudNativePG (CNPG) Operator + 3-instance HA PostgreSQL cluster
 - MinIO (standalone, S3-compatible object storage)
 - Gateway API configuration (Istio)
@@ -260,6 +261,10 @@ This is configured directly in the Elasticsearch CR in `platform/helm_elastic.tf
 ```bash
 kubectl get svc -n elasticsearch -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.selector}{"\n"}{end}'
 ```
+
+### Elastic Bootstrap
+
+Post-deploy Job that configures index templates, ILM policies, and aliases required by OSDU services. It runs after Elasticsearch is healthy, uses the CIMPL elastic-bootstrap chart/image, and pulls credentials from the `elasticsearch-es-elastic-user` secret. The Job is AKS safeguards compliant and cleaned up via TTL.
 
 ### PostgreSQL (CloudNativePG)
 
