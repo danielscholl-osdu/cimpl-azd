@@ -67,6 +67,12 @@ variable "enable_gateway" {
   default     = true
 }
 
+variable "enable_common" {
+  description = "Enable OSDU common namespace resources"
+  type        = bool
+  default     = true
+}
+
 variable "enable_external_dns" {
   description = "Enable ExternalDNS for automatic DNS record management"
   type        = bool
@@ -113,6 +119,26 @@ variable "tenant_id" {
   description = "Azure tenant ID"
   type        = string
   default     = ""
+}
+
+# OSDU common configuration
+variable "cimpl_subscriber_private_key_id" {
+  description = "Subscriber private key identifier for OSDU services"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "cimpl_project" {
+  description = "CIMPL project/group identifier"
+  type        = string
+  default     = ""
+}
+
+variable "cimpl_tenant" {
+  description = "CIMPL data partition ID"
+  type        = string
+  default     = "osdu"
 }
 
 # Platform credentials
