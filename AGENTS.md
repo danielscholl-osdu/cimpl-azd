@@ -3,8 +3,8 @@
 AKS Automatic platform deployed via Terraform (`infra/` + `platform/`) and PowerShell scripts (`scripts/`). Three-layer model: infra (cluster), platform (Helm/K8s workloads), services.
 
 **Key references:**
-- [`docs/architecture.md`](docs/architecture.md) — Component details, deployment flow, network/security architecture
-- [`docs/decisions/`](docs/decisions/) — ADR index with rationale for all major design choices
+- [`docs/src/architecture/overview.md`](docs/src/architecture/overview.md) — Component details, deployment flow, network/security architecture
+- [`docs/src/decisions/`](docs/src/decisions/) — ADR index with rationale for all major design choices
 
 ---
 
@@ -15,7 +15,7 @@ AKS Automatic platform deployed via Terraform (`infra/` + `platform/`) and Power
 - Use `count = var.enable_X ? 1 : 0` guards on all optional Terraform resources
 - Add `readinessProbe`, `livenessProbe`, resource `requests`/`limits`, and `seccompProfile: RuntimeDefault` to every container
 - Use `type = "string"` on Helm `set` blocks when the value is `"true"` or `"false"` (prevents Helm boolean coercion)
-- Add differentiating labels when a namespace has multiple Services selecting the same pods ([ADR-0010](docs/decisions/0010-unique-service-selector-label-pattern.md))
+- Add differentiating labels when a namespace has multiple Services selecting the same pods ([ADR-0010](docs/src/decisions/0010-unique-service-selector-label-pattern.md))
 - Quote PowerShell variable interpolation in command arguments: `"-state=$var"` not `-state=$var`
 - Run `terraform fmt -check -recursive` before committing Terraform changes
 
@@ -32,13 +32,13 @@ AKS Automatic platform deployed via Terraform (`infra/` + `platform/`) and Power
 
 ## Core Patterns
 
-When **adding a new Helm chart**: use postrender + kustomize to inject missing probes/resources/seccomp. Follow `platform/kustomize/eck-operator-postrender.sh` as the reference pattern. See [ADR-0002](docs/decisions/0002-helm-postrender-kustomize-for-safeguards.md).
+When **adding a new Helm chart**: use postrender + kustomize to inject missing probes/resources/seccomp. Follow `platform/kustomize/eck-operator-postrender.sh` as the reference pattern. See [ADR-0002](docs/src/decisions/0002-helm-postrender-kustomize-for-safeguards.md).
 
-When **adding a new namespace with Istio**: only label with `istio-injection: enabled` if the workload does NOT need `NET_ADMIN`. See [ADR-0008](docs/decisions/0008-selective-istio-sidecar-injection.md).
+When **adding a new namespace with Istio**: only label with `istio-injection: enabled` if the workload does NOT need `NET_ADMIN`. See [ADR-0008](docs/src/decisions/0008-selective-istio-sidecar-injection.md).
 
-When **passing values between infra/ and platform/**: use environment variables or `terraform output` in scripts. The two layers have separate state files. See [ADR-0006](docs/decisions/0006-two-layer-terraform-state.md).
+When **passing values between infra/ and platform/**: use environment variables or `terraform output` in scripts. The two layers have separate state files. See [ADR-0006](docs/src/decisions/0006-two-layer-terraform-state.md).
 
-When **replacing a Bitnami chart**: raw K8s manifests with official upstream images. See [ADR-0003](docs/decisions/0003-raw-manifests-for-rabbitmq.md) for the pattern.
+When **replacing a Bitnami chart**: raw K8s manifests with official upstream images. See [ADR-0003](docs/src/decisions/0003-raw-manifests-for-rabbitmq.md) for the pattern.
 
 ---
 
@@ -57,10 +57,10 @@ pwsh -Command '$scripts = Get-ChildItem -Path ./scripts -Filter "*.ps1"; foreach
 
 ## Architecture Decision Records
 
-Create an ADR in [`docs/decisions/`](docs/decisions/) when:
+Create an ADR in [`docs/src/decisions/`](docs/src/decisions/) when:
 - Adding new architectural patterns
 - Choosing between design alternatives
 - Making technology/library selections
 - Changing core system behaviors
 
-See [`docs/decisions/README.md`](docs/decisions/README.md) for templates and process.
+See [`docs/src/decisions/index.md`](docs/src/decisions/index.md) for templates and process.

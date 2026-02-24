@@ -1,0 +1,35 @@
+[files]
+extend-exclude = [
+  "*.tfstate",
+  "*.tfstate.*",
+  "*.lock.hcl",
+  "*.excalidraw",
+  "platform/crds/**",
+  "docs/diagrams/**",
+  "docs/plans/**",
+  ".azure/**",
+]
+
+[default.extend-words]
+# Infrastructure jargon
+aks = "aks"
+azd = "azd"
+cnpg = "cnpg"
+eckoperator = "eckoperator"
+hcl = "hcl"
+iam = "iam"
+ilm = "ilm"
+istio = "istio"
+kubelogin = "kubelogin"
+kustomize = "kustomize"
+minio = "minio"
+oidc = "oidc"
+rbac = "rbac"
+vmss = "vmss"
+vCPU = "vCPU"
+vCPUs = "vCPUs"
+nap = "nap"
+svc = "svc"
+ser = "ser"
+RTO = "RTO"
+RPO = "RPO"

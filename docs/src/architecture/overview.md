@@ -2,13 +2,6 @@
 
 This document describes the architecture and design decisions for the CIMPL AKS deployment.
 
-## Architecture Diagrams
-
-Detailed visual diagrams are available in Excalidraw format:
-
-- **[Functional Architecture](diagrams/functional-architecture.excalidraw)** — Layered view of ingress, platform services, and persistence
-- **[Zone Topology](diagrams/zone-topology.excalidraw)** — Node pool distribution across availability zones
-
 ## High-Level Architecture
 
 ```
@@ -313,13 +306,13 @@ Post-deploy Job that configures index templates, ILM policies, and aliases requi
 RabbitMQ cluster for async messaging (OSDU service broker).
 
 **Configuration**:
-- Deployment: Raw Kubernetes manifests (StatefulSet, Services, ConfigMap) — no Helm chart (see [ADR-0003](decisions/0003-raw-manifests-for-rabbitmq.md))
+- Deployment: Raw Kubernetes manifests (StatefulSet, Services, ConfigMap) — no Helm chart (see [ADR-0003](../decisions/0003-raw-manifests-for-rabbitmq.md))
 - Image: `rabbitmq:4.1.0-management-alpine` (official upstream)
 - Replicas: 3 (clustered via DNS peer discovery)
 - Storage: 8Gi `rabbitmq-storageclass` (Premium_LRS, Retain)
 - Connection: `rabbitmq.rabbitmq.svc.cluster.local:5672`
 - Node affinity: `agentpool=stateful` with `workload=stateful:NoSchedule` toleration
-- No Istio sidecar injection (NET_ADMIN blocked by AKS Automatic — see [ADR-0008](decisions/0008-selective-istio-sidecar-injection.md))
+- No Istio sidecar injection (NET_ADMIN blocked by AKS Automatic — see [ADR-0008](../decisions/0008-selective-istio-sidecar-injection.md))
 
 ### MinIO
 
@@ -399,7 +392,7 @@ Gatekeeper policies enforcing:
 
 ### Istio STRICT mTLS
 
-The Elasticsearch (`elasticsearch`), PostgreSQL (`postgresql`), and Redis (`redis`) data namespaces have Istio STRICT mTLS enforced via `PeerAuthentication` resources. Elasticsearch uses ECK self-signed TLS for HTTP transport in addition to mesh-layer encryption (see [ADR-0007](decisions/0007-eck-self-signed-tls-for-elasticsearch.md)). RabbitMQ does **not** have Istio sidecar injection because AKS Automatic blocks the `NET_ADMIN` capability required by `istio-init` (see [ADR-0008](decisions/0008-selective-istio-sidecar-injection.md)).
+The Elasticsearch (`elasticsearch`), PostgreSQL (`postgresql`), and Redis (`redis`) data namespaces have Istio STRICT mTLS enforced via `PeerAuthentication` resources. Elasticsearch uses ECK self-signed TLS for HTTP transport in addition to mesh-layer encryption (see [ADR-0007](../decisions/0007-eck-self-signed-tls-for-elasticsearch.md)). RabbitMQ does **not** have Istio sidecar injection because AKS Automatic blocks the `NET_ADMIN` capability required by `istio-init` (see [ADR-0008](../decisions/0008-selective-istio-sidecar-injection.md)).
 
 - Elasticsearch: `PeerAuthentication` managed in `platform/helm_elastic.tf` (+ ECK self-signed TLS)
 - PostgreSQL: `PeerAuthentication` managed in `platform/helm_cnpg.tf`
@@ -631,4 +624,4 @@ The stateful workload pool uses Karpenter (NAP) with dynamic SKU selection, so i
 5. **Safeguards Gate Timeout**: Phase 1 uses a behavioral gate that waits for Gatekeeper constraints to leave deny mode; if Azure Policy sync is slow, re-run `azd provision` to retry
 6. **CNPG Policy Exemption**: Azure Policy Exemption for probe enforcement is required for CNPG Jobs; this is a cluster-wide waiver for the specific probe policy
 
-See [notes.md](../notes.md) for detailed issue tracking.
+See [Troubleshooting](../operations/troubleshooting.md) for common issues and workarounds.
