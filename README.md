@@ -193,6 +193,15 @@ cimpl-azd/
     └── architecture.md         # Detailed architecture
 ```
 
+## Kustomize Postrender Framework
+
+AKS safeguards are enforced via a shared kustomize postrenderer at `platform/kustomize/postrender.sh`. Service overlays live in `platform/kustomize/services/<service>` and reference shared components in `platform/kustomize/components` (seccomp, security-context, topology-spread).
+
+To add a new service overlay:
+1. Copy `platform/kustomize/services/partition` to a new service directory.
+2. Update `probes.yaml` and `resources.yaml` for the service's health endpoints and sizing.
+3. Set `SERVICE_NAME` to the Helm release name when running Terraform so the postrenderer selects the correct overlay.
+
 ## Configuration Reference
 
 ### Environment Variables
