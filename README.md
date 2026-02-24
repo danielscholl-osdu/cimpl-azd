@@ -9,6 +9,7 @@ This project deploys a complete platform stack on Azure Kubernetes Service (AKS)
 - **AKS Automatic** - Managed Kubernetes with auto-scaling and built-in Istio
 - **Elasticsearch** - Search and analytics engine (3-node cluster)
 - **Kibana** - Elasticsearch visualization
+- **Elastic Bootstrap** - Post-deploy index templates, ILM policies, and aliases
 - **PostgreSQL** - Relational database
 - **MinIO** - S3-compatible object storage
 - **cert-manager** - Automatic TLS certificate management
@@ -27,6 +28,7 @@ Layer 1: Cluster Infrastructure (infra/)
 Layer 2: Platform Components (platform/)
     └─ cert-manager + ClusterIssuer
     └─ ECK Operator + Elasticsearch + Kibana
+    └─ Elastic Bootstrap job (index templates + ILM + aliases)
     └─ PostgreSQL (Bitnami chart)
     └─ MinIO (official chart)
     └─ Gateway API configuration
@@ -178,6 +180,7 @@ cimpl-azd/
 │   ├── versions.tf             # Version constraints
 │   ├── helm_cert_manager.tf    # cert-manager
 │   ├── helm_elastic.tf         # ECK + Elasticsearch + Kibana
+│   ├── k8s_elastic_bootstrap.tf # Elastic Bootstrap job
 │   ├── helm_postgresql.tf      # PostgreSQL
 │   ├── helm_minio.tf           # MinIO
 │   └── k8s_gateway.tf          # Gateway API config
@@ -189,6 +192,15 @@ cimpl-azd/
 └── docs/
     └── architecture.md         # Detailed architecture
 ```
+
+## Kustomize Postrender Framework
+
+AKS safeguards are enforced via a shared kustomize postrenderer at `platform/kustomize/postrender.sh`. Service overlays live in `platform/kustomize/services/<service>` and reference shared components in `platform/kustomize/components` (seccomp, security-context, topology-spread).
+
+To add a new service overlay:
+1. Copy `platform/kustomize/services/partition` to a new service directory.
+2. Update `probes.yaml` and `resources.yaml` for the service's health endpoints and sizing.
+3. Set `SERVICE_NAME` to the Helm release name when running Terraform so the postrenderer selects the correct overlay.
 
 ## Configuration Reference
 

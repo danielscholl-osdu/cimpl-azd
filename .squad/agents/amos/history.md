@@ -41,6 +41,12 @@
 
 📌 **2026-02-17:** GitHub issues logged and organized (#78–#105) for Phase 0.5–5 migration. Amos assigned 7 issues (Phase 0.5 postrender + Phase 1 infra: Keycloak, RabbitMQ, Airflow, Common, Elastic Bootstrap, safeguards compliance).
 
+### 2026-02-24: Generic kustomize postrender framework
+- Added `platform/kustomize/postrender.sh` to apply shared AKS safeguard components via SERVICE_NAME overlays.
+- Created shared components (`components/seccomp`, `components/security-context`, `components/topology-spread`) and a `services/partition` template with probes/resources.
+
+- 2026-02-24: Added AKS elastic-bootstrap Helm release with postrendered Job patches (probes/resources/TTL) and secret-sourced Elasticsearch credentials to initialize OSDU index templates, ILM policies, and aliases.
+
 ### 2026-02-24: OSDU Common Infrastructure (AKS)
 - **What:** Added `platform/k8s_common.tf` to create the shared `osdu` namespace (label `istio.io/rev: asm-1-28`), `osdu-config` ConfigMap (domain from `ingress_prefix` + `dns_zone_name`), `osdu-credentials` Secret, `bootstrap-sa` ServiceAccount, and STRICT PeerAuthentication.
 - **Why:** Replaces the ROSA `common-infra-bootstrap` Helm chart with plain Kubernetes resources managed by Terraform.

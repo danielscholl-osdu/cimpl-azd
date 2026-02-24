@@ -37,6 +37,12 @@ variable "enable_elasticsearch" {
   default     = true
 }
 
+variable "enable_elastic_bootstrap" {
+  description = "Enable Elastic Bootstrap job deployment"
+  type        = bool
+  default     = true
+}
+
 variable "enable_postgresql" {
   description = "Enable PostgreSQL deployment"
   type        = bool
