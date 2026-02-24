@@ -193,6 +193,15 @@ cimpl-azd/
     └── architecture.md         # Detailed architecture
 ```
 
+## Kustomize Postrender Framework
+
+AKS safeguards are enforced via a shared kustomize postrenderer at `platform/kustomize/postrender.sh`. Service overlays live in `platform/kustomize/services/<service>` and reference shared components in `platform/kustomize/components` (seccomp, security-context, topology-spread).
+
+To add a new service overlay:
+1. Copy `platform/kustomize/services/partition` to a new service directory.
+2. Update `probes.yaml` and `resources.yaml` for the service's health endpoints and sizing.
+3. Set `SERVICE_NAME` to the Helm release name when running Terraform so the postrenderer selects the correct overlay.
+
 ## Configuration Reference
 
 ### Environment Variables
@@ -205,6 +214,10 @@ cimpl-azd/
 | `TF_VAR_postgresql_password` | No | PostgreSQL admin password (auto-generated if not set) |
 | `TF_VAR_minio_root_user` | No | MinIO root username (default: minioadmin) |
 | `TF_VAR_minio_root_password` | No | MinIO root password (auto-generated if not set) |
+| `TF_VAR_cimpl_subscriber_private_key_id` | No | Subscriber private key identifier for OSDU services |
+| `TF_VAR_cimpl_project` | No | CIMPL project/group identifier |
+| `TF_VAR_cimpl_tenant` | No | CIMPL data partition ID (default: osdu) |
+| `TF_VAR_enable_common` | No | Enable OSDU common namespace resources (default: true) |
 | `AZURE_LOCATION` | No | Azure region (default: eastus2) |
 
 ### AKS Cluster Specifications
