@@ -1,0 +1,12 @@
+/* Azure Blue Theme */
+:root {
+  --md-primary-fg-color: #0078D4;
+  --md-primary-fg-color--light: #2B88D8;
+  --md-primary-fg-color--dark: #003d6b;
+  --md-accent-fg-color: #0078D4;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #2B88D8;
+  --md-accent-fg-color: #2B88D8;
+}
