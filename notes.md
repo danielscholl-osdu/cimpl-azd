@@ -303,8 +303,13 @@ Optional:
 ```
 AZURE_LOCATION=eastus2                    # Default region
 TF_VAR_postgresql_password=<password>     # PostgreSQL admin password (auto-generated if not set)
+TF_VAR_keycloak_db_password=<password>    # Keycloak database password (auto-generated if not set)
+TF_VAR_airflow_db_password=<password>     # Airflow database password (auto-generated if not set)
 TF_VAR_minio_root_user=<username>         # MinIO root user (default: minioadmin)
 TF_VAR_minio_root_password=<password>     # MinIO root password (auto-generated if not set)
+TF_VAR_rabbitmq_username=<username>       # RabbitMQ username (default: rabbitmq)
+TF_VAR_rabbitmq_password=<password>       # RabbitMQ password (auto-generated if not set)
+TF_VAR_rabbitmq_erlang_cookie=<cookie>    # RabbitMQ Erlang cookie (auto-generated if not set)
 ```
 
 ---

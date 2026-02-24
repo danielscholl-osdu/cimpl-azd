@@ -298,6 +298,7 @@ Post-deploy Job that configures index templates, ILM policies, and aliases requi
 - Instances: 3 (synchronous quorum replication: `minSyncReplicas: 1, maxSyncReplicas: 1`)
 - Replication slots: HA enabled
 - Database: `osdu` (owner: `osdu`)
+- Additional databases: `keycloak`, `airflow` (created via idempotent Job in `platform/k8s_cnpg_databases.tf`)
 - Storage: 8Gi data + 4Gi WAL per instance on `pg-storageclass` (Premium_LRS, Retain)
 - Read-write: `postgresql-rw.postgresql.svc.cluster.local:5432`
 - Read-only: `postgresql-ro.postgresql.svc.cluster.local:5432`
@@ -306,6 +307,18 @@ Post-deploy Job that configures index templates, ILM policies, and aliases requi
 - Istio STRICT mTLS via `PeerAuthentication` in postgresql namespace
 
 **CNPG Probe Exemption**: CNPG creates short-lived initdb/join Jobs that cannot have health probes. AKS Automatic's `K8sAzureV2ContainerEnforceProbes` policy blocks these Jobs. An Azure Policy Exemption (`azurerm_resource_policy_exemption.cnpg_probe_exemption`) is configured in `infra/aks.tf` to waive the probe requirement for CNPG Jobs.
+
+### RabbitMQ
+
+RabbitMQ cluster for async messaging (OSDU service broker).
+
+**Configuration**:
+- Chart: bitnamicharts/rabbitmq v15.5.1
+- Replicas: 3 (clustered)
+- Storage: 8Gi managed-csi-premium (Retain)
+- Connection: `rabbitmq.rabbitmq.svc.cluster.local:5672`
+- Node affinity: `agentpool=stateful` with `workload=stateful:NoSchedule` toleration
+- Istio STRICT mTLS via `PeerAuthentication` in rabbitmq namespace
 
 ### MinIO
 
@@ -385,17 +398,19 @@ Gatekeeper policies enforcing:
 
 ### Istio STRICT mTLS
 
-The Elasticsearch (`elasticsearch`), PostgreSQL (`postgresql`), and Redis (`redis`) data namespaces have Istio STRICT mTLS enforced via `PeerAuthentication` resources. This ensures all pod-to-pod traffic within each namespace is encrypted at the mesh layer, even though application-level TLS is disabled (ECK's `selfSignedCertificate.disabled: true`). Istio handles encryption transparently via sidecar proxies.
+The Elasticsearch (`elasticsearch`), PostgreSQL (`postgresql`), Redis (`redis`), and RabbitMQ (`rabbitmq`) data namespaces have Istio STRICT mTLS enforced via `PeerAuthentication` resources. This ensures all pod-to-pod traffic within each namespace is encrypted at the mesh layer, even though application-level TLS is disabled (ECK's `selfSignedCertificate.disabled: true`). Istio handles encryption transparently via sidecar proxies.
 
 - Elasticsearch: `PeerAuthentication` managed in `platform/helm_elastic.tf`
 - PostgreSQL: `PeerAuthentication` managed in `platform/helm_cnpg.tf`
+- RabbitMQ: `PeerAuthentication` managed in `platform/helm_rabbitmq.tf`
+- Redis: `PeerAuthentication` managed in `platform/helm_redis.tf`
 
 ### Network Security
 
 - **Azure CNI Overlay**: Pod IPs in overlay network
 - **Cilium**: Network policy enforcement
 - **Managed NAT Gateway**: Outbound traffic via dedicated NAT
-- **Istio mTLS**: STRICT mode enforced for Elasticsearch and PostgreSQL namespaces; PERMISSIVE (default) for other namespaces
+- **Istio mTLS**: STRICT mode enforced for Elasticsearch, PostgreSQL, Redis, and RabbitMQ namespaces; PERMISSIVE (default) for other namespaces
 
 ---
 
@@ -517,7 +532,7 @@ All resources follow the pattern: `<prefix>-<project>-<environment>`
 | Resource Group | `rg-cimpl-<env>` | rg-cimpl-dev |
 | AKS Cluster | `cimpl-<env>` | cimpl-dev |
 | Node Pools | `system`, `stateful` | - |
-| Namespaces | Descriptive | platform, elasticsearch, postgresql, redis |
+| Namespaces | Descriptive | platform, elasticsearch, postgresql, redis, rabbitmq |
 
 ### Tagging Strategy
 
@@ -564,6 +579,7 @@ All Azure resources include:
 |-----------|------|---------------|
 | Elasticsearch | Indices | Snapshot to Azure Blob |
 | PostgreSQL | Database | pg_dump to Azure Blob |
+| RabbitMQ | Queues | Export definitions + retain PVCs |
 | MinIO | Objects | Already S3-compatible |
 
 ### Recovery Strategy
@@ -576,6 +592,7 @@ All Azure resources include:
 
 - Elasticsearch uses `reclaimPolicy: Retain` (es-storageclass)
 - PostgreSQL uses `reclaimPolicy: Retain` (pg-storageclass)
+- RabbitMQ uses `reclaimPolicy: Retain` (managed-csi-premium)
 - Data persists even if pods are deleted
 - Manual cleanup required after intentional deletion
 

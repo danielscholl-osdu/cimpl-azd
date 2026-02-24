@@ -212,8 +212,13 @@ To add a new service overlay:
 | `TF_VAR_acme_email` | Yes | Email for Let's Encrypt certificates |
 | `TF_VAR_kibana_hostname` | Yes | Hostname for Kibana external access |
 | `TF_VAR_postgresql_password` | No | PostgreSQL admin password (auto-generated if not set) |
+| `TF_VAR_keycloak_db_password` | No | Keycloak database password (auto-generated if not set) |
+| `TF_VAR_airflow_db_password` | No | Airflow database password (auto-generated if not set) |
 | `TF_VAR_minio_root_user` | No | MinIO root username (default: minioadmin) |
 | `TF_VAR_minio_root_password` | No | MinIO root password (auto-generated if not set) |
+| `TF_VAR_rabbitmq_username` | No | RabbitMQ username (default: rabbitmq) |
+| `TF_VAR_rabbitmq_password` | No | RabbitMQ password (auto-generated if not set) |
+| `TF_VAR_rabbitmq_erlang_cookie` | No | RabbitMQ Erlang cookie (auto-generated if not set) |
 | `TF_VAR_cimpl_subscriber_private_key_id` | No | Subscriber private key identifier for OSDU services |
 | `TF_VAR_cimpl_project` | No | CIMPL project/group identifier |
 | `TF_VAR_cimpl_tenant` | No | CIMPL data partition ID (default: osdu) |
@@ -238,6 +243,7 @@ To add a new service overlay:
 | Elasticsearch | 8.15.2 | 3x 128Gi Premium SSD |
 | Kibana | 8.15.2 | - |
 | PostgreSQL | 18.x | 8Gi managed-csi |
+| RabbitMQ | 4.1.0 | 3x 8Gi managed-csi-premium |
 | MinIO | Latest | 10Gi managed-csi |
 | cert-manager | 1.16.2 | - |
 
