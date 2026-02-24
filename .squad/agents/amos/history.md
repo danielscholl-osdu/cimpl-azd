@@ -2,7 +2,7 @@
 
 ## Project Learnings (from import)
 - Project converts OSDU platform from ROSA to AKS Automatic using azd + Terraform
-- User: Daniel Scholl (daniel.scholl@microsoft.com)
+- User: Daniel Scholl
 - platform/ layer has: Elasticsearch (ECK), PostgreSQL (CNPG), MinIO, Redis, cert-manager, ExternalDNS, Istio Gateway
 - Helm provider v3 syntax: set = [...], postrender = {}
 - AKS safeguards: probes, resources, seccomp, no :latest, anti-affinity, unique service selectors
@@ -40,18 +40,3 @@
 📌 **2026-02-17:** User directive for Bootstrap Data requirement merged — Bootstrap Data modules (commented-out in ROSA) must be implemented on AKS for parity.
 
 📌 **2026-02-17:** GitHub issues logged and organized (#78–#105) for Phase 0.5–5 migration. Amos assigned 7 issues (Phase 0.5 postrender + Phase 1 infra: Keycloak, RabbitMQ, Airflow, Common, Elastic Bootstrap, safeguards compliance).
-
-### 2026-02-24: Generic kustomize postrender framework
-- Added `platform/kustomize/postrender.sh` to apply shared AKS safeguard components via SERVICE_NAME overlays.
-- Created shared components (`components/seccomp`, `components/security-context`, `components/topology-spread`) and a `services/partition` template with probes/resources.
-
-- 2026-02-24: Added AKS elastic-bootstrap Helm release with postrendered Job patches (probes/resources/TTL) and secret-sourced Elasticsearch credentials to initialize OSDU index templates, ILM policies, and aliases.
-
-### 2026-02-24: OSDU Common Infrastructure (AKS)
-- **What:** Added `platform/k8s_common.tf` to create the shared `osdu` namespace (label `istio.io/rev: asm-1-28`), `osdu-config` ConfigMap (domain from `ingress_prefix` + `dns_zone_name`), `osdu-credentials` Secret, `bootstrap-sa` ServiceAccount, and STRICT PeerAuthentication.
-- **Why:** Replaces the ROSA `common-infra-bootstrap` Helm chart with plain Kubernetes resources managed by Terraform.
-- **Key paths:** `platform/k8s_common.tf`, `platform/variables.tf`.
-
-- 2026-02-24: Added Bitnami RabbitMQ Helm release with pinned image, managed-csi-premium Retain storage, Karpenter stateful scheduling, and STRICT Istio mTLS in the rabbitmq namespace.
-
-- 2026-02-24: Added an idempotent CNPG bootstrap Job to create `keycloak` and `airflow` databases/roles with Terraform-managed secrets and AKS safeguards-compliant pod settings.
