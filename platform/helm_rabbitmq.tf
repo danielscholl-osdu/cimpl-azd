@@ -70,6 +70,8 @@ resource "helm_release" "rabbitmq" {
       tag: 4.1.0-management-alpine
 
     auth:
+      # Credentials (DEMO ONLY - change for production)
+      # TODO: Use secrets management (e.g., Azure Key Vault) for production
       username: "${var.rabbitmq_username}"
       password: "${var.rabbitmq_password}"
       erlangCookie: "${var.rabbitmq_erlang_cookie}"
