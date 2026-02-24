@@ -35,6 +35,8 @@ jobs:
         run: |
           echo "=== dev HEAD ===" && git log origin/dev -1 --oneline
           echo "=== preview HEAD ===" && git log origin/preview -1 --oneline
+          echo "=== Commits to promote ==="
+          git log origin/preview..origin/dev --oneline || echo "(none)"
           echo "=== Files that would be stripped ==="
           git diff origin/preview..origin/dev --name-only | grep -E "^(\.(ai-team|squad|ai-team-templates|squad-templates)|team-docs/|docs/proposals/)" || echo "(none)"
 
@@ -55,21 +57,27 @@ jobs:
 
           # Commit if there are staged changes
           if ! git diff --cached --quiet; then
-            git commit -m "chore: promote dev → preview (v$(node -e "console.log(require('./package.json').version)"))"
+            SUMMARY=$(git log origin/preview..origin/dev --oneline | head -5 | sed 's/^/  - /')
+            git commit -m "chore: promote dev → preview
+
+          Recent changes:
+          $SUMMARY"
             git push origin preview
-            echo "✅ Pushed preview branch"
+            echo "Pushed preview branch"
           else
-            echo "ℹ️ Nothing to commit — preview is already up to date"
+            echo "Nothing to commit — preview is already up to date"
           fi
 
       - name: Dry run complete
         if: ${{ inputs.dry_run == 'true' }}
-        run: echo "🔍 Dry run complete — no changes pushed."
+        run: echo "Dry run complete — no changes pushed."
 
   preview-to-main:
     name: Promote preview → main (release)
     needs: dev-to-preview
     runs-on: ubuntu-latest
+    env:
+      CHECKPOINT_DISABLE: "1"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -82,23 +90,60 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Fetch all branches
-        run: git fetch --all
+        run: git fetch --all --tags
+
+      - name: Determine next version
+        id: version
+        run: |
+          # Get latest tag or default to v0.0.0
+          LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="v0.0.0"
+          fi
+          echo "latest=$LATEST_TAG"
+
+          # Increment patch version
+          VERSION=${LATEST_TAG#v}
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          NEXT_VERSION="v${MAJOR}.${MINOR}.$((PATCH + 1))"
+
+          # Check commit messages for version bump signals
+          COMMITS=$(git log origin/main..origin/preview --oneline 2>/dev/null || echo "")
+          if echo "$COMMITS" | grep -qiE "^[a-f0-9]+ feat"; then
+            NEXT_VERSION="v${MAJOR}.$((MINOR + 1)).0"
+          fi
+          if echo "$COMMITS" | grep -qiE "BREAKING CHANGE|^[a-f0-9]+ \w+!:"; then
+            NEXT_VERSION="v$((MAJOR + 1)).0.0"
+          fi
+
+          echo "next=$NEXT_VERSION"
+          echo "next=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Show current state
         run: |
           echo "=== preview HEAD ===" && git log origin/preview -1 --oneline
           echo "=== main HEAD ===" && git log origin/main -1 --oneline
-          echo "=== Version ===" && node -e "console.log('v' + require('./package.json').version)"
+          echo "=== Next version === ${{ steps.version.outputs.next }}"
 
       - name: Validate preview is release-ready
         run: |
           git checkout preview
-          VERSION=$(node -e "console.log(require('./package.json').version)")
-          if ! grep -q "## \[$VERSION\]" CHANGELOG.md 2>/dev/null; then
-            echo "::error::Version $VERSION not found in CHANGELOG.md — update before releasing"
-            exit 1
+
+          # Verify CHANGELOG has an entry for this version
+          VERSION="${{ steps.version.outputs.next }}"
+          VERSION_NUM="${VERSION#v}"
+          if ! grep -q "## \[${VERSION_NUM}\]" CHANGELOG.md 2>/dev/null; then
+            # Also accept [Unreleased] — release workflow will stamp the version
+            if ! grep -q "## \[Unreleased\]" CHANGELOG.md 2>/dev/null; then
+              echo "::error::No [${VERSION_NUM}] or [Unreleased] section found in CHANGELOG.md"
+              exit 1
+            fi
+            echo "Found [Unreleased] section — will be stamped as ${VERSION_NUM} on release"
+          else
+            echo "Found CHANGELOG entry for ${VERSION_NUM}"
           fi
-          echo "✅ Version $VERSION has CHANGELOG entry"
 
           # Verify no forbidden files on preview
           FORBIDDEN=$(git ls-files | grep -E "^(\.(ai-team|squad|ai-team-templates|squad-templates)/|team-docs/|docs/proposals/)" || true)
@@ -106,16 +151,24 @@ jobs:
             echo "::error::Forbidden files found on preview: $FORBIDDEN"
             exit 1
           fi
-          echo "✅ No forbidden files on preview"
+          echo "No forbidden files on preview"
+
+      - name: Validate Terraform formatting
+        run: |
+          # Install terraform for validation
+          wget -qO- https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip | funzip > /tmp/terraform
+          chmod +x /tmp/terraform
+          /tmp/terraform fmt -check -recursive ./infra
+          /tmp/terraform fmt -check -recursive ./platform
 
       - name: Merge preview → main
         if: ${{ inputs.dry_run == 'false' }}
         run: |
           git checkout main
-          git merge origin/preview --no-ff -m "chore: promote preview → main (v$(node -e "console.log(require('./package.json').version)"))"
+          git merge origin/preview --no-ff -m "chore: promote preview → main (${{ steps.version.outputs.next }})"
           git push origin main
-          echo "✅ Pushed main — squad-release.yml will tag and publish the release"
+          echo "Pushed main — squad-release.yml will tag and create the release"
 
       - name: Dry run complete
         if: ${{ inputs.dry_run == 'true' }}
-        run: echo "🔍 Dry run complete — no changes pushed."
+        run: echo "Dry run complete — no changes pushed."

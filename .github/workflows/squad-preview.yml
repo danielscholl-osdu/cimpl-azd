@@ -1,5 +1,4 @@
 name: Squad Preview Validation
-# Project type was not detected — configure build, test, and validation commands below
 
 on:
   push:
@@ -10,21 +9,40 @@ permissions:
 
 jobs:
   validate:
+    name: Validate Preview
     runs-on: ubuntu-latest
+    env:
+      CHECKPOINT_DISABLE: "1"
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build and test
-        run: |
-          # TODO: Project type was not detected — add your build/test commands here
-          # Go:            go test ./...
-          # Python:        pip install -r requirements.txt && pytest
-          # .NET:          dotnet test
-          # Java (Maven):  mvn test
-          # Java (Gradle): ./gradlew test
-          echo "No build commands configured — update squad-preview.yml"
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
 
-      - name: Validate
+      - name: Check infra/ formatting
+        run: terraform fmt -check -recursive
+        working-directory: ./infra
+
+      - name: Check platform/ formatting
+        run: terraform fmt -check -recursive
+        working-directory: ./platform
+
+      - name: Validate PowerShell scripts
+        shell: pwsh
         run: |
-          # TODO: Add pre-release validation commands here
-          echo "No validation commands configured — update squad-preview.yml"
+          $ErrorActionPreference = "Stop"
+          $scripts = Get-ChildItem -Path ./scripts -Filter "*.ps1" -Recurse
+          foreach ($script in $scripts) {
+            $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $script.FullName -Raw), [ref]$null)
+          }
+          Write-Host "All scripts passed syntax check"
+
+      - name: Verify no forbidden files
+        run: |
+          FORBIDDEN=$(git ls-files | grep -E "^(\.(ai-team|squad|ai-team-templates|squad-templates)/|team-docs/|docs/proposals/)" || true)
+          if [ -n "$FORBIDDEN" ]; then
+            echo "::error::Forbidden files found on preview: $FORBIDDEN"
+            exit 1
+          fi
+          echo "No forbidden files on preview"
