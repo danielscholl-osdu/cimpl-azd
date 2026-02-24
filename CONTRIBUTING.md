@@ -118,7 +118,7 @@ Every Kubernetes workload in this repo must comply with AKS Automatic Deployment
 - `NET_ADMIN` or `NET_RAW` capabilities
 - Privileged containers
 
-When adding a **new Helm chart**, use the postrender + kustomize pattern to inject missing fields. See [ADR-0002](docs/decisions/0002-helm-postrender-kustomize-for-safeguards.md) and the ECK operator example at `platform/kustomize/eck-operator-postrender.sh`.
+When adding a **new Helm chart**, use the postrender + kustomize pattern to inject missing fields. See [ADR-0002](docs/src/decisions/0002-helm-postrender-kustomize-for-safeguards.md) and the ECK operator example at `platform/kustomize/eck-operator-postrender.sh`.
 
 ---
 
@@ -150,13 +150,13 @@ When adding a **new Helm chart**, use the postrender + kustomize pattern to inje
 
 ## Architecture Decision Records
 
-Create an ADR in [`docs/decisions/`](docs/decisions/) when:
+Create an ADR in [`docs/src/decisions/`](docs/src/decisions/) when:
 - Adding new architectural patterns
 - Choosing between design alternatives
 - Making technology or library selections
 - Changing core system behaviors
 
-See [`docs/decisions/README.md`](docs/decisions/README.md) for templates and the full index.
+See [`docs/src/decisions/index.md`](docs/src/decisions/index.md) for templates and the full index.
 
 ---
 
@@ -165,5 +165,5 @@ See [`docs/decisions/README.md`](docs/decisions/README.md) for templates and the
 | Document | Purpose |
 |----------|---------|
 | [`AGENTS.md`](AGENTS.md) | Agent guardrails — critical rules and core patterns |
-| [`docs/architecture.md`](docs/architecture.md) | Component details, deployment flow, security architecture |
-| [`docs/decisions/`](docs/decisions/) | ADR index with rationale for all major design choices |
+| [`docs/src/architecture/overview.md`](docs/src/architecture/overview.md) | Component details, deployment flow, security architecture |
+| [`docs/src/decisions/`](docs/src/decisions/) | ADR index with rationale for all major design choices |

@@ -28,6 +28,13 @@ agent-registry.json
 .env.local
 *.local
 
+# Claude Code
+.claude/
+
+# MkDocs
+docs/site/
+docs/.venv
+
 # IDE
 .idea/
 .vscode/
