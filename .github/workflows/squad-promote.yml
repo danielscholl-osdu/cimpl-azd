@@ -172,10 +172,49 @@ jobs:
       - name: Merge preview to main
         if: ${{ inputs.dry_run == 'false' }}
         run: |
+          VERSION="${{ steps.version.outputs.next }}"
           git checkout main
-          git merge origin/preview --no-ff -m "chore: release ${{ steps.version.outputs.next }}"
+          git merge origin/preview --no-ff -m "chore: release ${VERSION}"
           git push origin main
-          echo "Pushed main — squad-release.yml will tag and create the release"
+
+      - name: Stamp CHANGELOG
+        if: ${{ inputs.dry_run == 'false' }}
+        run: |
+          VERSION="${{ steps.version.outputs.next }}"
+          VERSION_NUM="${VERSION#v}"
+          DATE=$(date +%Y-%m-%d)
+
+          git checkout main
+          git pull origin main
+
+          if grep -q "## \[Unreleased\]" CHANGELOG.md; then
+            sed -i "s/## \[Unreleased\]/## [${VERSION_NUM}] - ${DATE}/" CHANGELOG.md
+            sed -i "/## \[${VERSION_NUM}\]/i ## [Unreleased]\n" CHANGELOG.md
+
+            git add CHANGELOG.md
+            git commit -m "chore: stamp CHANGELOG for ${VERSION}"
+            git push origin main
+          fi
+
+      - name: Create tag and release
+        if: ${{ inputs.dry_run == 'false' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.next }}"
+          VERSION_NUM="${VERSION#v}"
+
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "$VERSION"
+
+          # Extract changelog section for this version
+          NOTES=$(awk "/^## \[${VERSION_NUM}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
+
+          if [ -z "$NOTES" ]; then
+            gh release create "$VERSION" --generate-notes --title "$VERSION"
+          else
+            echo "$NOTES" | gh release create "$VERSION" --notes-file - --title "$VERSION"
+          fi
 
       - name: Dry run complete
         if: ${{ inputs.dry_run == 'true' }}
