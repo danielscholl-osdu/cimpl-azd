@@ -11,6 +11,7 @@ This document tracks known issues, workarounds, and areas requiring improvement.
 | AKS Automatic | Working | K8s 1.32, Istio asm-1-28 |
 | Elasticsearch | Working | 3 nodes, dedicated node pool |
 | Kibana | Working | 1 node, external access via Istio |
+| Elastic Bootstrap | Working | Post-deploy Job for index templates + ILM + aliases |
 | PostgreSQL | Working | Bitnami chart with ECR images |
 | MinIO | Working | Official MinIO chart |
 | cert-manager | Working | Let's Encrypt integration |
@@ -22,6 +23,7 @@ This document tracks known issues, workarounds, and areas requiring improvement.
 
 The following improvements were completed in the latest sprint:
 
+- **Elastic Bootstrap Job** (Issue #83): Added CIMPL elastic-bootstrap helm release to initialize Elasticsearch index templates, ILM policies, and aliases.
 - **kubectl pre-provision check** (PR #35): kubectl is now validated during pre-provision with minimum version 1.28.0
 - **Gateway API CRDs Terraform-managed** (PR for Issue #2): CRDs are now managed via `kubectl_manifest` with `for_each` instead of `local-exec` scripts, pinned at `platform/crds/gateway-api-v1.2.1.yaml`
 - **Istio STRICT mTLS for Elasticsearch** (PR #34): PeerAuthentication enforces STRICT mTLS in the `elasticsearch` namespace

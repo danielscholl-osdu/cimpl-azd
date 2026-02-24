@@ -79,6 +79,12 @@ variable "enable_gateway" {
   default     = true
 }
 
+variable "enable_common" {
+  description = "Enable OSDU common namespace resources"
+  type        = bool
+  default     = true
+}
+
 variable "enable_external_dns" {
   description = "Enable ExternalDNS for automatic DNS record management"
   type        = bool
@@ -127,6 +133,26 @@ variable "tenant_id" {
   default     = ""
 }
 
+# OSDU common configuration
+variable "cimpl_subscriber_private_key_id" {
+  description = "Subscriber private key identifier for OSDU services"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "cimpl_project" {
+  description = "CIMPL project/group identifier"
+  type        = string
+  default     = ""
+}
+
+variable "cimpl_tenant" {
+  description = "CIMPL data partition ID"
+  type        = string
+  default     = "osdu"
+}
+
 # Platform credentials
 variable "postgresql_password" {
   description = "PostgreSQL admin password"
@@ -159,19 +185,19 @@ variable "redis_password" {
 }
 
 variable "rabbitmq_username" {
-  description = "RabbitMQ username"
+  description = "RabbitMQ admin username"
   type        = string
   default     = "rabbitmq"
 }
 
 variable "rabbitmq_password" {
-  description = "RabbitMQ password"
+  description = "RabbitMQ admin password"
   type        = string
   sensitive   = true
 }
 
 variable "rabbitmq_erlang_cookie" {
-  description = "RabbitMQ Erlang cookie"
+  description = "RabbitMQ Erlang cookie for clustering"
   type        = string
   sensitive   = true
 }

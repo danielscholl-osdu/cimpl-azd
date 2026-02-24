@@ -253,6 +253,18 @@ else {
     Write-Host " SKIPPED (not logged in)" -ForegroundColor Yellow
 }
 
+# --- TF_VAR_cimpl_subscriber_private_key_id: generate random if not set ---
+$cimplSubscriberPrivateKeyId = [Environment]::GetEnvironmentVariable("TF_VAR_cimpl_subscriber_private_key_id")
+Write-Host "  TF_VAR_cimpl_subscriber_private_key_id..." -NoNewline
+if ([string]::IsNullOrEmpty($cimplSubscriberPrivateKeyId)) {
+    $generatedCimplSubscriberPrivateKeyId = New-RandomPassword
+    azd env set TF_VAR_cimpl_subscriber_private_key_id $generatedCimplSubscriberPrivateKeyId 2>$null
+    Write-Host " generated" -ForegroundColor Green
+}
+else {
+    Write-Host " set" -ForegroundColor Green
+}
+
 # --- TF_VAR_postgresql_password: generate random if not set ---
 $pgPassword = [Environment]::GetEnvironmentVariable("TF_VAR_postgresql_password")
 Write-Host "  TF_VAR_postgresql_password..." -NoNewline
