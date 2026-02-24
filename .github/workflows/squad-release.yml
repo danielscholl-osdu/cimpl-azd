@@ -9,8 +9,8 @@ permissions:
 
 jobs:
   release:
-    # Only run on promote merges (not direct pushes or other automation)
-    if: startsWith(github.event.head_commit.message, 'chore: promote preview → main')
+    # Only run on promote merges
+    if: startsWith(github.event.head_commit.message, 'chore: release v')
     runs-on: ubuntu-latest
     env:
       CHECKPOINT_DISABLE: "1"
@@ -22,7 +22,7 @@ jobs:
       - name: Determine version from commit message
         id: version
         run: |
-          # Extract version from commit message: "chore: promote preview → main (v1.2.3)"
+          # Extract version from commit message: "chore: release v1.2.3"
           COMMIT_MSG="${{ github.event.head_commit.message }}"
           VERSION=$(echo "$COMMIT_MSG" | grep -oP 'v\d+\.\d+\.\d+' | head -1)
           if [ -z "$VERSION" ]; then
@@ -32,12 +32,14 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Releasing $VERSION"
 
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
+
       - name: Validate Terraform formatting
         run: |
-          wget -qO- https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip | funzip > /tmp/terraform
-          chmod +x /tmp/terraform
-          /tmp/terraform fmt -check -recursive ./infra
-          /tmp/terraform fmt -check -recursive ./platform
+          terraform fmt -check -recursive ./infra
+          terraform fmt -check -recursive ./platform
 
       - name: Stamp CHANGELOG
         run: |
@@ -76,7 +78,6 @@ jobs:
           NOTES=$(awk "/^## \[${VERSION_NUM}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
 
           if [ -z "$NOTES" ]; then
-            # Fallback to auto-generated notes
             gh release create "$VERSION" --generate-notes --title "$VERSION"
           else
             echo "$NOTES" | gh release create "$VERSION" --notes-file - --title "$VERSION"

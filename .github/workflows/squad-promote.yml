@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   dev-to-preview:
-    name: Promote dev → preview
+    name: Promote dev to preview
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +31,14 @@ jobs:
       - name: Fetch all branches
         run: git fetch --all
 
+      - name: Ensure preview branch exists
+        run: |
+          if ! git rev-parse --verify origin/preview >/dev/null 2>&1; then
+            echo "Preview branch does not exist — creating from main"
+            git checkout -b preview origin/main
+            git push origin preview
+          fi
+
       - name: Show current state (dry run info)
         run: |
           echo "=== dev HEAD ===" && git log origin/dev -1 --oneline
@@ -40,7 +48,7 @@ jobs:
           echo "=== Files that would be stripped ==="
           git diff origin/preview..origin/dev --name-only | grep -E "^(\.(ai-team|squad|ai-team-templates|squad-templates)|team-docs/|docs/proposals/)" || echo "(none)"
 
-      - name: Merge dev → preview (strip forbidden paths)
+      - name: Merge dev to preview (strip forbidden paths)
         if: ${{ inputs.dry_run == 'false' }}
         run: |
           git checkout preview
@@ -58,7 +66,7 @@ jobs:
           # Commit if there are staged changes
           if ! git diff --cached --quiet; then
             SUMMARY=$(git log origin/preview..origin/dev --oneline | head -5 | sed 's/^/  - /')
-            git commit -m "chore: promote dev → preview
+            git commit -m "chore: promote dev to preview
 
           Recent changes:
           $SUMMARY"
@@ -73,7 +81,7 @@ jobs:
         run: echo "Dry run complete — no changes pushed."
 
   preview-to-main:
-    name: Promote preview → main (release)
+    name: Promote preview to main (release)
     needs: dev-to-preview
     runs-on: ubuntu-latest
     env:
@@ -89,8 +97,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Fetch all branches
+      - name: Fetch all branches and tags
         run: git fetch --all --tags
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
 
       - name: Determine next version
         id: version
@@ -131,11 +143,10 @@ jobs:
         run: |
           git checkout preview
 
-          # Verify CHANGELOG has an entry for this version
+          # Verify CHANGELOG has an entry for this version or [Unreleased]
           VERSION="${{ steps.version.outputs.next }}"
           VERSION_NUM="${VERSION#v}"
           if ! grep -q "## \[${VERSION_NUM}\]" CHANGELOG.md 2>/dev/null; then
-            # Also accept [Unreleased] — release workflow will stamp the version
             if ! grep -q "## \[Unreleased\]" CHANGELOG.md 2>/dev/null; then
               echo "::error::No [${VERSION_NUM}] or [Unreleased] section found in CHANGELOG.md"
               exit 1
@@ -155,17 +166,14 @@ jobs:
 
       - name: Validate Terraform formatting
         run: |
-          # Install terraform for validation
-          wget -qO- https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip | funzip > /tmp/terraform
-          chmod +x /tmp/terraform
-          /tmp/terraform fmt -check -recursive ./infra
-          /tmp/terraform fmt -check -recursive ./platform
+          terraform fmt -check -recursive ./infra
+          terraform fmt -check -recursive ./platform
 
-      - name: Merge preview → main
+      - name: Merge preview to main
         if: ${{ inputs.dry_run == 'false' }}
         run: |
           git checkout main
-          git merge origin/preview --no-ff -m "chore: promote preview → main (${{ steps.version.outputs.next }})"
+          git merge origin/preview --no-ff -m "chore: release ${{ steps.version.outputs.next }}"
           git push origin main
           echo "Pushed main — squad-release.yml will tag and create the release"
 
