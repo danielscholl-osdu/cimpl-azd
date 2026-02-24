@@ -301,6 +301,30 @@ else {
     Write-Host " set" -ForegroundColor Green
 }
 
+# --- TF_VAR_rabbitmq_password: generate random if not set ---
+$rabbitmqPassword = [Environment]::GetEnvironmentVariable("TF_VAR_rabbitmq_password")
+Write-Host "  TF_VAR_rabbitmq_password..." -NoNewline
+if ([string]::IsNullOrEmpty($rabbitmqPassword)) {
+    $generatedRabbitmqPassword = New-RandomPassword
+    azd env set TF_VAR_rabbitmq_password $generatedRabbitmqPassword 2>$null
+    Write-Host " generated" -ForegroundColor Green
+}
+else {
+    Write-Host " set" -ForegroundColor Green
+}
+
+# --- TF_VAR_rabbitmq_erlang_cookie: generate random if not set ---
+$rabbitmqErlangCookie = [Environment]::GetEnvironmentVariable("TF_VAR_rabbitmq_erlang_cookie")
+Write-Host "  TF_VAR_rabbitmq_erlang_cookie..." -NoNewline
+if ([string]::IsNullOrEmpty($rabbitmqErlangCookie)) {
+    $generatedRabbitmqErlangCookie = New-RandomPassword -Length 32
+    azd env set TF_VAR_rabbitmq_erlang_cookie $generatedRabbitmqErlangCookie 2>$null
+    Write-Host " generated" -ForegroundColor Green
+}
+else {
+    Write-Host " set" -ForegroundColor Green
+}
+
 # --- TF_VAR_minio_root_user: default to minioadmin ---
 $minioUser = [Environment]::GetEnvironmentVariable("TF_VAR_minio_root_user")
 Write-Host "  TF_VAR_minio_root_user..." -NoNewline

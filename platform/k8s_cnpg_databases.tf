@@ -56,7 +56,7 @@ resource "kubectl_manifest" "cnpg_database_bootstrap" {
               type: RuntimeDefault
           containers:
             - name: cnpg-database-bootstrap
-              image: "postgres:16.4"
+              image: "ghcr.io/cloudnative-pg/postgresql:16.4"
               imagePullPolicy: IfNotPresent
               env:
                 - name: PGHOST
@@ -120,22 +120,6 @@ resource "kubectl_manifest" "cnpg_database_bootstrap" {
                 limits:
                   cpu: 250m
                   memory: 256Mi
-              readinessProbe:
-                exec:
-                  command:
-                    - /bin/sh
-                    - -c
-                    - pg_isready -h "$PGHOST" -U "$PGUSER"
-                initialDelaySeconds: 5
-                periodSeconds: 10
-              livenessProbe:
-                exec:
-                  command:
-                    - /bin/sh
-                    - -c
-                    - pg_isready -h "$PGHOST" -U "$PGUSER"
-                initialDelaySeconds: 5
-                periodSeconds: 10
   YAML
 
   depends_on = [
