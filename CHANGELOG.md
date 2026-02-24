@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **ADR Framework**: 10 Architecture Decision Records documenting all major design choices ([ADR-0001](docs/decisions/0001-use-aks-automatic-as-deployment-target.md) through [ADR-0010](docs/decisions/0010-unique-service-selector-label-pattern.md))
+- **ADR Framework**: 10 Architecture Decision Records documenting all major design choices ([ADR-0001](docs/src/decisions/0001-use-aks-automatic-as-deployment-target.md) through [ADR-0010](docs/src/decisions/0010-unique-service-selector-label-pattern.md))
 - **CONTRIBUTING.md**: Contributing guide with branching model, quality gates, and conventions
 - **AGENTS.md**: Rewritten with Critical Rules (ALWAYS/NEVER), Core Patterns, and Quality Gates
 - **RabbitMQ raw manifests**: Replaced Bitnami Helm chart with raw K8s manifests using official `rabbitmq:4.1.0-management-alpine` image (Bitnami images removed from DockerHub Aug 2025)

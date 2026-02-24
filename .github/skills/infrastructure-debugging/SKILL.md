@@ -255,7 +255,7 @@ When investigating, document:
 
 After fixing an infrastructure issue:
 
-1. **Update notes.md** if it's a known issue pattern
-2. **Update docs/architecture.md** if it reveals architectural insight
+1. **Update docs/src/operations/troubleshooting.md** if it's a known issue pattern
+2. **Update docs/src/architecture/overview.md** if it reveals architectural insight
 3. **Consider adding to CI checks** if it could be caught earlier
 4. **Update copilot-instructions.md** if agents should know about it

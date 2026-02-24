@@ -105,9 +105,13 @@ cimpl-azd/
 │   ├── ensure-safeguards.ps1     # Phase 1: Wait for Gatekeeper
 │   └── deploy-platform.ps1       # Phase 2: Deploy platform Terraform
 ├── docs/
-│   └── architecture.md           # Detailed architecture documentation
-├── README.md                     # User documentation
-└── notes.md                      # Known issues, workarounds, backlog
+│   ├── mkdocs.yml                # Documentation site config
+│   └── src/                      # Documentation source (MkDocs)
+│       ├── architecture/         # Architecture docs
+│       ├── decisions/            # ADRs
+│       ├── getting-started/      # Setup guides
+│       └── operations/           # Pipelines, troubleshooting
+├── README.md                     # Project landing page
 ```
 
 ## Architecture and Key Components
@@ -289,9 +293,9 @@ terraform destroy -target=helm_release.postgresql  # Destroy specific resource
 
 ## Documentation Files
 
-- **README.md**: User-facing deployment documentation
-- **notes.md**: Known issues, workarounds, improvement backlog, testing checklist
-- **docs/architecture.md**: Detailed architecture documentation
+- **README.md**: Project landing page with quick start
+- **docs/src/architecture/overview.md**: Detailed architecture documentation
+- **docs/src/decisions/**: Architecture Decision Records
 - **.env.example**: Environment variable template
 
 **When making significant changes, update relevant documentation files.**
