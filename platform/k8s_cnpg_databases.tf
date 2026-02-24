@@ -89,6 +89,7 @@ resource "kubectl_manifest" "cnpg_database_bootstrap" {
               args:
                 - |
                   psql -v ON_ERROR_STOP=1 \
+                    # TODO: Use secrets management (e.g., Azure Key Vault) for production
                     -v keycloak_password="$KEYCLOAK_PASSWORD" \
                     -v airflow_password="$AIRFLOW_PASSWORD" \
                     <<'SQL'
