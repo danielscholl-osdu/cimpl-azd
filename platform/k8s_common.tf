@@ -9,7 +9,7 @@ resource "kubernetes_namespace" "osdu" {
   metadata {
     name = "osdu"
     labels = {
-      "istio.io/rev" = "asm-1-28"
+      "istio-injection" = "enabled"
     }
   }
 }
@@ -26,6 +26,17 @@ resource "kubernetes_config_map" "osdu_config" {
     domain        = local.osdu_domain
     cimpl_project = var.cimpl_project
     cimpl_tenant  = var.cimpl_tenant
+  }
+
+  lifecycle {
+    precondition {
+      condition     = !var.enable_common || local.osdu_domain != ""
+      error_message = "osdu-config: domain must be non-empty when enable_common is true. Ensure ingress_prefix and dns_zone_name are set."
+    }
+    precondition {
+      condition     = !var.enable_common || var.cimpl_tenant != ""
+      error_message = "osdu-config: cimpl_tenant must be non-empty when enable_common is true."
+    }
   }
 
   depends_on = [kubernetes_namespace.osdu]
