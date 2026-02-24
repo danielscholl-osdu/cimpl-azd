@@ -17,12 +17,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
+
       - name: Validate Terraform formatting
         run: |
-          wget -qO- https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip | funzip > /tmp/terraform
-          chmod +x /tmp/terraform
-          /tmp/terraform fmt -check -recursive ./infra
-          /tmp/terraform fmt -check -recursive ./platform
+          terraform fmt -check -recursive ./infra
+          terraform fmt -check -recursive ./platform
 
       - name: Create insider pre-release
         env:
@@ -38,6 +40,8 @@ jobs:
           SHORT_SHA=$(git rev-parse --short HEAD)
           INSIDER_TAG="${LATEST_TAG}-insider.${SHORT_SHA}"
 
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "$INSIDER_TAG" -m "Insider release $INSIDER_TAG"
           git push origin "$INSIDER_TAG"
           gh release create "$INSIDER_TAG" --prerelease --generate-notes --title "$INSIDER_TAG"
