@@ -1,0 +1,57 @@
+- op: add
+  path: /spec/ttlSecondsAfterFinished
+  value: 3600
+- op: add
+  path: /spec/template/spec/containers/0/resources
+  value:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+- op: add
+  path: /spec/template/spec/containers/0/livenessProbe
+  value:
+    exec:
+      command:
+        - sh
+        - -c
+        - "true"
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+- op: add
+  path: /spec/template/spec/containers/0/readinessProbe
+  value:
+    exec:
+      command:
+        - sh
+        - -c
+        - "true"
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+- op: add
+  path: /spec/template/spec/containers/0/env
+  value:
+    - name: ELASTICSEARCH_HOST
+      value: "elasticsearch-es-http.elasticsearch.svc"
+    - name: ELASTICSEARCH_PORT
+      value: "9200"
+    - name: ELASTICSEARCH_USERNAME
+      value: "elastic"
+    - name: ELASTICSEARCH_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: elasticsearch-es-elastic-user
+          key: elastic
+    - name: ELASTIC_USERNAME
+      value: "elastic"
+    - name: ELASTIC_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: elasticsearch-es-elastic-user
+          key: elastic
