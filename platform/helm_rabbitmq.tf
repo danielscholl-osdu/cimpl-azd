@@ -34,7 +34,7 @@ resource "kubectl_manifest" "rabbitmq_storage_class" {
     apiVersion: storage.k8s.io/v1
     kind: StorageClass
     metadata:
-      name: managed-csi-premium
+      name: rabbitmq-storageclass
       labels:
         app: rabbitmq
     parameters:
@@ -59,16 +59,15 @@ resource "helm_release" "rabbitmq" {
   timeout          = 600
 
   values = [<<-YAML
-    # Image override: Bitnami free tier defaults to 'latest' tag, which AKS Automatic
-    # Gatekeeper policy rejects (K8sAzureV2ContainerNoLatestImage). Pin to bitnamilegacy
-    # with a versioned tag for reproducible deployments.
+    # Image override: use the official RabbitMQ image to avoid Bitnami supply-chain
+    # constraints; consider mirroring and pinning by digest for production use.
     global:
       security:
         allowInsecureImages: true
     image:
       registry: docker.io
-      repository: bitnamilegacy/rabbitmq
-      tag: 4.1.0-debian-12-r0
+      repository: rabbitmq
+      tag: 4.1.0-management-alpine
 
     auth:
       username: "${var.rabbitmq_username}"
@@ -79,7 +78,7 @@ resource "helm_release" "rabbitmq" {
 
     persistence:
       enabled: true
-      storageClass: managed-csi-premium
+      storageClass: rabbitmq-storageclass
       size: 8Gi
       accessModes:
         - ReadWriteOnce
