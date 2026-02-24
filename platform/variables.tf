@@ -61,6 +61,12 @@ variable "enable_redis" {
   default     = true
 }
 
+variable "enable_rabbitmq" {
+  description = "Enable RabbitMQ deployment"
+  type        = bool
+  default     = true
+}
+
 variable "enable_cert_manager" {
   description = "Enable cert-manager deployment"
   type        = bool
@@ -162,6 +168,24 @@ variable "postgresql_username" {
 
 variable "redis_password" {
   description = "Redis authentication password"
+  type        = string
+  sensitive   = true
+}
+
+variable "rabbitmq_username" {
+  description = "RabbitMQ admin username"
+  type        = string
+  default     = "rabbitmq"
+}
+
+variable "rabbitmq_password" {
+  description = "RabbitMQ admin password"
+  type        = string
+  sensitive   = true
+}
+
+variable "rabbitmq_erlang_cookie" {
+  description = "RabbitMQ Erlang cookie for clustering"
   type        = string
   sensitive   = true
 }
