@@ -119,8 +119,7 @@ resource "kubectl_manifest" "elasticsearch" {
               elasticsearch.k8s.elastic.co/cluster-name: elasticsearch
               elasticsearch.service/http: "true"
         tls:
-          selfSignedCertificate:
-            disabled: true
+          selfSignedCertificate: {}
       transport:
         # Configure transport service selector to be unique from other services
         # Required for AKS Automatic UniqueServiceSelector safeguard compliance

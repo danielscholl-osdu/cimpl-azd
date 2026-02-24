@@ -2,7 +2,7 @@
 
 output "elasticsearch_url" {
   description = "Elasticsearch internal URL"
-  value       = var.enable_elasticsearch ? "http://elasticsearch-es-http.elasticsearch.svc.cluster.local:9200" : ""
+  value       = var.enable_elasticsearch ? "https://elasticsearch-es-http.elasticsearch.svc.cluster.local:9200" : ""
 }
 
 output "kibana_url" {
