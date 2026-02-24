@@ -214,6 +214,10 @@ To add a new service overlay:
 | `TF_VAR_postgresql_password` | No | PostgreSQL admin password (auto-generated if not set) |
 | `TF_VAR_minio_root_user` | No | MinIO root username (default: minioadmin) |
 | `TF_VAR_minio_root_password` | No | MinIO root password (auto-generated if not set) |
+| `TF_VAR_cimpl_subscriber_private_key_id` | No | Subscriber private key identifier for OSDU services |
+| `TF_VAR_cimpl_project` | No | CIMPL project/group identifier |
+| `TF_VAR_cimpl_tenant` | No | CIMPL data partition ID (default: osdu) |
+| `TF_VAR_enable_common` | No | Enable OSDU common namespace resources (default: true) |
 | `AZURE_LOCATION` | No | Azure region (default: eastus2) |
 
 ### AKS Cluster Specifications

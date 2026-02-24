@@ -46,3 +46,8 @@
 - Created shared components (`components/seccomp`, `components/security-context`, `components/topology-spread`) and a `services/partition` template with probes/resources.
 
 - 2026-02-24: Added AKS elastic-bootstrap Helm release with postrendered Job patches (probes/resources/TTL) and secret-sourced Elasticsearch credentials to initialize OSDU index templates, ILM policies, and aliases.
+
+### 2026-02-24: OSDU Common Infrastructure (AKS)
+- **What:** Added `platform/k8s_common.tf` to create the shared `osdu` namespace (label `istio.io/rev: asm-1-28`), `osdu-config` ConfigMap (domain from `ingress_prefix` + `dns_zone_name`), `osdu-credentials` Secret, `bootstrap-sa` ServiceAccount, and STRICT PeerAuthentication.
+- **Why:** Replaces the ROSA `common-infra-bootstrap` Helm chart with plain Kubernetes resources managed by Terraform.
+- **Key paths:** `platform/k8s_common.tf`, `platform/variables.tf`.
