@@ -13,26 +13,26 @@ Detailed visual diagrams are available in Excalidraw format:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              Azure Subscription                              │
+│                              Azure Subscription                             │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │                    Resource Group: rg-cimpl-<env>                      │  │
-│  │                                                                        │  │
+│  │                    Resource Group: rg-cimpl-<env>                     │  │
+│  │                                                                       │  │
 │  │  ┌──────────────────────────────────────────────────────────────────┐ │  │
-│  │  │                 AKS Automatic: cimpl-<env>                        │ │  │
-│  │  │                                                                   │ │  │
-│  │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │ │  │
-│  │  │  │   System    │  │   Default   │  │   Stateful (Karpenter)  │  │ │  │
-│  │  │  │  Node Pool  │  │  Node Pool  │  │      Node Pool          │  │ │  │
-│  │  │  │  (2 nodes)  │  │  (auto)     │  │      (auto)             │  │ │  │
-│  │  │  │             │  │             │  │                         │  │ │  │
-│  │  │  │ - Istio     │  │ - MinIO     │  │ - Elasticsearch (3)     │  │ │  │
-│  │  │  │ - CoreDNS   │  │ - cert-mgr  │  │ - PostgreSQL HA (3)     │  │ │  │
-│  │  │  │ - Gateway   │  │             │  │ - Kibana (1)            │  │ │  │
-│  │  │  └─────────────┘  └─────────────┘  └─────────────────────────┘  │ │  │
-│  │  │                                                                   │ │  │
+│  │  │                 AKS Automatic: cimpl-<env>                       │ │  │
+│  │  │                                                                  │ │  │
+│  │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐   │ │  │
+│  │  │  │   System    │  │   Default   │  │   Stateful (Karpenter)  │   │ │  │
+│  │  │  │  Node Pool  │  │  Node Pool  │  │      Node Pool          │   │ │  │
+│  │  │  │  (2 nodes)  │  │  (auto)     │  │      (auto)             │   │ │  │
+│  │  │  │             │  │             │  │                         │   │ │  │
+│  │  │  │ - Istio     │  │ - MinIO     │  │ - Elasticsearch (3)     │   │ │  │
+│  │  │  │ - CoreDNS   │  │ - cert-mgr  │  │ - PostgreSQL HA (3)     │   │ │  │
+│  │  │  │ - Gateway   │  │             │  │ - Kibana (1)            │   │ │  │
+│  │  │  └─────────────┘  └─────────────┘  └─────────────────────────┘   │ │  │
+│  │  │                                                                  │ │  │
 │  │  │  ┌──────────────────────────────────────────────────────────────┐│ │  │
 │  │  │  │                    Istio Service Mesh                        ││ │  │
-│  │  │  │                                                               ││ │  │
+│  │  │  │                                                              ││ │  │
 │  │  │  │   Internet ──► Ingress Gateway ──► HTTPRoute ──► Pods        ││ │  │
 │  │  │  │              (External LB)        (Gateway API)              ││ │  │
 │  │  │  └──────────────────────────────────────────────────────────────┘│ │  │
@@ -136,12 +136,12 @@ AKS Automatic provides:
 
 | Pool | Purpose | VM Size | Count | Taints | Managed By |
 |------|---------|---------|-------|--------|------------|
-| system | Critical system components | `var.system_pool_vm_size` (default: Standard_D4s_v5) | 2 | CriticalAddonsOnly | AKS (VMSS) |
+| system | Critical system components | `var.system_pool_vm_size` (default: Standard_D4lds_v5) | 2 | CriticalAddonsOnly | AKS (VMSS) |
 | default | General workloads (MinIO) | Auto-provisioned | Auto | None | NAP (Karpenter) |
 | stateful | Elasticsearch + PostgreSQL | D-series (4-8 vCPU) | Auto | workload=stateful:NoSchedule | NAP (Karpenter) |
 
 **System Pool Variables**:
-- `system_pool_vm_size` — VM SKU for system nodes (default: `Standard_D4s_v5`)
+- `system_pool_vm_size` — VM SKU for system nodes (default: `Standard_D4lds_v5`)
 - `system_pool_availability_zones` — Zones for system nodes (default: `["1", "2", "3"]`)
 
 ### Why Karpenter (NAP) for Stateful Workloads?
@@ -189,22 +189,22 @@ metadata:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Elasticsearch Cluster                         │
-│                                                                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │  ES Node 1   │  │  ES Node 2   │  │  ES Node 3   │          │
-│  │  (master+    │  │  (master+    │  │  (master+    │          │
-│  │   data+      │  │   data+      │  │   data+      │          │
-│  │   ingest)    │  │   ingest)    │  │   ingest)    │          │
-│  │              │  │              │  │              │          │
-│  │  128Gi SSD   │  │  128Gi SSD   │  │  128Gi SSD   │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-│         │                  │                  │                  │
-│         └──────────────────┼──────────────────┘                  │
-│                            │                                     │
+│                    Elasticsearch Cluster                        │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
+│  │  ES Node 1   │  │  ES Node 2   │  │  ES Node 3   │           │
+│  │  (master+    │  │  (master+    │  │  (master+    │           │
+│  │   data+      │  │   data+      │  │   data+      │           │
+│  │   ingest)    │  │   ingest)    │  │   ingest)    │           │
+│  │              │  │              │  │              │           │
+│  │  128Gi SSD   │  │  128Gi SSD   │  │  128Gi SSD   │           │
+│  └──────────────┘  └──────────────┘  └──────────────┘           │
+│         │                  │                  │                 │
+│         └──────────────────┼──────────────────┘                 │
+│                            │                                    │
 │              ┌─────────────┴─────────────┐                      │
-│              │    Elasticsearch Service   │                      │
-│              │    (ClusterIP:9200)        │                      │
+│              │    Elasticsearch Service   │                     │
+│              │    (ClusterIP:9200)        │                     │
 │              └───────────────────────────┘                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -274,20 +274,20 @@ Post-deploy Job that configures index templates, ILM policies, and aliases requi
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    PostgreSQL Cluster (CNPG)                      │
-│                                                                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │  Instance 1   │  │  Instance 2   │  │  Instance 3   │          │
-│  │  PRIMARY      │──►  REPLICA      │  │  REPLICA      │          │
-│  │  (read-write) │  │  (read-only) │  │  (read-only) │          │
-│  │              │──────────────────►│              │          │
-│  │  8Gi + 4Gi   │  │  8Gi + 4Gi   │  │  8Gi + 4Gi   │          │
-│  │  (data+WAL)  │  │  (data+WAL)  │  │  (data+WAL)  │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
+│                    PostgreSQL Cluster (CNPG)                    │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
+│  │  Instance 1  │  │  Instance 2  │  │  Instance 3  │           │
+│  │  PRIMARY     │──►  REPLICA     │  │  REPLICA     │           │
+│  │  (read-write)│  │  (read-only) │  │  (read-only) │           │
+│  │              │ ───────────────►│  │              │           │
+│  │  8Gi + 4Gi   │  │  8Gi + 4Gi   │  │  8Gi + 4Gi   │           │
+│  │  (data+WAL)  │  │  (data+WAL)  │  │  (data+WAL)  │           │
+│  └──────────────┘  └──────────────┘  └──────────────┘           │
 │       Zone 1             Zone 2             Zone 3              │
-│                                                                  │
+│                                                                 │
 │  ┌────────────────────┐  ┌────────────────────────┐             │
-│  │ postgresql-rw :5432│  │ postgresql-ro :5432     │             │
+│  │ postgresql-rw :5432│  │ postgresql-ro :5432    │             │
 │  │ (primary service)  │  │ (read-only replicas)   │             │
 │  └────────────────────┘  └────────────────────────┘             │
 └─────────────────────────────────────────────────────────────────┘
@@ -313,12 +313,13 @@ Post-deploy Job that configures index templates, ILM policies, and aliases requi
 RabbitMQ cluster for async messaging (OSDU service broker).
 
 **Configuration**:
-- Chart: bitnamicharts/rabbitmq v15.5.1
-- Replicas: 3 (clustered)
-- Storage: 8Gi managed-csi-premium (Retain)
+- Deployment: Raw Kubernetes manifests (StatefulSet, Services, ConfigMap) — no Helm chart (see [ADR-0003](decisions/0003-raw-manifests-for-rabbitmq.md))
+- Image: `rabbitmq:4.1.0-management-alpine` (official upstream)
+- Replicas: 3 (clustered via DNS peer discovery)
+- Storage: 8Gi `rabbitmq-storageclass` (Premium_LRS, Retain)
 - Connection: `rabbitmq.rabbitmq.svc.cluster.local:5672`
 - Node affinity: `agentpool=stateful` with `workload=stateful:NoSchedule` toleration
-- Istio STRICT mTLS via `PeerAuthentication` in rabbitmq namespace
+- No Istio sidecar injection (NET_ADMIN blocked by AKS Automatic — see [ADR-0008](decisions/0008-selective-istio-sidecar-injection.md))
 
 ### MinIO
 
@@ -350,19 +351,19 @@ Automatic TLS certificate management with Let's Encrypt.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Azure Active Directory                        │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                   User Authentication                     │  │
-│  │                                                           │  │
-│  │  User ──► az login ──► AAD ──► kubelogin ──► K8s API     │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                  Workload Identity                        │  │
-│  │                                                           │  │
-│  │  Pod ──► Service Account ──► Federated Credential ──► AAD │  │
-│  └──────────────────────────────────────────────────────────┘  │
+│                    Azure Active Directory                       │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                   User Authentication                    │   │
+│  │                                                          │   │
+│  │  User ──► az login ──► AAD ──► kubelogin ──► K8s API     │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                  Workload Identity                       │   │
+│  │                                                          │   │
+│  │ Pod ──► Service Account ──► Federated Credential ──► AAD │   │
+│  └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -383,7 +384,7 @@ Gatekeeper policies enforcing:
 - Security context (runAsNonRoot, drop capabilities)
 - No privileged containers
 
-**Mode**: Warning (violations logged, not blocked)
+**Mode**: Enforcement on AKS Automatic (violations blocked at admission); Warning on standard AKS (violations logged)
 
 **Excluded Namespaces** (configured in `scripts/ensure-safeguards.ps1`):
 - kube-system (Kubernetes system)
@@ -398,19 +399,19 @@ Gatekeeper policies enforcing:
 
 ### Istio STRICT mTLS
 
-The Elasticsearch (`elasticsearch`), PostgreSQL (`postgresql`), Redis (`redis`), and RabbitMQ (`rabbitmq`) data namespaces have Istio STRICT mTLS enforced via `PeerAuthentication` resources. This ensures all pod-to-pod traffic within each namespace is encrypted at the mesh layer, even though application-level TLS is disabled (ECK's `selfSignedCertificate.disabled: true`). Istio handles encryption transparently via sidecar proxies.
+The Elasticsearch (`elasticsearch`), PostgreSQL (`postgresql`), and Redis (`redis`) data namespaces have Istio STRICT mTLS enforced via `PeerAuthentication` resources. Elasticsearch uses ECK self-signed TLS for HTTP transport in addition to mesh-layer encryption (see [ADR-0007](decisions/0007-eck-self-signed-tls-for-elasticsearch.md)). RabbitMQ does **not** have Istio sidecar injection because AKS Automatic blocks the `NET_ADMIN` capability required by `istio-init` (see [ADR-0008](decisions/0008-selective-istio-sidecar-injection.md)).
 
-- Elasticsearch: `PeerAuthentication` managed in `platform/helm_elastic.tf`
+- Elasticsearch: `PeerAuthentication` managed in `platform/helm_elastic.tf` (+ ECK self-signed TLS)
 - PostgreSQL: `PeerAuthentication` managed in `platform/helm_cnpg.tf`
-- RabbitMQ: `PeerAuthentication` managed in `platform/helm_rabbitmq.tf`
 - Redis: `PeerAuthentication` managed in `platform/helm_redis.tf`
+- RabbitMQ: No Istio injection (ambient mode aspiration — see ADR-0008)
 
 ### Network Security
 
 - **Azure CNI Overlay**: Pod IPs in overlay network
 - **Cilium**: Network policy enforcement
 - **Managed NAT Gateway**: Outbound traffic via dedicated NAT
-- **Istio mTLS**: STRICT mode enforced for Elasticsearch, PostgreSQL, Redis, and RabbitMQ namespaces; PERMISSIVE (default) for other namespaces
+- **Istio mTLS**: STRICT mode enforced for Elasticsearch, PostgreSQL, and Redis namespaces; PERMISSIVE (default) for other namespaces; RabbitMQ excluded (no sidecar injection)
 
 ---
 
@@ -452,40 +453,40 @@ The deployment uses a two-phase approach to handle Azure Policy/Gatekeeper event
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              azd up                                          │
-│                                                                              │
+│                              azd up                                         │
+│                                                                             │
 │  ┌──────────────────┐                                                       │
 │  │  pre-provision   │ Validate prerequisites (az cli, kubectl, etc.)        │
 │  └────────┬─────────┘                                                       │
-│           │                                                                  │
-│           ▼                                                                  │
+│           │                                                                 │
+│           ▼                                                                 │
 │  ┌──────────────────┐                                                       │
 │  │  terraform apply │ Layer 1: Create AKS cluster + node pools              │
 │  │  (infra/)        │ Output: cluster_name, resource_group, oidc_issuer     │
 │  └────────┬─────────┘                                                       │
-│           │                                                                  │
-│           ▼                                                                  │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │  post-provision (orchestrator)                                        │  │
-│  │                                                                       │  │
-│  │  ┌────────────────────────────────────────────────────────────────┐  │  │
-│  │  │  Phase 1: ensure-safeguards.ps1  [GATE]                        │  │  │
-│  │  │    1. Configure kubeconfig                                      │  │  │
-│  │  │    2. Configure AKS safeguards (Warning mode)                   │  │  │
-│  │  │    3. Wait for Gatekeeper controller ready                      │  │  │
-│  │  │    4. Wait for ALL constraints to leave deny mode               │  │  │
-│  │  │    5. EXIT with error if not ready (fail fast)                  │  │  │
-│  │  └────────────────────────────────────────────────────────────────┘  │  │
-│  │                              │                                        │  │
-│  │                     (only if Phase 1 succeeds)                        │  │
-│  │                              ▼                                        │  │
-│  │  ┌────────────────────────────────────────────────────────────────┐  │  │
-│  │  │  Phase 2: deploy-platform.ps1                                  │  │  │
-│  │  │    1. Verify cluster access                                     │  │  │
-│  │  │    2. terraform apply (platform/)                               │  │  │
-│  │  │    3. Verify component health                                   │  │  │
-│  │  └────────────────────────────────────────────────────────────────┘  │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
+│           │                                                                 │
+│           ▼                                                                 │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │  post-provision (orchestrator)                                       │   │
+│  │                                                                      │   │
+│  │  ┌────────────────────────────────────────────────────────────────┐  │   │
+│  │  │  Phase 1: ensure-safeguards.ps1  [GATE]                        │  │   │
+│  │  │    1. Configure kubeconfig                                     │  │   │
+│  │  │    2. Configure AKS safeguards (Warning mode)                  │  │   │
+│  │  │    3. Wait for Gatekeeper controller ready                     │  │   │
+│  │  │    4. Wait for ALL constraints to leave deny mode              │  │   │
+│  │  │    5. EXIT with error if not ready (fail fast)                 │  │   │
+│  │  └────────────────────────────────────────────────────────────────┘  │   │
+│  │                              │                                       │   │
+│  │                     (only if Phase 1 succeeds)                       │   │
+│  │                              ▼                                       │   │
+│  │  ┌────────────────────────────────────────────────────────────────┐  │   │
+│  │  │  Phase 2: deploy-platform.ps1                                  │  │   │
+│  │  │    1. Verify cluster access                                    │  │   │
+│  │  │    2. terraform apply (platform/)                              │  │   │
+│  │  │    3. Verify component health                                  │  │   │
+│  │  └────────────────────────────────────────────────────────────────┘  │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 

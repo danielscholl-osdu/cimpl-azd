@@ -1,0 +1,47 @@
+name: Squad Insider Release
+
+on:
+  push:
+    branches: [insider]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      CHECKPOINT_DISABLE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
+
+      - name: Validate Terraform formatting
+        run: |
+          terraform fmt -check -recursive ./infra
+          terraform fmt -check -recursive ./platform
+
+      - name: Create insider pre-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get latest release tag or default
+          LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="v0.0.0"
+          fi
+
+          # Create insider tag with short SHA
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          INSIDER_TAG="${LATEST_TAG}-insider.${SHORT_SHA}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$INSIDER_TAG" -m "Insider release $INSIDER_TAG"
+          git push origin "$INSIDER_TAG"
+          gh release create "$INSIDER_TAG" --prerelease --generate-notes --title "$INSIDER_TAG"

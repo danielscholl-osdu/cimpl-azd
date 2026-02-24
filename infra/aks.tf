@@ -104,15 +104,9 @@ module "aks" {
   }
 
   # Default Node Pool (System)
-  # NOTE:
-  # - We use Standard_D4s_v5 instead of Standard_D4lds_v5 because AKS Automatic
-  #   imposes constraints on ephemeral/local disks for system pools (ephemeral OS
-  #   disk configuration on local SSD is not supported for Automatic clusters).
-  # - This means the node's temporary/ephemeral storage is backed by remote Premium
-  #   SSD instead of local NVMe, trading lower latency (~1ms) for higher latency
-  #   (~5–10ms) and potential additional managed disk costs.
-  # - This trade‑off is accepted here to keep the system pool compliant with AKS
-  #   Automatic requirements; stateful workloads rely on dedicated Karpenter pools.
+  # NOTE: AKS Automatic overrides the requested VM SKU to Standard_D4lds_v5
+  # (local-disk variant). The default must match to avoid PropertyChangeNotAllowed
+  # errors from the azapi_update_resource on the agent pool.
   default_agent_pool = {
     name                         = "system"
     vm_size                      = var.system_pool_vm_size
