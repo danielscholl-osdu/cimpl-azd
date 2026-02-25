@@ -85,6 +85,12 @@ variable "enable_common" {
   default     = true
 }
 
+variable "enable_partition" {
+  description = "Enable OSDU Partition service deployment"
+  type        = bool
+  default     = false
+}
+
 variable "enable_external_dns" {
   description = "Enable ExternalDNS for automatic DNS record management"
   type        = bool

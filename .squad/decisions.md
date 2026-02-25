@@ -97,3 +97,8 @@ Scribe merges inbox entries here and deduplicates.
 **By:** Daniel Scholl (via Copilot)
 **What:** Default to gpt-5.2-codex for all coding tasks. Haiku is not good enough for most coding work in this project. Non-coding tasks (logs, triage, docs) can still use haiku.
 **Why:** User request — captured for team memory
+
+### 2026-02-25: All CIMPL service image tags resolved (#108)
+**By:** Daniel Scholl (manual investigation) + Alex (initial research)
+**What:** All 5 previously-unknown service image tags discovered via authenticated OCI registry access. Helm registry login to `community.opengroup.org:5555` is required. These 5 services use `cimpl-*-release` image names (not `core-plus-*-release`). Pinned tags: Entitlements `da367b9f`, Workflow `f91c585a`, Wellbore `f05e5a98`, Wellbore Worker `f7f46dc6`, EDS-DMS `f3df61a9`. Unblocks #85, #98, #99, #100, #103.
+**Why:** AKS Automatic blocks `:latest` tags. All 20+ OSDU services now have confirmed pinned image tags for deployment.
