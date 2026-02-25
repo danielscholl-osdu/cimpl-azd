@@ -67,6 +67,12 @@ variable "enable_rabbitmq" {
   default     = true
 }
 
+variable "enable_airflow" {
+  description = "Enable Airflow deployment"
+  type        = bool
+  default     = false
+}
+
 variable "enable_cert_manager" {
   description = "Enable cert-manager deployment"
   type        = bool

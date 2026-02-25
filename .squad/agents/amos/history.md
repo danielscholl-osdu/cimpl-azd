@@ -40,3 +40,8 @@
 📌 **2026-02-17:** User directive for Bootstrap Data requirement merged — Bootstrap Data modules (commented-out in ROSA) must be implemented on AKS for parity.
 
 📌 **2026-02-17:** GitHub issues logged and organized (#78–#105) for Phase 0.5–5 migration. Amos assigned 7 issues (Phase 0.5 postrender + Phase 1 infra: Keycloak, RabbitMQ, Airflow, Common, Elastic Bootstrap, safeguards compliance).
+
+### 2026-03-05: Airflow deployment patterns (Issue #81)
+- Airflow should use the official Apache Airflow Helm chart with external Redis (`redis-master.redis.svc.cluster.local`) and CNPG PostgreSQL (`postgresql-rw.postgresql.svc.cluster.local`, database `airflow`).
+- Airflow namespace uses `istio-injection: enabled` with STRICT mTLS and stateful node affinity/tolerations for workers.
+- Airflow secrets are generated in Terraform (fernet + webserver keys) and stored in an `airflow-secrets` secret for Helm values.

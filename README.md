@@ -2,7 +2,7 @@
 
 Azure Developer CLI (azd) deployment for CIMPL on AKS Automatic.
 
-This project deploys a complete platform stack on Azure Kubernetes Service (AKS) Automatic with Elasticsearch, PostgreSQL, RabbitMQ, MinIO, and Istio service mesh.
+This project deploys a complete platform stack on Azure Kubernetes Service (AKS) Automatic with Airflow, Elasticsearch, PostgreSQL, RabbitMQ, MinIO, and Istio service mesh.
 
 - [Documentation](https://azure.github.io/cimpl-azd/): Detailed architecture and operations
 - [Getting Started](https://azure.github.io/cimpl-azd/getting-started/prerequisites/): Prerequisites and setup
