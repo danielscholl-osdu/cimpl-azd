@@ -1,4 +1,5 @@
-# Keycloak identity provider using Bitnami Helm chart
+# Keycloak identity provider using Bitnami Helm chart with official Keycloak image.
+# Bitnami free images were deprecated Aug 2025; using quay.io/keycloak/keycloak instead.
 # Keycloak is internal-only — no HTTPRoute/Gateway exposure.
 # OSDU services reach it via keycloak.keycloak.svc.cluster.local:8080
 # Admin console access requires kubectl port-forward.
@@ -123,7 +124,7 @@ resource "helm_release" "keycloak" {
     image:
       registry: quay.io
       repository: keycloak/keycloak
-      tag: 26.0.7
+      tag: 26.5.4
 
     auth:
       adminUser: admin
@@ -142,11 +143,14 @@ resource "helm_release" "keycloak" {
       existingSecretUserKey: username
       existingSecretPasswordKey: password
 
+    # Pass --import-realm as a CLI arg (KEYCLOAK_EXTRA_ARGS is Bitnami-only)
+    args:
+      - start
+      - --import-realm
+
     extraEnvVars:
       - name: KC_HEALTH_ENABLED
         value: "true"
-      - name: KEYCLOAK_EXTRA_ARGS
-        value: "--import-realm"
 
     extraVolumes:
       - name: realm-import
@@ -168,19 +172,20 @@ resource "helm_release" "keycloak" {
         cpu: "2"
         memory: 2Gi
 
+    # Official image runs as UID 1000, GID 0 (OpenShift-compatible)
     podSecurityContext:
       enabled: true
-      fsGroup: 1001
+      fsGroup: 0
       fsGroupChangePolicy: Always
       seccompProfile:
         type: RuntimeDefault
 
     containerSecurityContext:
       enabled: true
-      runAsUser: 1001
-      runAsGroup: 1001
+      runAsUser: 1000
+      runAsGroup: 0
       runAsNonRoot: true
-      readOnlyRootFilesystem: true
+      readOnlyRootFilesystem: false
       allowPrivilegeEscalation: false
       capabilities:
         drop:
