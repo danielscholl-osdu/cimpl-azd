@@ -102,3 +102,8 @@ Scribe merges inbox entries here and deduplicates.
 **By:** Daniel Scholl (manual investigation) + Alex (initial research)
 **What:** All 5 previously-unknown service image tags discovered via authenticated OCI registry access. Helm registry login to `community.opengroup.org:5555` is required. These 5 services use `cimpl-*-release` image names (not `core-plus-*-release`). Pinned tags: Entitlements `da367b9f`, Workflow `f91c585a`, Wellbore `f05e5a98`, Wellbore Worker `f7f46dc6`, EDS-DMS `f3df61a9`. Unblocks #85, #98, #99, #100, #103.
 **Why:** AKS Automatic blocks `:latest` tags. All 20+ OSDU services now have confirmed pinned image tags for deployment.
+
+### 2026-02-25: Postrender framework — Service image pinning and AKS safeguards compliance
+**By:** Alex (Services Dev)
+**What:** Established shared kustomize postrender framework for all OSDU services. Implementation: (1) Helm postrender uses `/usr/bin/env` to pass `SERVICE_NAME=<service>` to `platform/kustomize/postrender.sh`, (2) Shared kustomize components (`platform/kustomize/components/`) provide generic probe/resource/seccomp patches, (3) Per-service overlays in `platform/kustomize/services/<service>/` customize patches as needed, (4) Partition bootstrap image pinned to main service tag (`67dedce7`) instead of `:latest`. Pilot implementation: `platform/helm_partition.tf` with full postrender wiring.
+**Why:** Eliminates need for 20+ individual postrender wrapper scripts. All OSDU services have zero probes/resources/seccomp in their OCI charts (confirmed during #108 investigation), so AKS Automatic Gatekeeper will reject them unless patches are applied. This pattern is reusable and scales to all Phase 2–5 services.
