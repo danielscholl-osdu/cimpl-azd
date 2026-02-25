@@ -53,3 +53,4 @@ Create ADRs for:
 | [0009](0009-workload-identity-for-dns-management.md) | Workload Identity for cross-subscription DNS management | Accepted |
 | [0010](0010-unique-service-selector-label-pattern.md) | UniqueServiceSelector compliance via label differentiation | Accepted |
 | [0011](0011-airflow-kubernetes-executor-with-nap.md) | KubernetesExecutor for Airflow with NAP task pod scaling | Accepted |
+| [0012](0012-bitnami-chart-with-official-keycloak-image.md) | Bitnami Helm chart with official Keycloak image | Accepted |
