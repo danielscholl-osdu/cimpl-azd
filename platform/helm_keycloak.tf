@@ -1,5 +1,8 @@
-# Keycloak identity provider using Bitnami Helm chart with official Keycloak image.
-# Bitnami free images were deprecated Aug 2025; using quay.io/keycloak/keycloak instead.
+# Keycloak identity provider using raw manifests with official quay.io image.
+# Raw manifests chosen because the Bitnami chart requires Bitnami-specific image
+# internals (/opt/bitnami/ paths, init scripts) that are incompatible with the
+# official image. Same pattern as RabbitMQ (ADR-0003).
+#
 # Keycloak is internal-only — no HTTPRoute/Gateway exposure.
 # OSDU services reach it via keycloak.keycloak.svc.cluster.local:8080
 # Admin console access requires kubectl port-forward.
@@ -110,155 +113,218 @@ resource "kubernetes_config_map" "keycloak_realm" {
   depends_on = [kubernetes_namespace.keycloak]
 }
 
-resource "helm_release" "keycloak" {
-  count            = var.enable_keycloak ? 1 : 0
-  name             = "keycloak"
-  repository       = "oci://registry-1.docker.io/bitnamicharts"
-  chart            = "keycloak"
-  version          = "25.3.2"
-  namespace        = "keycloak"
-  create_namespace = false
-  timeout          = 600
+# Headless service for StatefulSet DNS
+resource "kubectl_manifest" "keycloak_headless_service" {
+  count = var.enable_keycloak ? 1 : 0
 
-  values = [<<-YAML
-    image:
-      registry: quay.io
-      repository: keycloak/keycloak
-      tag: 26.5.4
-
-    auth:
-      adminUser: admin
-      existingSecret: keycloak-admin-credentials
-      passwordSecretKey: admin-password
-
-    postgresql:
-      enabled: false
-
-    externalDatabase:
-      host: postgresql-rw.postgresql.svc.cluster.local
-      port: 5432
-      user: keycloak
-      database: keycloak
-      existingSecret: keycloak-db-credentials
-      existingSecretUserKey: username
-      existingSecretPasswordKey: password
-
-    # Pass --import-realm as a CLI arg (KEYCLOAK_EXTRA_ARGS is Bitnami-only)
-    args:
-      - start
-      - --import-realm
-
-    extraEnvVars:
-      - name: KC_HEALTH_ENABLED
-        value: "true"
-
-    extraVolumes:
-      - name: realm-import
-        configMap:
-          name: keycloak-realm
-
-    extraVolumeMounts:
-      - name: realm-import
-        mountPath: /opt/keycloak/data/import
-        readOnly: true
-
-    replicaCount: 1
-
-    resources:
-      requests:
-        cpu: 500m
-        memory: 1Gi
-      limits:
-        cpu: "2"
-        memory: 2Gi
-
-    # Official image runs as UID 1000, GID 0 (OpenShift-compatible)
-    podSecurityContext:
-      enabled: true
-      fsGroup: 0
-      fsGroupChangePolicy: Always
-      seccompProfile:
-        type: RuntimeDefault
-
-    containerSecurityContext:
-      enabled: true
-      runAsUser: 1000
-      runAsGroup: 0
-      runAsNonRoot: true
-      readOnlyRootFilesystem: false
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-          - ALL
-      seccompProfile:
-        type: RuntimeDefault
-
-    livenessProbe:
-      enabled: true
-      httpGet:
-        path: /health/live
-        port: 9000
-      initialDelaySeconds: 120
-      periodSeconds: 10
-      timeoutSeconds: 5
-      failureThreshold: 6
-
-    readinessProbe:
-      enabled: true
-      httpGet:
-        path: /health/ready
-        port: 9000
-      initialDelaySeconds: 30
-      periodSeconds: 10
-      timeoutSeconds: 5
-      failureThreshold: 6
-
-    startupProbe:
-      enabled: true
-      httpGet:
-        path: /health/ready
-        port: 9000
-      initialDelaySeconds: 30
-      periodSeconds: 10
-      timeoutSeconds: 5
-      failureThreshold: 12
-
-    tolerations:
-      - effect: NoSchedule
-        key: workload
-        value: stateful
-
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - key: agentpool
-                  operator: In
-                  values:
-                    - stateful
-
-    topologySpreadConstraints:
-      - maxSkew: 1
-        topologyKey: topology.kubernetes.io/zone
-        whenUnsatisfiable: ScheduleAnyway
-        labelSelector:
-          matchLabels:
-            app.kubernetes.io/instance: keycloak
-      - maxSkew: 1
-        topologyKey: kubernetes.io/hostname
-        whenUnsatisfiable: ScheduleAnyway
-        labelSelector:
-          matchLabels:
-            app.kubernetes.io/instance: keycloak
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: keycloak-headless
+      namespace: keycloak
+      labels:
+        app.kubernetes.io/name: keycloak
+        app.kubernetes.io/instance: keycloak
+    spec:
+      type: ClusterIP
+      clusterIP: None
+      publishNotReadyAddresses: true
+      ports:
+        - name: http
+          port: 8080
+          targetPort: http
+          protocol: TCP
+      selector:
+        app.kubernetes.io/name: keycloak
+        app.kubernetes.io/instance: keycloak
   YAML
-  ]
+
+  depends_on = [kubernetes_namespace.keycloak]
+}
+
+# Client service (unique selector for AKS Safeguards — ADR-0010)
+resource "kubectl_manifest" "keycloak_service" {
+  count = var.enable_keycloak ? 1 : 0
+
+  yaml_body = <<-YAML
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: keycloak
+      namespace: keycloak
+      labels:
+        app.kubernetes.io/name: keycloak
+        app.kubernetes.io/instance: keycloak
+    spec:
+      type: ClusterIP
+      sessionAffinity: None
+      ports:
+        - name: http
+          port: 8080
+          targetPort: http
+          protocol: TCP
+      selector:
+        app.kubernetes.io/name: keycloak
+        app.kubernetes.io/instance: keycloak
+        keycloak.service/variant: http
+  YAML
+
+  depends_on = [kubernetes_namespace.keycloak]
+}
+
+resource "kubectl_manifest" "keycloak_statefulset" {
+  count = var.enable_keycloak ? 1 : 0
+
+  yaml_body = <<-YAML
+    apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      name: keycloak
+      namespace: keycloak
+      labels:
+        app.kubernetes.io/name: keycloak
+        app.kubernetes.io/instance: keycloak
+    spec:
+      replicas: 1
+      serviceName: keycloak-headless
+      podManagementPolicy: Parallel
+      selector:
+        matchLabels:
+          app.kubernetes.io/name: keycloak
+          app.kubernetes.io/instance: keycloak
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: keycloak
+            app.kubernetes.io/instance: keycloak
+            keycloak.service/variant: http
+        spec:
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            fsGroup: 0
+            seccompProfile:
+              type: RuntimeDefault
+          tolerations:
+            - key: workload
+              operator: Equal
+              value: stateful
+              effect: NoSchedule
+          nodeSelector:
+            agentpool: stateful
+          containers:
+            - name: keycloak
+              image: "quay.io/keycloak/keycloak:26.5.4"
+              imagePullPolicy: IfNotPresent
+              args:
+                - start
+                - --import-realm
+              env:
+                - name: KC_BOOTSTRAP_ADMIN_USERNAME
+                  value: "admin"
+                - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-admin-credentials
+                      key: admin-password
+                - name: KC_DB
+                  value: "postgres"
+                - name: KC_DB_URL
+                  value: "jdbc:postgresql://postgresql-rw.postgresql.svc.cluster.local:5432/keycloak"
+                - name: KC_DB_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-db-credentials
+                      key: username
+                - name: KC_DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-db-credentials
+                      key: password
+                - name: KC_HEALTH_ENABLED
+                  value: "true"
+                - name: KC_HTTP_ENABLED
+                  value: "true"
+                - name: KC_HTTP_PORT
+                  value: "8080"
+                - name: KC_HTTP_MANAGEMENT_PORT
+                  value: "9000"
+                - name: KC_HOSTNAME_STRICT
+                  value: "false"
+                - name: KC_PROXY_HEADERS
+                  value: "xforwarded"
+                - name: KC_CACHE
+                  value: "local"
+                - name: JAVA_OPTS_APPEND
+                  value: "-Djgroups.dns.query=keycloak-headless.keycloak.svc.cluster.local"
+              ports:
+                - name: http
+                  containerPort: 8080
+                  protocol: TCP
+                - name: management
+                  containerPort: 9000
+                  protocol: TCP
+              startupProbe:
+                httpGet:
+                  path: /health/ready
+                  port: management
+                initialDelaySeconds: 30
+                periodSeconds: 10
+                timeoutSeconds: 5
+                failureThreshold: 12
+              livenessProbe:
+                httpGet:
+                  path: /health/live
+                  port: management
+                initialDelaySeconds: 0
+                periodSeconds: 10
+                timeoutSeconds: 5
+                failureThreshold: 6
+              readinessProbe:
+                httpGet:
+                  path: /health/ready
+                  port: management
+                initialDelaySeconds: 0
+                periodSeconds: 10
+                timeoutSeconds: 5
+                failureThreshold: 6
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 1Gi
+                limits:
+                  cpu: "2"
+                  memory: 2Gi
+              securityContext:
+                runAsUser: 1000
+                runAsGroup: 0
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: false
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+              volumeMounts:
+                - name: realm-import
+                  mountPath: /opt/keycloak/data/import
+                  readOnly: true
+          volumes:
+            - name: realm-import
+              configMap:
+                name: keycloak-realm
+  YAML
 
   depends_on = [
     kubernetes_namespace.keycloak,
     kubernetes_secret.keycloak_admin,
     kubernetes_secret.keycloak_db_copy,
     kubernetes_config_map.keycloak_realm,
+    kubectl_manifest.keycloak_headless_service,
     kubectl_manifest.cnpg_database_bootstrap,
     kubectl_manifest.karpenter_nodepool_stateful,
     kubectl_manifest.karpenter_aksnodeclass_stateful
@@ -269,31 +335,22 @@ resource "null_resource" "keycloak_jwks_wait" {
   count = var.enable_keycloak ? 1 : 0
 
   triggers = {
-    keycloak_release = helm_release.keycloak[0].id
+    keycloak_statefulset = kubectl_manifest.keycloak_statefulset[0].uid
   }
 
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    environment = {
-      KUBECONFIG = var.kubeconfig_path
-    }
-    command = <<-EOT
+    command     = <<-EOT
       set -euo pipefail
-      namespace="keycloak"
-      selector="app.kubernetes.io/instance=keycloak"
-      for _ in {1..60}; do
-        pod=$(kubectl -n "$${namespace}" get pods -l "$${selector}" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
-        if [ -n "$${pod}" ]; then
-          if kubectl -n "$${namespace}" exec "$${pod}" -- /bin/sh -c 'if command -v curl >/dev/null 2>&1; then curl -sf http://localhost:8080/realms/osdu/protocol/openid-connect/certs >/dev/null; elif command -v wget >/dev/null 2>&1; then wget -qO- http://localhost:8080/realms/osdu/protocol/openid-connect/certs >/dev/null; else exit 1; fi'; then
-            exit 0
-          fi
-        fi
-        sleep 10
-      done
-      echo "Keycloak JWKS endpoint not ready" >&2
-      exit 1
+      # Wait for the Keycloak pod to pass its readiness probe (/health/ready).
+      # A Ready pod means Keycloak is serving HTTP including the JWKS endpoint.
+      echo "Waiting for Keycloak pod to become ready..."
+      kubectl wait --for=condition=Ready pod \
+        -n keycloak -l app.kubernetes.io/instance=keycloak \
+        --timeout=600s
+      echo "Keycloak is ready."
     EOT
   }
 
-  depends_on = [helm_release.keycloak]
+  depends_on = [kubectl_manifest.keycloak_statefulset]
 }

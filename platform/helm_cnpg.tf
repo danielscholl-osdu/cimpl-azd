@@ -125,6 +125,9 @@ resource "kubectl_manifest" "postgresql_cluster" {
     spec:
       instances: 3
 
+      # Enable superuser access for database bootstrap operations
+      enableSuperuserAccess: true
+
       # Synchronous replication for HA
       minSyncReplicas: 1
       maxSyncReplicas: 1

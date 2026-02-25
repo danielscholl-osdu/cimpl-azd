@@ -39,8 +39,8 @@ resource "kubectl_manifest" "cnpg_database_bootstrap" {
       name: cnpg-database-bootstrap
       namespace: postgresql
     spec:
-      backoffLimit: 3
-      ttlSecondsAfterFinished: 300
+      backoffLimit: 20
+      ttlSecondsAfterFinished: 600
       template:
         metadata:
           annotations:
@@ -88,32 +88,36 @@ resource "kubectl_manifest" "cnpg_database_bootstrap" {
                 - -ec
               args:
                 - |
-                  psql -v ON_ERROR_STOP=1 \
-                    # TODO: Use secrets management (e.g., Azure Key Vault) for production
-                    -v keycloak_password="$KEYCLOAK_PASSWORD" \
-                    -v airflow_password="$AIRFLOW_PASSWORD" \
-                    <<'SQL'
-                  DO $$
-                  BEGIN
-                    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'keycloak') THEN
-                      EXECUTE format('CREATE ROLE %I WITH LOGIN PASSWORD %L', 'keycloak', :'keycloak_password');
-                    ELSE
-                      EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L', 'keycloak', :'keycloak_password');
-                    END IF;
-                    IF NOT EXISTS (SELECT FROM pg_database WHERE datname = 'keycloak') THEN
-                      EXECUTE 'CREATE DATABASE keycloak OWNER keycloak';
-                    END IF;
-                    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'airflow') THEN
-                      EXECUTE format('CREATE ROLE %I WITH LOGIN PASSWORD %L', 'airflow', :'airflow_password');
-                    ELSE
-                      EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L', 'airflow', :'airflow_password');
-                    END IF;
-                    IF NOT EXISTS (SELECT FROM pg_database WHERE datname = 'airflow') THEN
-                      EXECUTE 'CREATE DATABASE airflow OWNER airflow';
-                    END IF;
-                  END
-                  $$;
-                  SQL
+                  echo "Waiting for PostgreSQL to accept connections..."
+                  for i in $(seq 1 60); do
+                    if pg_isready -h "$PGHOST" -U "$PGUSER" 2>/dev/null; then
+                      echo "PostgreSQL is ready."
+                      break
+                    fi
+                    echo "  attempt $i/60 - not ready, waiting 10s..."
+                    sleep 10
+                  done
+
+                  create_role_and_db() {
+                    local role="$1" password="$2" dbname="$3"
+                    if psql -tAc "SELECT 1 FROM pg_roles WHERE rolname = '$role'" | grep -q 1; then
+                      echo "Role $role exists, updating password..."
+                      psql -c "ALTER ROLE $role WITH LOGIN PASSWORD '$password'"
+                    else
+                      echo "Creating role $role..."
+                      psql -c "CREATE ROLE $role WITH LOGIN PASSWORD '$password'"
+                    fi
+                    if psql -tAc "SELECT 1 FROM pg_database WHERE datname = '$dbname'" | grep -q 1; then
+                      echo "Database $dbname already exists."
+                    else
+                      echo "Creating database $dbname..."
+                      psql -c "CREATE DATABASE $dbname OWNER $role"
+                    fi
+                  }
+
+                  create_role_and_db keycloak "$KEYCLOAK_PASSWORD" keycloak
+                  create_role_and_db airflow "$AIRFLOW_PASSWORD" airflow
+                  echo "Database bootstrap complete."
               resources:
                 requests:
                   cpu: 50m
