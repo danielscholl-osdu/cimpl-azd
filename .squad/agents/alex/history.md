@@ -98,3 +98,9 @@
 - EDS-DMS: `0.0.7-latest` (also `0.29.0`)
 
 This unblocks #85, #98, #99, #100, #103.
+
+### 2026-02-25: OSDU service postrender framework wired for Partition
+
+- Added `platform/helm_partition.tf` with Helm v3 postrender using `/usr/bin/env` to pass `SERVICE_NAME=partition` into `platform/kustomize/postrender.sh`.
+- Shared kustomize components live under `platform/kustomize/components/`, with per-service overlays in `platform/kustomize/services/<service>/`.
+- Partition bootstrap image is pinned to the same tag as the main service image (`67dedce7`) to avoid `:latest` on AKS Automatic.
