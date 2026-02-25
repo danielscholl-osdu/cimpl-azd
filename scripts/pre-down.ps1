@@ -47,6 +47,7 @@ else {
     }
     else {
         $subArgs = if (-not [string]::IsNullOrEmpty($dnsSub)) { @("--subscription", $dnsSub) } else { @() }
+        $ownerPattern = "external-dns/owner=$([regex]::Escape($clusterName))(,|$)"
 
         # List TXT record sets and find those owned by this cluster
         $txtJson = az network dns record-set txt list -g $dnsRg -z $dnsZone @subArgs -o json 2>$null
@@ -64,7 +65,7 @@ else {
             if ($rec.name -eq "@") { continue }
             foreach ($entry in $rec.txtRecords) {
                 $val = ($entry.value -join "")
-                if ($val -match "external-dns/owner=$clusterName") {
+                if ($val -match $ownerPattern) {
                     [void]$ownedNames.Add($rec.name)
                     break
                 }
@@ -87,6 +88,18 @@ else {
                     }
                     else {
                         Write-Host "  Removed: $name.$dnsZone (A)" -ForegroundColor Gray
+                    }
+                }
+
+                # Delete the CNAME record if it exists
+                $cnameExists = az network dns record-set cname show -g $dnsRg -z $dnsZone -n $name @subArgs 2>$null
+                if ($LASTEXITCODE -eq 0 -and $cnameExists) {
+                    az network dns record-set cname delete -g $dnsRg -z $dnsZone -n $name @subArgs -y 2>$null | Out-Null
+                    if ($LASTEXITCODE -ne 0) {
+                        Write-Host "  WARNING: Failed to delete CNAME record $name.$dnsZone" -ForegroundColor Yellow
+                    }
+                    else {
+                        Write-Host "  Removed: $name.$dnsZone (CNAME)" -ForegroundColor Gray
                     }
                 }
 
