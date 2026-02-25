@@ -52,3 +52,4 @@ Create ADRs for:
 | [0008](0008-selective-istio-sidecar-injection.md) | Selective Istio sidecar injection due to AKS constraints | Accepted |
 | [0009](0009-workload-identity-for-dns-management.md) | Workload Identity for cross-subscription DNS management | Accepted |
 | [0010](0010-unique-service-selector-label-pattern.md) | UniqueServiceSelector compliance via label differentiation | Accepted |
+| [0011](0011-airflow-kubernetes-executor-with-nap.md) | KubernetesExecutor for Airflow with NAP task pod scaling | Accepted |

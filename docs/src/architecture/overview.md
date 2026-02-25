@@ -20,7 +20,10 @@ This document describes the architecture and design decisions for the CIMPL AKS 
 │  │  │  │             │  │             │  │                         │   │ │  │
 │  │  │  │ - Istio     │  │ - MinIO     │  │ - Elasticsearch (3)     │   │ │  │
 │  │  │  │ - CoreDNS   │  │ - cert-mgr  │  │ - PostgreSQL HA (3)     │   │ │  │
-│  │  │  │ - Gateway   │  │             │  │ - Kibana (1)            │   │ │  │
+│  │  │  │ - Gateway   │  │ - Airflow   │  │ - Redis                 │   │ │  │
+│  │  │  │             │  │   task pods │  │ - Airflow (sched/web)   │   │ │  │
+│  │  │  │             │  │             │  │ - Keycloak              │   │ │  │
+│  │  │  │             │  │             │  │ - Kibana (1)            │   │ │  │
 │  │  │  └─────────────┘  └─────────────┘  └─────────────────────────┘   │ │  │
 │  │  │                                                                  │ │  │
 │  │  │  ┌──────────────────────────────────────────────────────────────┐│ │  │
@@ -75,6 +78,9 @@ service_mesh_profile = { mode = "Istio" }
 - ECK Operator + Elasticsearch + Kibana
 - Elastic Bootstrap job (index templates, ILM policies, aliases)
 - CloudNativePG (CNPG) Operator + 3-instance HA PostgreSQL cluster
+- Redis (Bitnami chart, cache layer)
+- Apache Airflow 3.1.7 (KubernetesExecutor, official chart)
+- Keycloak 26.5.4 (Bitnami chart, official image)
 - MinIO (standalone, S3-compatible object storage)
 - Gateway API configuration (Istio)
 - Karpenter NodePool + AKSNodeClass for stateful workloads (NAP)
@@ -130,8 +136,8 @@ AKS Automatic provides:
 | Pool | Purpose | VM Size | Count | Taints | Managed By |
 |------|---------|---------|-------|--------|------------|
 | system | Critical system components | `var.system_pool_vm_size` (default: Standard_D4lds_v5) | 2 | CriticalAddonsOnly | AKS (VMSS) |
-| default | General workloads (MinIO) | Auto-provisioned | Auto | None | NAP (Karpenter) |
-| stateful | Elasticsearch + PostgreSQL | D-series (4-8 vCPU) | Auto | workload=stateful:NoSchedule | NAP (Karpenter) |
+| default | General workloads (MinIO, Airflow task pods) | Auto-provisioned | Auto | None | NAP (Karpenter) |
+| stateful | Elasticsearch, PostgreSQL, Redis, Airflow, Keycloak | D-series (4-8 vCPU) | Auto | workload=stateful:NoSchedule | NAP (Karpenter) |
 
 **System Pool Variables**:
 - `system_pool_vm_size` — VM SKU for system nodes (default: `Standard_D4lds_v5`)
@@ -314,6 +320,55 @@ RabbitMQ cluster for async messaging (OSDU service broker).
 - Node affinity: `agentpool=stateful` with `workload=stateful:NoSchedule` toleration
 - No Istio sidecar injection (NET_ADMIN blocked by AKS Automatic — see [ADR-0008](../decisions/0008-selective-istio-sidecar-injection.md))
 
+### Apache Airflow
+
+Workflow orchestration engine for DAG-based task scheduling, deployed using the official Apache Airflow Helm chart (see [ADR-0011](../decisions/0011-airflow-kubernetes-executor-with-nap.md)).
+
+**Configuration**:
+- Chart: `apache-airflow/airflow` v1.19.0 (official, from `https://airflow.apache.org`)
+- Image: `apache/airflow:3.1.7`
+- Executor: **KubernetesExecutor** (creates a pod per task, no persistent workers)
+- Database: PostgreSQL (`airflow` DB via CNPG bootstrap job)
+- Namespace: `airflow` (Istio STRICT mTLS)
+- Node affinity: `agentpool=stateful` with `workload=stateful:NoSchedule` toleration
+
+**Components** (all on stateful nodepool):
+
+| Component | Replicas | Purpose |
+|-----------|----------|---------|
+| Webserver | 1 | Airflow UI |
+| API Server | 1 | REST API (new in Airflow 3.x) |
+| Scheduler | 1 | DAG parsing and task scheduling |
+| Triggerer | 1 | Async deferred task execution |
+
+**Task Pod Scaling via NAP**:
+
+With KubernetesExecutor, each DAG task runs as an ephemeral pod. These task pods have no tolerations or nodeSelector, so they land on the **default** node pool where Karpenter NAP auto-provisions right-sized nodes on demand:
+
+```
+DAG task triggers
+  → Scheduler creates task pod (no tolerations)
+  → Pod goes Pending on default pool
+  → NAP provisions a node sized for the task
+  → Task runs → pod completes
+  → Node consolidates after idle timeout
+```
+
+This provides **scale-to-zero for DAG execution** — compute cost is incurred only when tasks are running. For specialized workloads (e.g., GPU tasks), a custom Karpenter NodePool can be created and targeted via the KubernetesExecutor pod template.
+
+### Keycloak
+
+Identity provider for authentication and authorization, deployed using the Bitnami Helm chart with the official Keycloak image from `quay.io`.
+
+**Configuration**:
+- Chart: `bitnamicharts/keycloak` v25.3.2 (Bitnami, OCI registry)
+- Image: `quay.io/keycloak/keycloak:26.5.4` (official; Bitnami free images deprecated Aug 2025)
+- Database: PostgreSQL (`keycloak` DB via CNPG bootstrap job)
+- Namespace: `keycloak` (Istio STRICT mTLS)
+- Internal-only: No HTTPRoute/Gateway exposure; access via `kubectl port-forward`
+- OSDU realm auto-imported at startup via `--import-realm`
+- Node affinity: `agentpool=stateful` with `workload=stateful:NoSchedule` toleration
+
 ### MinIO
 
 MinIO standalone instance for S3-compatible object storage (dev/test).
@@ -392,11 +447,13 @@ Gatekeeper policies enforcing:
 
 ### Istio STRICT mTLS
 
-The Elasticsearch (`elasticsearch`), PostgreSQL (`postgresql`), and Redis (`redis`) data namespaces have Istio STRICT mTLS enforced via `PeerAuthentication` resources. Elasticsearch uses ECK self-signed TLS for HTTP transport in addition to mesh-layer encryption (see [ADR-0007](../decisions/0007-eck-self-signed-tls-for-elasticsearch.md)). RabbitMQ does **not** have Istio sidecar injection because AKS Automatic blocks the `NET_ADMIN` capability required by `istio-init` (see [ADR-0008](../decisions/0008-selective-istio-sidecar-injection.md)).
+The Elasticsearch (`elasticsearch`), PostgreSQL (`postgresql`), Redis (`redis`), Airflow (`airflow`), and Keycloak (`keycloak`) namespaces have Istio STRICT mTLS enforced via `PeerAuthentication` resources. Elasticsearch uses ECK self-signed TLS for HTTP transport in addition to mesh-layer encryption (see [ADR-0007](../decisions/0007-eck-self-signed-tls-for-elasticsearch.md)). RabbitMQ does **not** have Istio sidecar injection because AKS Automatic blocks the `NET_ADMIN` capability required by `istio-init` (see [ADR-0008](../decisions/0008-selective-istio-sidecar-injection.md)).
 
 - Elasticsearch: `PeerAuthentication` managed in `platform/helm_elastic.tf` (+ ECK self-signed TLS)
 - PostgreSQL: `PeerAuthentication` managed in `platform/helm_cnpg.tf`
 - Redis: `PeerAuthentication` managed in `platform/helm_redis.tf`
+- Airflow: `PeerAuthentication` managed in `platform/helm_airflow.tf`
+- Keycloak: `PeerAuthentication` managed in `platform/helm_keycloak.tf`
 - RabbitMQ: No Istio injection (ambient mode aspiration — see ADR-0008)
 
 ### Network Security
@@ -434,6 +491,12 @@ MinIO Client:
 
 Elasticsearch Client:
   Pod ──► elasticsearch-es-http.elasticsearch.svc.cluster.local:9200 ──► ES Pods
+
+Airflow Webserver:
+  Pod ──► airflow-webserver.airflow.svc.cluster.local:8080 ──► Webserver Pod
+
+Keycloak (internal-only):
+  Pod ──► keycloak.keycloak.svc.cluster.local:8080 ──► Keycloak Pod
 ```
 
 ---
@@ -526,7 +589,7 @@ All resources follow the pattern: `<prefix>-<project>-<environment>`
 | Resource Group | `rg-cimpl-<env>` | rg-cimpl-dev |
 | AKS Cluster | `cimpl-<env>` | cimpl-dev |
 | Node Pools | `system`, `stateful` | - |
-| Namespaces | Descriptive | platform, elasticsearch, postgresql, redis, rabbitmq |
+| Namespaces | Descriptive | platform, elasticsearch, postgresql, redis, rabbitmq, airflow, keycloak |
 
 ### Tagging Strategy
 

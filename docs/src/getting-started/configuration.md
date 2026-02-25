@@ -41,14 +41,17 @@
 
 ## Platform Components
 
-| Component | Version | Storage |
-|-----------|---------|---------|
-| Elasticsearch | 8.15.2 | 3x 128Gi Premium SSD |
-| Kibana | 8.15.2 | — |
-| PostgreSQL (CNPG) | 17 | 3x 8Gi + 4Gi WAL |
-| RabbitMQ | 4.1.0 | 3x 8Gi managed-csi-premium |
-| MinIO | Latest | 10Gi managed-csi |
-| cert-manager | 1.16.2 | — |
+| Component | Version | Storage | Enable Flag |
+|-----------|---------|---------|-------------|
+| Elasticsearch | 8.15.2 | 3x 128Gi Premium SSD | `enable_elasticsearch` (default: true) |
+| Kibana | 8.15.2 | — | (with Elasticsearch) |
+| PostgreSQL (CNPG) | 17 | 3x 8Gi + 4Gi WAL | `enable_postgresql` (default: true) |
+| RabbitMQ | 4.1.0 | 3x 8Gi managed-csi-premium | `enable_rabbitmq` (default: true) |
+| Redis | latest | — | `enable_redis` (default: true) |
+| MinIO | Latest | 10Gi managed-csi | `enable_minio` (default: true) |
+| cert-manager | 1.16.2 | — | `enable_cert_manager` (default: true) |
+| Airflow | 3.1.7 | — (uses PostgreSQL) | `enable_airflow` (default: false) |
+| Keycloak | 26.5.4 | — (uses PostgreSQL) | `enable_keycloak` (default: false) |
 
 ## Deployment Flow
 
