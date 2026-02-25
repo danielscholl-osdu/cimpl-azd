@@ -67,6 +67,12 @@ variable "enable_rabbitmq" {
   default     = true
 }
 
+variable "enable_airflow" {
+  description = "Enable Airflow deployment"
+  type        = bool
+  default     = false
+}
+
 variable "enable_cert_manager" {
   description = "Enable cert-manager deployment"
   type        = bool
@@ -75,6 +81,12 @@ variable "enable_cert_manager" {
 
 variable "enable_gateway" {
   description = "Enable Gateway API resources"
+  type        = bool
+  default     = true
+}
+
+variable "enable_public_ingress" {
+  description = "Expose Istio ingress gateway via public LoadBalancer (false = internal-only)"
   type        = bool
   default     = true
 }

@@ -20,8 +20,8 @@ resource "kubectl_manifest" "gateway_api_crds" {
   server_side_apply = true
 }
 
-# Ensure the AKS-managed Istio ingress gateway service uses a public LoadBalancer.
-# AKS Automatic may default to internal LBs; this annotation overrides that.
+# Ensure the AKS-managed Istio ingress gateway service uses the desired LoadBalancer type.
+# AKS Automatic may default to internal LBs; this annotation explicitly sets public or internal.
 resource "kubernetes_annotations" "istio_gateway_public" {
   count       = var.enable_gateway ? 1 : 0
   api_version = "v1"
@@ -31,7 +31,7 @@ resource "kubernetes_annotations" "istio_gateway_public" {
     namespace = "aks-istio-ingress"
   }
   annotations = {
-    "service.beta.kubernetes.io/azure-load-balancer-internal" = "false"
+    "service.beta.kubernetes.io/azure-load-balancer-internal" = var.enable_public_ingress ? "false" : "true"
   }
   force = true
 }

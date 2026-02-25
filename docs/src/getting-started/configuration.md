@@ -10,6 +10,7 @@
 | `TF_VAR_dns_zone_resource_group` | Yes | Resource group containing the DNS zone |
 | `TF_VAR_dns_zone_subscription_id` | Yes | Subscription ID containing the DNS zone |
 | `CIMPL_INGRESS_PREFIX` | No | Ingress hostname prefix (auto-generated if not set) |
+| `TF_VAR_enable_public_ingress` | No | Expose Istio ingress via public LoadBalancer (default: true). Set false for internal-only access within the VNet. |
 | `TF_VAR_postgresql_password` | No | PostgreSQL admin password (auto-generated if not set) |
 | `TF_VAR_keycloak_db_password` | No | Keycloak database password (auto-generated if not set) |
 | `TF_VAR_airflow_db_password` | No | Airflow database password (auto-generated if not set) |
@@ -24,6 +25,9 @@
 | `TF_VAR_enable_common` | No | Enable OSDU common namespace resources (default: true) |
 | `AZURE_LOCATION` | No | Azure region (default: eastus2) |
 
+!!! warning "Security note"
+    Public ingress exposes the Istio gateway to the internet. Set `TF_VAR_enable_public_ingress=false` to use an internal LoadBalancer limited to the VNet.
+
 ## AKS Cluster Specifications
 
 | Setting | Value |
@@ -37,14 +41,17 @@
 
 ## Platform Components
 
-| Component | Version | Storage |
-|-----------|---------|---------|
-| Elasticsearch | 8.15.2 | 3x 128Gi Premium SSD |
-| Kibana | 8.15.2 | — |
-| PostgreSQL (CNPG) | 17 | 3x 8Gi + 4Gi WAL |
-| RabbitMQ | 4.1.0 | 3x 8Gi managed-csi-premium |
-| MinIO | Latest | 10Gi managed-csi |
-| cert-manager | 1.16.2 | — |
+| Component | Version | Storage | Enable Flag |
+|-----------|---------|---------|-------------|
+| Elasticsearch | 8.15.2 | 3x 128Gi Premium SSD | `enable_elasticsearch` (default: true) |
+| Kibana | 8.15.2 | — | (with Elasticsearch) |
+| PostgreSQL (CNPG) | 17 | 3x 8Gi + 4Gi WAL | `enable_postgresql` (default: true) |
+| RabbitMQ | 4.1.0 | 3x 8Gi managed-csi-premium | `enable_rabbitmq` (default: true) |
+| Redis | latest | — | `enable_redis` (default: true) |
+| MinIO | Latest | 10Gi managed-csi | `enable_minio` (default: true) |
+| cert-manager | 1.16.2 | — | `enable_cert_manager` (default: true) |
+| Airflow | 3.1.7 | — (uses PostgreSQL) | `enable_airflow` (default: false) |
+| Keycloak | 26.5.4 | — (uses PostgreSQL) | `enable_keycloak` (default: false) |
 
 ## Deployment Flow
 

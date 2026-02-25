@@ -110,6 +110,9 @@ if ([string]::IsNullOrEmpty($acmeEmail)) {
 $useLetsencryptProd = $env:TF_VAR_use_letsencrypt_production
 if ([string]::IsNullOrEmpty($useLetsencryptProd)) { $useLetsencryptProd = "false" }
 
+$enablePublicIngress = $env:TF_VAR_enable_public_ingress
+if ([string]::IsNullOrEmpty($enablePublicIngress)) { $enablePublicIngress = "true" }
+
 $dnsZoneName = $env:TF_VAR_dns_zone_name
 $dnsZoneRg = $env:TF_VAR_dns_zone_resource_group
 $dnsZoneSubId = $env:TF_VAR_dns_zone_subscription_id
@@ -195,6 +198,7 @@ terraform apply -auto-approve `
     -var="resource_group_name=$resourceGroup" `
     -var="acme_email=$acmeEmail" `
     -var="ingress_prefix=$ingressPrefix" `
+    -var="enable_public_ingress=$enablePublicIngress" `
     -var="use_letsencrypt_production=$useLetsencryptProd" `
     -var="enable_external_dns=$enableExternalDns" `
     -var="dns_zone_name=$dnsZoneName" `
