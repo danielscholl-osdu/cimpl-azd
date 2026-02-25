@@ -67,3 +67,34 @@
 📌 **2026-02-17:** User directive for OCI registry sourcing merged — service charts/images pull from OSDU community repositories in GitLab (community.opengroup.org).
 
 📌 **2026-02-17:** GitHub issues logged and organized (#78–#105) for Phase 0.5–5 migration. Alex assigned 20 issues (Phase 2–5 OSDU services: Partition, Entitlements, Legal, Schema, Storage, Search, Indexer, File, Notification, Dataset, Register, Policy, Secret, Unit, Workflow, Wellbore, Wellbore Worker, CRS Conversion, CRS Catalog, EDS-DMS, Bootstrap Data).
+
+### 2026-02-25: #108 Resolved — All 5 Missing Image Tags Found
+
+**Prerequisite:** `helm registry login community.opengroup.org:5555` required before pulling charts.
+
+**Key finding:** These 5 services use `cimpl-*-release` image names (NOT `core-plus-*-release` like the other 15 services). Entitlements specifically uses `cimpl-entitlements-v2-release` (v2 variant).
+
+**Pinned image tags (latest available):**
+
+| Service | Image Name | Tag |
+|---------|-----------|-----|
+| Entitlements | `cimpl-entitlements-v2-release` | `da367b9f` |
+| Workflow | `cimpl-workflow-release` | `f91c585a` |
+| Wellbore | `cimpl-wellbore-release` | `f05e5a98` |
+| Wellbore Worker | `cimpl-wellbore-worker-release` | `f7f46dc6` |
+| EDS-DMS | `cimpl-eds-dms-release` | `f3df61a9` |
+
+**Full registry paths (for Terraform modules):**
+- Entitlements: `community.opengroup.org:5555/osdu/platform/security-and-compliance/entitlements/cimpl-entitlements-v2-release:da367b9f`
+- Workflow: `community.opengroup.org:5555/osdu/platform/data-flow/ingestion/ingestion-workflow/cimpl-workflow-release:f91c585a`
+- Wellbore: `community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/wellbore/wellbore-domain-services/cimpl-wellbore-release:f05e5a98`
+- Wellbore Worker: `community.opengroup.org:5555/osdu/platform/domain-data-mgmt-services/wellbore/wellbore-domain-services-worker/cimpl-wellbore-worker-release:f7f46dc6`
+- EDS-DMS: `community.opengroup.org:5555/osdu/platform/data-flow/ingestion/external-data-sources/eds-dms/cimpl-eds-dms-release:f3df61a9`
+
+**Helm chart versions:**
+- Entitlements: `0.0.7-cimpl993f5ece` (ROSA default)
+- Workflow/Wellbore: `0.0.7-latest` (200+ cimpl versions available)
+- Wellbore Worker: `0.0.7-latest` (also `0.29.0`, `0.29.1`, `0.29.2`)
+- EDS-DMS: `0.0.7-latest` (also `0.29.0`)
+
+This unblocks #85, #98, #99, #100, #103.
