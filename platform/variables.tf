@@ -67,6 +67,12 @@ variable "enable_rabbitmq" {
   default     = true
 }
 
+variable "enable_keycloak" {
+  description = "Enable Keycloak deployment"
+  type        = bool
+  default     = false
+}
+
 variable "enable_airflow" {
   description = "Enable Airflow deployment"
   type        = bool
@@ -182,6 +188,13 @@ variable "keycloak_db_password" {
   description = "Keycloak database password"
   type        = string
   sensitive   = true
+}
+
+variable "keycloak_admin_password" {
+  description = "Keycloak admin password (auto-generated if unset)"
+  type        = string
+  sensitive   = true
+  default     = ""
 }
 
 variable "airflow_db_password" {

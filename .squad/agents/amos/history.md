@@ -18,6 +18,11 @@
 
 ## Learnings
 
+### 2026-03-12: Keycloak on AKS (Issue #79)
+- Added `platform/helm_keycloak.tf` using Bitnami Keycloak chart with pinned bitnamilegacy image, Istio mTLS, stateful node affinity, and AKS safeguards settings.
+- Keycloak uses CNPG external PostgreSQL (`postgresql-rw.postgresql.svc.cluster.local`) with a secret copied into the `keycloak` namespace; admin password auto-generates via `random_password` when unset.
+- Realm import is handled by `KEYCLOAK_EXTRA_ARGS=--import-realm` with a `keycloak-realm` ConfigMap, and a JWKS readiness gate polls `/realms/osdu/protocol/openid-connect/certs`.
+
 ### 2025-07-18: Common Chart Investigation (Q1)
 - **Chart**: `common-infra-bootstrap` from OCI registry `community.opengroup.org:5555/osdu/platform/deployment-and-operations/base-containers-cimpl/common-infra-bootstrap/cimpl-helm`
 - **Version used on ROSA**: `0.0.7-4eccc54d`
