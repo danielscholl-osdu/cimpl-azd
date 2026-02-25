@@ -10,6 +10,7 @@
 | `TF_VAR_dns_zone_resource_group` | Yes | Resource group containing the DNS zone |
 | `TF_VAR_dns_zone_subscription_id` | Yes | Subscription ID containing the DNS zone |
 | `CIMPL_INGRESS_PREFIX` | No | Ingress hostname prefix (auto-generated if not set) |
+| `TF_VAR_enable_public_ingress` | No | Expose Istio ingress via public LoadBalancer (default: true). Set false for internal-only access within the VNet. |
 | `TF_VAR_postgresql_password` | No | PostgreSQL admin password (auto-generated if not set) |
 | `TF_VAR_keycloak_db_password` | No | Keycloak database password (auto-generated if not set) |
 | `TF_VAR_airflow_db_password` | No | Airflow database password (auto-generated if not set) |
@@ -23,6 +24,9 @@
 | `TF_VAR_cimpl_tenant` | No | CIMPL data partition ID (default: osdu) |
 | `TF_VAR_enable_common` | No | Enable OSDU common namespace resources (default: true) |
 | `AZURE_LOCATION` | No | Azure region (default: eastus2) |
+
+!!! warning "Security note"
+    Public ingress exposes the Istio gateway to the internet. Set `TF_VAR_enable_public_ingress=false` to use an internal LoadBalancer limited to the VNet.
 
 ## AKS Cluster Specifications
 

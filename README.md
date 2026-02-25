@@ -33,6 +33,8 @@ azd up
 azd down --force --purge
 ```
 
+Ingress defaults to a public LoadBalancer. Set `TF_VAR_enable_public_ingress=false` for internal-only access within the VNet.
+
 See the [Quick Start guide](https://azure.github.io/cimpl-azd/getting-started/quickstart/) for full instructions and the [Configuration Reference](https://azure.github.io/cimpl-azd/getting-started/configuration/) for all environment variables.
 
 ## Contributing

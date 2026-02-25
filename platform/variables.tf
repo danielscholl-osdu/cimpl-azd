@@ -79,6 +79,12 @@ variable "enable_gateway" {
   default     = true
 }
 
+variable "enable_public_ingress" {
+  description = "Expose Istio ingress gateway via public LoadBalancer (false = internal-only)"
+  type        = bool
+  default     = true
+}
+
 variable "enable_common" {
   description = "Enable OSDU common namespace resources"
   type        = bool

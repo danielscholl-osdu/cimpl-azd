@@ -19,3 +19,4 @@
 - Pre-down cleanup in scripts/pre-down.ps1 identifies ExternalDNS-owned records via TXT `external-dns/owner=<cluster>` stamps and removes A/CNAME/TXT entries for the cluster.
 - infra/main.tfvars.json must map DNS_ZONE_* variables for azd to pass DNS zone values to infra Terraform.
 - scripts/pre-provision.ps1 sets both TF_VAR_dns_zone_* and DNS_ZONE_* env vars for ExternalDNS configuration.
+- TF_VAR_enable_public_ingress (default true) toggles the Istio ingress LoadBalancer via platform/k8s_gateway.tf and is passed through pre-provision/deploy-platform scripts.

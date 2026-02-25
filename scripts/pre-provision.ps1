@@ -163,6 +163,18 @@ else {
     Write-Host " $ingressPrefix" -ForegroundColor Green
 }
 
+# --- TF_VAR_enable_public_ingress: default to true (public LB) ---
+$enablePublicIngress = [Environment]::GetEnvironmentVariable("TF_VAR_enable_public_ingress")
+Write-Host "  TF_VAR_enable_public_ingress..." -NoNewline
+if ([string]::IsNullOrEmpty($enablePublicIngress)) {
+    azd env set TF_VAR_enable_public_ingress "true" 2>$null
+    Write-Host " using default (true = public LB)" -ForegroundColor Green
+    Write-Host "    Set to false for internal-only ingress" -ForegroundColor Gray
+}
+else {
+    Write-Host " $enablePublicIngress" -ForegroundColor Green
+}
+
 # --- TF_VAR_use_letsencrypt_production: default to false (staging) ---
 $useProd = [Environment]::GetEnvironmentVariable("TF_VAR_use_letsencrypt_production")
 Write-Host "  TF_VAR_use_letsencrypt_production..." -NoNewline
