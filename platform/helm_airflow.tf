@@ -88,10 +88,85 @@ resource "helm_release" "airflow" {
         db: airflow
 
     # Disable Helm hooks for Terraform compatibility
+    # Add resource requests for AKS Deployment Safeguards compliance
     createUserJob:
       useHelmHooks: false
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+        limits:
+          cpu: "1"
+          memory: 1Gi
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: stateful
+          effect: NoSchedule
+      nodeSelector:
+        agentpool: stateful
     migrateDatabaseJob:
       useHelmHooks: false
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+        limits:
+          cpu: "1"
+          memory: 1Gi
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: stateful
+          effect: NoSchedule
+      nodeSelector:
+        agentpool: stateful
+
+    # Log groomer sidecar resource requests (AKS Safeguards)
+    # Airflow 3.x Python runtime needs ~200Mi just to start
+    logGroomerSidecar:
+      resources:
+        requests:
+          cpu: 25m
+          memory: 128Mi
+        limits:
+          cpu: 100m
+          memory: 256Mi
+
+    # Init container for waiting on migrations (AKS Safeguards)
+    waitForMigrations:
+      resources:
+        requests:
+          cpu: 25m
+          memory: 128Mi
+        limits:
+          cpu: 100m
+          memory: 256Mi
+
+    # DAG processor
+    dagProcessor:
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          cpu: "1"
+          memory: 1Gi
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: stateful
+          effect: NoSchedule
+      nodeSelector:
+        agentpool: stateful
+      logGroomerSidecar:
+        resources:
+          requests:
+            cpu: 25m
+            memory: 128Mi
+          limits:
+            cpu: 100m
+            memory: 256Mi
 
     # Disable internal PostgreSQL and Redis
     postgresql:
@@ -155,6 +230,14 @@ resource "helm_release" "airflow" {
         limits:
           cpu: "1"
           memory: 1Gi
+      logGroomerSidecar:
+        resources:
+          requests:
+            cpu: 25m
+            memory: 128Mi
+          limits:
+            cpu: 100m
+            memory: 256Mi
       tolerations:
         - key: workload
           operator: Equal
@@ -173,6 +256,14 @@ resource "helm_release" "airflow" {
         limits:
           cpu: "1"
           memory: 1Gi
+      logGroomerSidecar:
+        resources:
+          requests:
+            cpu: 25m
+            memory: 128Mi
+          limits:
+            cpu: 100m
+            memory: 256Mi
       tolerations:
         - key: workload
           operator: Equal

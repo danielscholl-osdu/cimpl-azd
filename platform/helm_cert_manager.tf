@@ -36,6 +36,12 @@ resource "helm_release" "cert_manager" {
       name  = "config.enableGatewayAPI"
       value = "true"
     },
+    # AKS Automatic protects kube-system via ValidatingAdmissionPolicy.
+    # Move leader election to the platform namespace to avoid denial.
+    {
+      name  = "global.leaderElection.namespace"
+      value = "platform"
+    },
     # Controller resources (AKS Automatic safeguards compliance)
     {
       name  = "resources.requests.cpu"

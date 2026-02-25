@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak
+spec:
+  template:
+    metadata:
+      labels:
+        # Add unique label to differentiate service selectors (ADR-0010)
+        keycloak.service/variant: http
