@@ -107,3 +107,18 @@ Scribe merges inbox entries here and deduplicates.
 **By:** Alex (Services Dev)
 **What:** Established shared kustomize postrender framework for all OSDU services. Implementation: (1) Helm postrender uses `/usr/bin/env` to pass `SERVICE_NAME=<service>` to `platform/kustomize/postrender.sh`, (2) Shared kustomize components (`platform/kustomize/components/`) provide generic probe/resource/seccomp patches, (3) Per-service overlays in `platform/kustomize/services/<service>/` customize patches as needed, (4) Partition bootstrap image pinned to main service tag (`67dedce7`) instead of `:latest`. Pilot implementation: `platform/helm_partition.tf` with full postrender wiring.
 **Why:** Eliminates need for 20+ individual postrender wrapper scripts. All OSDU services have zero probes/resources/seccomp in their OCI charts (confirmed during #108 investigation), so AKS Automatic Gatekeeper will reject them unless patches are applied. This pattern is reusable and scales to all Phase 2–5 services.
+
+### 2026-02-25: Keycloak realm import strategy (#79)
+**By:** Amos (Platform Dev)
+**What:** Keycloak deployed on AKS with realm import via ConfigMap mounting instead of risky keycloak-config-cli Job. Built-in realm import enabled by setting `KEYCLOAK_EXTRA_ARGS=--import-realm` and mounting realm JSON at `/opt/bitnami/keycloak/data/import`. Realm configuration lives in `platform/helm_keycloak.tf` as a ConfigMap resource.
+**Why:** AKS Automatic safeguards reject Jobs without probes, making keycloak-config-cli risky. Built-in import is native to Keycloak and runs inside the primary pod, avoiding Job creation. This is safer and simpler for Terraform-managed realm lifecycle.
+
+### 2026-02-25: Airflow deployment on AKS (#81)
+**By:** Amos (Platform Dev)
+**What:** Deploy Apache Airflow using the official apache-airflow/airflow Helm chart with external Redis (`redis-master.redis.svc.cluster.local:6379`) and PostgreSQL (`postgresql-rw.postgresql.svc.cluster.local:5432`) backends. Avoid Bitnami chart (used in ROSA) and community chart (used in osdu-developer). Use KubernetesExecutor (not Celery), schedule on stateful pool, enforce AKS safeguards via explicit probes/resources/security context.
+**Why:** Official Apache chart has better upstream support, cleaner values structure, and aligns with existing AKS infrastructure patterns. Disables internal Redis/PostgreSQL subcharts to use existing deployments. Matches tier 2 middleware architecture where Airflow is a platform component alongside Elasticsearch, PostgreSQL, and MinIO.
+
+### 2026-02-25: Public ingress toggle for Istio Gateway (#69)
+**By:** Naomi (Infra Dev)
+**What:** Added `enable_public_ingress` variable to `platform/k8s_gateway.tf`. When `true`, Istio Gateway exposes HTTPS on port 443 (public internet). When `false`, Gateway is disabled (`disabled = true`) for private/dev environments. VirtualServices remain deployed regardless of gateway state.
+**Why:** Enables environment-specific ingress strategy without tearing down services. Production uses public HTTPS; dev/staging can use private HTTP via kubectl port-forward. Terraform-native control without external gateway overrides.

@@ -13,6 +13,7 @@
 | `TF_VAR_enable_public_ingress` | No | Expose Istio ingress via public LoadBalancer (default: true). Set false for internal-only access within the VNet. |
 | `TF_VAR_postgresql_password` | No | PostgreSQL admin password (auto-generated if not set) |
 | `TF_VAR_keycloak_db_password` | No | Keycloak database password (auto-generated if not set) |
+| `TF_VAR_keycloak_admin_password` | No | Keycloak admin console password (auto-generated if not set) |
 | `TF_VAR_airflow_db_password` | No | Airflow database password (auto-generated if not set) |
 | `TF_VAR_minio_root_user` | No | MinIO root username (default: minioadmin) |
 | `TF_VAR_minio_root_password` | No | MinIO root password (auto-generated if not set) |

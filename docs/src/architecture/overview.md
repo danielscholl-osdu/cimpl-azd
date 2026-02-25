@@ -358,7 +358,7 @@ This provides **scale-to-zero for DAG execution** — compute cost is incurred o
 
 ### Keycloak
 
-Identity provider for authentication and authorization, deployed using the Bitnami Helm chart with the official Keycloak image from `quay.io`.
+Identity provider for authentication and authorization, deployed using the Bitnami Helm chart with the official Keycloak image from `quay.io` (see [ADR-0012](../decisions/0012-bitnami-chart-with-official-keycloak-image.md)).
 
 **Configuration**:
 - Chart: `bitnamicharts/keycloak` v25.3.2 (Bitnami, OCI registry)
@@ -368,6 +368,7 @@ Identity provider for authentication and authorization, deployed using the Bitna
 - Internal-only: No HTTPRoute/Gateway exposure; access via `kubectl port-forward`
 - OSDU realm auto-imported at startup via `--import-realm`
 - Node affinity: `agentpool=stateful` with `workload=stateful:NoSchedule` toleration
+- JWKS readiness gate: `null_resource.keycloak_jwks_wait` polls the OSDU realm JWKS endpoint before downstream services deploy
 
 ### MinIO
 
