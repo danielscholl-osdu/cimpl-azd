@@ -62,7 +62,7 @@ resource "helm_release" "airflow" {
   name             = "airflow"
   repository       = "https://airflow.apache.org"
   chart            = "airflow"
-  version          = "1.16.0"
+  version          = "1.19.0"
   namespace        = "airflow"
   create_namespace = false
   wait             = true
@@ -71,7 +71,7 @@ resource "helm_release" "airflow" {
 
   values = [<<-YAML
     defaultAirflowRepository: apache/airflow
-    defaultAirflowTag: "2.10.5"
+    defaultAirflowTag: "3.1.7"
 
     executor: KubernetesExecutor
 
@@ -109,7 +109,25 @@ resource "helm_release" "airflow" {
         runAsUser: 50000
         allowPrivilegeEscalation: false
 
-    # Webserver
+    # API server (new in Airflow 3.x — serves the REST API)
+    apiServer:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          cpu: "1"
+          memory: 1Gi
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: stateful
+          effect: NoSchedule
+      nodeSelector:
+        agentpool: stateful
+
+    # Webserver (serves the UI)
     webserver:
       replicas: 1
       resources:
