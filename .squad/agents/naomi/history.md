@@ -16,5 +16,6 @@
 📌 **2026-02-17:** User directives clarified (Daniel Scholl) — Keycloak must be deployed as infra component (Entra ID cannot replace); RabbitMQ deployment required; Airflow should share existing Redis; Elasticsearch already running (check Elastic Bootstrap status).
 
 ## Learnings
+- Pre-down cleanup in scripts/pre-down.ps1 identifies ExternalDNS-owned records via TXT `external-dns/owner=<cluster>` stamps and removes A/CNAME/TXT entries for the cluster.
 - infra/main.tfvars.json must map DNS_ZONE_* variables for azd to pass DNS zone values to infra Terraform.
 - scripts/pre-provision.ps1 sets both TF_VAR_dns_zone_* and DNS_ZONE_* env vars for ExternalDNS configuration.
