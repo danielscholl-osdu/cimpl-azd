@@ -27,14 +27,14 @@ resource "kubectl_manifest" "airflow_peer_authentication" {
   depends_on = [kubernetes_namespace.airflow]
 }
 
-# Auto-generated Fernet + webserver secret keys
-resource "random_password" "airflow_fernet_key" {
-  count   = var.enable_airflow ? 1 : 0
-  length  = 32
-  special = false
+# Fernet key — must be exactly 32 bytes, URL-safe base64-encoded
+resource "random_bytes" "airflow_fernet_key" {
+  count  = var.enable_airflow ? 1 : 0
+  length = 32
 }
 
-resource "random_password" "airflow_webserver_secret_key" {
+# Webserver secret key
+resource "random_password" "airflow_webserver_secret" {
   count   = var.enable_airflow ? 1 : 0
   length  = 32
   special = false
@@ -48,10 +48,8 @@ resource "kubernetes_secret" "airflow_secrets" {
   }
 
   data = {
-    "db-password"          = var.airflow_db_password
-    "redis-password"       = var.redis_password
-    "fernet-key"           = base64encode(random_password.airflow_fernet_key[0].result)
-    "webserver-secret-key" = random_password.airflow_webserver_secret_key[0].result
+    "fernet-key"           = random_bytes.airflow_fernet_key[0].base64
+    "webserver-secret-key" = random_password.airflow_webserver_secret[0].result
   }
 
   type = "Opaque"
@@ -64,7 +62,7 @@ resource "helm_release" "airflow" {
   name             = "airflow"
   repository       = "https://airflow.apache.org"
   chart            = "airflow"
-  version          = "1.15.0"
+  version          = "1.16.0"
   namespace        = "airflow"
   create_namespace = false
   wait             = true
@@ -72,64 +70,47 @@ resource "helm_release" "airflow" {
   timeout          = 900
 
   values = [<<-YAML
-    airflow:
-      image:
-        repository: apache/airflow
-        tag: 2.10.1-python3.12
-      executor: CeleryExecutor
-      podSecurityContext:
-        fsGroup: 1000
-        runAsUser: 1000
-        runAsGroup: 1000
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
-      securityContext:
-        allowPrivilegeEscalation: false
-        capabilities:
-          drop:
-            - ALL
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
+    defaultAirflowRepository: apache/airflow
+    defaultAirflowTag: "2.10.5"
 
-    fernetKey:
-      enabled: true
-      existingSecret: airflow-secrets
-      existingSecretKey: fernet-key
+    executor: KubernetesExecutor
 
-    webserverSecretKey:
-      enabled: true
-      existingSecret: airflow-secrets
-      existingSecretKey: webserver-secret-key
+    fernetKeySecretName: airflow-secrets
+    webserverSecretKeySecretName: airflow-secrets
 
-    redis:
-      enabled: false
-    externalRedis:
-      host: redis-master.redis.svc.cluster.local
-      port: 6379
-      passwordSecret: airflow-secrets
-      passwordSecretKey: redis-password
+    data:
+      metadataConnection:
+        user: airflow
+        pass: "${var.airflow_db_password}"
+        protocol: postgresql
+        host: postgresql-rw.postgresql.svc.cluster.local
+        port: 5432
+        db: airflow
 
+    # Disable Helm hooks for Terraform compatibility
+    createUserJob:
+      useHelmHooks: false
+    migrateDatabaseJob:
+      useHelmHooks: false
+
+    # Disable internal PostgreSQL and Redis
     postgresql:
       enabled: false
-    pgbouncer:
-      enabled: false
-    externalDatabase:
-      type: postgres
-      host: postgresql-rw.postgresql.svc.cluster.local
-      port: 5432
-      user: airflow
-      passwordSecret: airflow-secrets
-      passwordSecretKey: db-password
-      database: airflow
-
-    statsd:
-      enabled: false
-    flower:
+    redis:
       enabled: false
 
-    web:
+    # Security contexts (official chart schema)
+    securityContexts:
+      pod:
+        runAsUser: 50000
+        runAsGroup: 0
+        fsGroup: 0
+      containers:
+        runAsUser: 50000
+        allowPrivilegeEscalation: false
+
+    # Webserver
+    webserver:
       replicas: 1
       resources:
         requests:
@@ -138,37 +119,15 @@ resource "helm_release" "airflow" {
         limits:
           cpu: "1"
           memory: 1Gi
-      livenessProbe:
-        httpGet:
-          path: /health
-          port: 8080
-        initialDelaySeconds: 60
-        periodSeconds: 10
-        timeoutSeconds: 5
-        failureThreshold: 6
-      readinessProbe:
-        httpGet:
-          path: /health
-          port: 8080
-        initialDelaySeconds: 30
-        periodSeconds: 10
-        timeoutSeconds: 5
-        failureThreshold: 6
       tolerations:
         - key: workload
           operator: Equal
           value: stateful
           effect: NoSchedule
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: agentpool
-                    operator: In
-                    values:
-                      - stateful
+      nodeSelector:
+        agentpool: stateful
 
+    # Scheduler — exec-based liveness probe is chart default
     scheduler:
       replicas: 1
       resources:
@@ -178,39 +137,16 @@ resource "helm_release" "airflow" {
         limits:
           cpu: "1"
           memory: 1Gi
-      livenessProbe:
-        httpGet:
-          path: /health
-          port: 8793
-        initialDelaySeconds: 60
-        periodSeconds: 10
-        timeoutSeconds: 5
-        failureThreshold: 6
-      readinessProbe:
-        httpGet:
-          path: /health
-          port: 8793
-        initialDelaySeconds: 30
-        periodSeconds: 10
-        timeoutSeconds: 5
-        failureThreshold: 6
       tolerations:
         - key: workload
           operator: Equal
           value: stateful
           effect: NoSchedule
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: agentpool
-                    operator: In
-                    values:
-                      - stateful
+      nodeSelector:
+        agentpool: stateful
 
+    # Triggerer
     triggerer:
-      enabled: true
       replicas: 1
       resources:
         requests:
@@ -219,93 +155,21 @@ resource "helm_release" "airflow" {
         limits:
           cpu: "1"
           memory: 1Gi
-      livenessProbe:
-        exec:
-          command:
-            - /bin/sh
-            - -ec
-            - airflow jobs check --job-type TriggererJob --hostname "$(hostname)"
-        initialDelaySeconds: 60
-        periodSeconds: 20
-        timeoutSeconds: 10
-        failureThreshold: 6
-      readinessProbe:
-        exec:
-          command:
-            - /bin/sh
-            - -ec
-            - airflow jobs check --job-type TriggererJob --hostname "$(hostname)"
-        initialDelaySeconds: 30
-        periodSeconds: 20
-        timeoutSeconds: 10
-        failureThreshold: 6
       tolerations:
         - key: workload
           operator: Equal
           value: stateful
           effect: NoSchedule
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: agentpool
-                    operator: In
-                    values:
-                      - stateful
+      nodeSelector:
+        agentpool: stateful
 
+    # Workers not needed with KubernetesExecutor
     workers:
-      enabled: true
-      replicas: 2
-      resources:
-        requests:
-          cpu: 500m
-          memory: 1Gi
-        limits:
-          cpu: "2"
-          memory: 2Gi
-      livenessProbe:
-        exec:
-          command:
-            - /bin/sh
-            - -ec
-            - celery -A airflow.executors.celery_executor.app inspect ping -d "celery@$(hostname)"
-        initialDelaySeconds: 60
-        periodSeconds: 20
-        timeoutSeconds: 10
-        failureThreshold: 6
-      readinessProbe:
-        exec:
-          command:
-            - /bin/sh
-            - -ec
-            - celery -A airflow.executors.celery_executor.app inspect ping -d "celery@$(hostname)"
-        initialDelaySeconds: 30
-        periodSeconds: 20
-        timeoutSeconds: 10
-        failureThreshold: 6
-      tolerations:
-        - key: workload
-          operator: Equal
-          value: stateful
-          effect: NoSchedule
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: agentpool
-                    operator: In
-                    values:
-                      - stateful
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                topologyKey: kubernetes.io/hostname
-                labelSelector:
-                  matchLabels:
-                    app.kubernetes.io/instance: airflow
+      replicas: 0
+
+    # StatsD not needed
+    statsd:
+      enabled: false
   YAML
   ]
 
@@ -314,6 +178,7 @@ resource "helm_release" "airflow" {
     kubectl_manifest.airflow_peer_authentication,
     kubernetes_secret.airflow_secrets,
     kubectl_manifest.cnpg_database_bootstrap,
-    helm_release.redis
+    kubectl_manifest.karpenter_nodepool_stateful,
+    kubectl_manifest.karpenter_aksnodeclass_stateful
   ]
 }
