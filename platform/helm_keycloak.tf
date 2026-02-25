@@ -1,4 +1,7 @@
 # Keycloak identity provider using Bitnami Helm chart
+# Keycloak is internal-only — no HTTPRoute/Gateway exposure.
+# OSDU services reach it via keycloak.keycloak.svc.cluster.local:8080
+# Admin console access requires kubectl port-forward.
 
 resource "random_password" "keycloak_admin" {
   count            = var.enable_keycloak && var.keycloak_admin_password == "" ? 1 : 0
@@ -117,14 +120,10 @@ resource "helm_release" "keycloak" {
   timeout          = 600
 
   values = [<<-YAML
-    global:
-      security:
-        allowInsecureImages: true
-
     image:
-      registry: docker.io
-      repository: bitnamilegacy/keycloak
-      tag: 26.3.3-debian-12-r0
+      registry: quay.io
+      repository: keycloak/keycloak
+      tag: 26.0.7
 
     auth:
       adminUser: admin
@@ -144,6 +143,8 @@ resource "helm_release" "keycloak" {
       existingSecretPasswordKey: password
 
     extraEnvVars:
+      - name: KC_HEALTH_ENABLED
+        value: "true"
       - name: KEYCLOAK_EXTRA_ARGS
         value: "--import-realm"
 
@@ -154,7 +155,7 @@ resource "helm_release" "keycloak" {
 
     extraVolumeMounts:
       - name: realm-import
-        mountPath: /opt/bitnami/keycloak/data/import
+        mountPath: /opt/keycloak/data/import
         readOnly: true
 
     replicaCount: 1
@@ -189,6 +190,9 @@ resource "helm_release" "keycloak" {
 
     livenessProbe:
       enabled: true
+      httpGet:
+        path: /health/live
+        port: 9000
       initialDelaySeconds: 120
       periodSeconds: 10
       timeoutSeconds: 5
@@ -196,6 +200,9 @@ resource "helm_release" "keycloak" {
 
     readinessProbe:
       enabled: true
+      httpGet:
+        path: /health/ready
+        port: 9000
       initialDelaySeconds: 30
       periodSeconds: 10
       timeoutSeconds: 5
@@ -203,6 +210,9 @@ resource "helm_release" "keycloak" {
 
     startupProbe:
       enabled: true
+      httpGet:
+        path: /health/ready
+        port: 9000
       initialDelaySeconds: 30
       periodSeconds: 10
       timeoutSeconds: 5
@@ -244,6 +254,7 @@ resource "helm_release" "keycloak" {
     kubernetes_secret.keycloak_admin,
     kubernetes_secret.keycloak_db_copy,
     kubernetes_config_map.keycloak_realm,
+    kubectl_manifest.cnpg_database_bootstrap,
     kubectl_manifest.karpenter_nodepool_stateful,
     kubectl_manifest.karpenter_aksnodeclass_stateful
   ]

@@ -50,3 +50,8 @@
 - Airflow should use the official Apache Airflow Helm chart with external Redis (`redis-master.redis.svc.cluster.local`) and CNPG PostgreSQL (`postgresql-rw.postgresql.svc.cluster.local`, database `airflow`).
 - Airflow namespace uses `istio-injection: enabled` with STRICT mTLS and stateful node affinity/tolerations for workers.
 - Airflow secrets are generated in Terraform (fernet + webserver keys) and stored in an `airflow-secrets` secret for Helm values.
+
+### 2026-03-18: Keycloak PR #134 review fixes (Issue #79)
+- Keycloak Helm release now depends on `kubectl_manifest.cnpg_database_bootstrap` to avoid deploying before CNPG database creation (`platform/helm_keycloak.tf`).
+- Keycloak image switched to official `quay.io/keycloak/keycloak:26.0.7`; probes target `/health/live` and `/health/ready` on management port `9000` with `KC_HEALTH_ENABLED=true`, and realm import mounts `/opt/keycloak/data/import`.
+- Keycloak is intentionally internal-only (no HTTPRoute/Gateway) and accessed via `keycloak.keycloak.svc.cluster.local:8080` or kubectl port-forward.
