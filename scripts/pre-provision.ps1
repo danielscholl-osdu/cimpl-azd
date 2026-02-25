@@ -180,6 +180,7 @@ Write-Host "  TF_VAR_dns_zone_name..." -NoNewline
 if (-not [string]::IsNullOrEmpty($dnsZone)) {
     # Explicit value set — validate related vars
     Write-Host " $dnsZone" -ForegroundColor Green
+    azd env set DNS_ZONE_NAME $dnsZone 2>$null
 
     $dnsRg = [Environment]::GetEnvironmentVariable("TF_VAR_dns_zone_resource_group")
     Write-Host "  TF_VAR_dns_zone_resource_group..." -NoNewline
@@ -190,6 +191,7 @@ if (-not [string]::IsNullOrEmpty($dnsZone)) {
     }
     else {
         Write-Host " $dnsRg" -ForegroundColor Green
+        azd env set DNS_ZONE_RESOURCE_GROUP $dnsRg 2>$null
     }
 
     $dnsSub = [Environment]::GetEnvironmentVariable("TF_VAR_dns_zone_subscription_id")
@@ -201,6 +203,7 @@ if (-not [string]::IsNullOrEmpty($dnsZone)) {
     }
     else {
         Write-Host " $dnsSub" -ForegroundColor Green
+        azd env set DNS_ZONE_SUBSCRIPTION_ID $dnsSub 2>$null
     }
 }
 elseif ($account) {
@@ -226,8 +229,11 @@ elseif ($account) {
         $discoveredRg = $zones[0].resourceGroup
 
         azd env set TF_VAR_dns_zone_name $discoveredZone 2>$null
+        azd env set DNS_ZONE_NAME $discoveredZone 2>$null
         azd env set TF_VAR_dns_zone_resource_group $discoveredRg 2>$null
+        azd env set DNS_ZONE_RESOURCE_GROUP $discoveredRg 2>$null
         azd env set TF_VAR_dns_zone_subscription_id $subId 2>$null
+        azd env set DNS_ZONE_SUBSCRIPTION_ID $subId 2>$null
 
         Write-Host " auto-discovered ($discoveredZone)" -ForegroundColor Green
         Write-Host "    Resource Group: $discoveredRg" -ForegroundColor Gray
