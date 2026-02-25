@@ -34,6 +34,3 @@ OSDU services specialist responsible for porting all ~20 OSDU microservices from
 
 ## Model
 Preferred: gpt-5.2-codex
-
-## Model
-Preferred: gpt-5.2-codex

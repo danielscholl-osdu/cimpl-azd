@@ -97,9 +97,3 @@ Scribe merges inbox entries here and deduplicates.
 **By:** Daniel Scholl (via Copilot)
 **What:** Default to gpt-5.2-codex for all coding tasks. Haiku is not good enough for most coding work in this project. Non-coding tasks (logs, triage, docs) can still use haiku.
 **Why:** User request — captured for team memory
-
-
-### 2026-02-17: User directive — prefer gpt-5.2-codex for coding
-**By:** Daniel Scholl (via Copilot)
-**What:** Default to gpt-5.2-codex for all coding tasks. Haiku is not good enough for most coding work in this project. Non-coding tasks (logs, triage, docs) can still use haiku.
-**Why:** User request — captured for team memory
