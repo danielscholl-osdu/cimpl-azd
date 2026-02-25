@@ -31,6 +31,3 @@ Infrastructure specialist owning the AKS cluster layer (infra/) and cloud-level 
 
 ## Model
 Preferred: gpt-5.2-codex
-
-## Model
-Preferred: gpt-5.2-codex

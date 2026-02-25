@@ -13,12 +13,12 @@
 
 | Name | Role | Charter | Status |
 |------|------|---------|--------|
-| Holden | Lead | .ai-team/agents/holden/charter.md | ✅ Active |
-| Naomi | Infra Dev | .ai-team/agents/naomi/charter.md | ✅ Active |
-| Amos | Platform Dev | .ai-team/agents/amos/charter.md | ✅ Active |
-| Alex | Services Dev | .ai-team/agents/alex/charter.md | ✅ Active |
-| Drummer | Tester | .ai-team/agents/drummer/charter.md | ✅ Active |
-| Scribe | Session Logger | .ai-team/agents/scribe/charter.md | ✅ Active |
+| Holden | Lead | .squad/agents/holden/charter.md | ✅ Active |
+| Naomi | Infra Dev | .squad/agents/naomi/charter.md | ✅ Active |
+| Amos | Platform Dev | .squad/agents/amos/charter.md | ✅ Active |
+| Alex | Services Dev | .squad/agents/alex/charter.md | ✅ Active |
+| Drummer | Tester | .squad/agents/drummer/charter.md | ✅ Active |
+| Scribe | Session Logger | .squad/agents/scribe/charter.md | ✅ Active |
 | Ralph | Work Monitor | — | 🔄 Monitor |
 
 ## Issue Source

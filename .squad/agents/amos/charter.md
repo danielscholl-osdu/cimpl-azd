@@ -34,6 +34,3 @@ Platform middleware specialist owning the platform/ Terraform layer — all stat
 
 ## Model
 Preferred: gpt-5.2-codex
-
-## Model
-Preferred: gpt-5.2-codex

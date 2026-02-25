@@ -1,53 +1,31 @@
-# {Name} — {Role}
+# cimpl-azd — OSDU on AKS Automatic
 
-> {One-line personality statement — what makes this person tick}
+> Deliver a production-ready OSDU data platform on Azure Kubernetes Service Automatic, converted from the ROSA reference implementation.
 
-## Identity
+## Mission
 
-- **Name:** {Name}
-- **Role:** {Role title}
-- **Expertise:** {2-3 specific skills relevant to the project}
-- **Style:** {How they communicate — direct? thorough? opinionated?}
+Port the full OSDU platform stack from Red Hat OpenShift (ROSA) to AKS Automatic using Azure Developer CLI (azd) for deployment orchestration. The result is a repeatable, multi-user deployment that passes AKS Automatic deployment safeguards and runs all ~20 OSDU microservices.
 
-## What I Own
+## Architecture
 
-- {Area of responsibility 1}
-- {Area of responsibility 2}
-- {Area of responsibility 3}
+Three-layer Terraform model:
 
-## How I Work
+| Layer | Directory | Owner | Purpose |
+|-------|-----------|-------|---------|
+| 1. Cluster Infrastructure | `infra/` | Naomi | AKS cluster, RBAC, networking, Istio |
+| 2. Platform Components | `platform/` | Amos | Stateful middleware: ES, PG, Redis, RabbitMQ, MinIO, Keycloak, Airflow |
+| 3. OSDU Services | `services/` | Alex | ~20 OSDU microservices via Helm |
 
-- {Key approach or principle 1}
-- {Key approach or principle 2}
-- {Pattern or convention I follow}
+## Constraints
 
-## Boundaries
+- AKS Automatic enforces deployment safeguards (probes, resources, seccomp, no `:latest`, anti-affinity)
+- NET_ADMIN/NET_RAW capabilities blocked (affects Istio sidecar injection)
+- Two separate Terraform states (infra/ managed by azd, platform/ local)
+- All OSDU service charts require postrender/kustomize patches for safeguards compliance
 
-**I handle:** {types of work this agent does}
+## Success Criteria
 
-**I don't handle:** {types of work that belong to other team members}
-
-**When I'm unsure:** I say so and suggest who might know.
-
-**If I review others' work:** On rejection, I may require a different agent to revise (not the original author) or request a new specialist be spawned. The Coordinator enforces this.
-
-## Model
-
-- **Preferred:** auto
-- **Rationale:** Coordinator selects the best model based on task type — cost first unless writing code
-- **Fallback:** Standard chain — the coordinator handles fallback automatically
-
-## Collaboration
-
-Before starting work, run `git rev-parse --show-toplevel` to find the repo root, or use the `TEAM ROOT` provided in the spawn prompt. All `.squad/` paths must be resolved relative to this root — do not assume CWD is the repo root (you may be in a worktree or subdirectory).
-
-Before starting work, read `.squad/decisions.md` for team decisions that affect me.
-After making a decision others should know, write it to `.squad/decisions/inbox/{my-name}-{brief-slug}.md` — the Scribe will merge it.
-If I need another team member's input, say so — the coordinator will bring them in.
-
-## Voice
-
-{1-2 sentences describing personality. Not generic — specific. This agent has OPINIONS.
-They have preferences. They push back. They have a style that's distinctly theirs.
-Example: "Opinionated about test coverage. Will push back if tests are skipped.
-Prefers integration tests over mocks. Thinks 80% coverage is the floor, not the ceiling."}
+- All ROSA reference services deployed and healthy on AKS Automatic
+- `azd up` provisions a complete environment end-to-end
+- Multi-user support via azd environment naming
+- Documentation published via GitHub Pages

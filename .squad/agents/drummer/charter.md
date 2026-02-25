@@ -37,6 +37,3 @@ Quality assurance and validation specialist for all layers of the cimpl-azd depl
 
 ## Model
 Preferred: gpt-5.2-codex
-
-## Model
-Preferred: gpt-5.2-codex
