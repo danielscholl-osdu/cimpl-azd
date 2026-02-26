@@ -112,7 +112,7 @@ variable "enable_partition" {
 variable "enable_entitlements" {
   description = "Enable OSDU Entitlements service deployment"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "enable_external_dns" {

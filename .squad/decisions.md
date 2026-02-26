@@ -137,3 +137,8 @@ Scribe merges inbox entries here and deduplicates.
 **By:** Daniel Scholl (via Copilot)
 **What:** Follow the exact pattern in `platform/helm_partition.tf` as the template for the Entitlements Helm release and kustomize overlays.
 **Why:** User request — captured for team memory
+
+### 2026-02-26: OSDU service enable_* defaults are opt-in
+**By:** Daniel Scholl (via Copilot)
+**What:** All OSDU service enable_* variables must default to false. Services are opt-in, not opt-out. Platform infrastructure (elasticsearch, redis, etc.) defaults to true.
+**Why:** User request — captured for team memory
