@@ -18,7 +18,7 @@ function Test-PodsReady {
         $kubectlArgs += @("-l", $LabelSelector)
     }
 
-    $podsJson = kubectl @kubectlArgs 2>$null
+    $podsJson = (kubectl @kubectlArgs 2>$null) -join ''
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  FAIL: Unable to list pods in namespace '$Namespace'" -ForegroundColor Red
         return $false
@@ -53,7 +53,7 @@ function Test-KeycloakJwks {
     Write-Host "`nChecking Keycloak JWKS endpoint..." -ForegroundColor Cyan
 
     $jwksPath = "/api/v1/namespaces/keycloak/services/keycloak:http/proxy/realms/osdu/protocol/openid-connect/certs"
-    $jwksRaw = kubectl get --raw $jwksPath 2>$null
+    $jwksRaw = (kubectl get --raw $jwksPath 2>$null) -join ''
     if ($LASTEXITCODE -ne 0) {
         Write-Host "  FAIL: JWKS endpoint not reachable via Kubernetes proxy" -ForegroundColor Red
         return $false
