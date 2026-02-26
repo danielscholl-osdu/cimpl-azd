@@ -104,3 +104,10 @@ This unblocks #85, #98, #99, #100, #103.
 - Added `platform/helm_partition.tf` with Helm v3 postrender using `/usr/bin/env` to pass `SERVICE_NAME=partition` into `platform/kustomize/postrender.sh`.
 - Shared kustomize components live under `platform/kustomize/components/`, with per-service overlays in `platform/kustomize/services/<service>/`.
 - Partition bootstrap image is pinned to the same tag as the main service image (`67dedce7`) to avoid `:latest` on AKS Automatic.
+
+### 2026-02-26: Entitlements service ported to AKS pattern
+
+- Added `platform/helm_entitlements.tf` using the partition Helm v3 postrender pattern with `SERVICE_NAME=entitlements`.
+- Created per-service overlays in `platform/kustomize/services/entitlements/` for probes/resources plus shared components.
+- Added `enable_entitlements` feature flag (default true) and entitlements depends on common resources plus partition.
+- Pinned entitlements and bootstrap images to `:67dedce7` and set `redisImage` to `docker.io/library/redis:7`.
