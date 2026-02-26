@@ -110,4 +110,11 @@ This unblocks #85, #98, #99, #100, #103.
 - Added `platform/helm_entitlements.tf` using the partition Helm v3 postrender pattern with `SERVICE_NAME=entitlements`.
 - Created per-service overlays in `platform/kustomize/services/entitlements/` for probes/resources plus shared components.
 - Added `enable_entitlements` feature flag (default true) and entitlements depends on common resources plus partition.
-- Pinned entitlements and bootstrap images to `:67dedce7` and set `redisImage` to `docker.io/library/redis:7`.
+- Pinned entitlements and bootstrap images to `:da367b9f` and `:67dedce7` respectively, set `redisImage` to `docker.io/library/redis:7`.
+- PR #137 opened for review.
+
+## Decision Alignment
+
+**2026-02-26:** User directive — Entitlements postrender pattern template merged into decisions registry.
+- Pattern: Follow `platform/helm_partition.tf` exactly for all OSDU service ports.
+- This ensures consistency across Phase 2–5 service implementations.
