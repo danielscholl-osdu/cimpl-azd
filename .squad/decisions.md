@@ -132,3 +132,13 @@ Scribe merges inbox entries here and deduplicates.
 **By:** Daniel Scholl (via Copilot)
 **What:** Airflow 3.x renames webserver to api-server and adds dag-processor and triggerer components. Always use Airflow 3.x naming conventions.
 **Why:** Keep validation checks and documentation aligned with Airflow 3.x component names.
+
+### 2026-02-26: User directive — Entitlements postrender pattern template
+**By:** Daniel Scholl (via Copilot)
+**What:** Follow the exact pattern in `platform/helm_partition.tf` as the template for the Entitlements Helm release and kustomize overlays.
+**Why:** User request — captured for team memory
+
+### 2026-02-26: OSDU service enable_* defaults are opt-in
+**By:** Daniel Scholl (via Copilot)
+**What:** All OSDU service enable_* variables must default to false. Services are opt-in, not opt-out. Platform infrastructure (elasticsearch, redis, etc.) defaults to true.
+**Why:** User request — captured for team memory
