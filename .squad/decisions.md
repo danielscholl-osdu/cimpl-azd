@@ -122,3 +122,8 @@ Scribe merges inbox entries here and deduplicates.
 **By:** Naomi (Infra Dev)
 **What:** Added `enable_public_ingress` variable to `platform/k8s_gateway.tf`. When `true`, Istio Gateway exposes HTTPS on port 443 (public internet). When `false`, Gateway is disabled (`disabled = true`) for private/dev environments. VirtualServices remain deployed regardless of gateway state.
 **Why:** Enables environment-specific ingress strategy without tearing down services. Production uses public HTTPS; dev/staging can use private HTTP via kubectl port-forward. Terraform-native control without external gateway overrides.
+
+### 2026-02-26: User directive — feature branches only
+**By:** Daniel Scholl (via Copilot)
+**What:** All Squad work must be done on a feature branch with a PR — never commit directly to dev.
+**Why:** User request — captured for team memory
