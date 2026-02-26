@@ -93,7 +93,7 @@ if (-not (Test-PodsReady -Namespace "airflow" -Description "Airflow scheduler po
     $overallSuccess = $false
 }
 
-if (-not (Test-PodsReady -Namespace "airflow" -Description "Airflow webserver pods (airflow)" -NamePattern "^airflow-webserver")) {
+if (-not (Test-PodsReady -Namespace "airflow" -Description "Airflow api-server pods (airflow)" -NamePattern "^airflow-api-server")) {
     $overallSuccess = $false
 }
 

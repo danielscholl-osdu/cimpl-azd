@@ -127,3 +127,8 @@ Scribe merges inbox entries here and deduplicates.
 **By:** Daniel Scholl (via Copilot)
 **What:** All Squad work must be done on a feature branch with a PR — never commit directly to dev.
 **Why:** User request — captured for team memory
+
+### 2026-02-26: Airflow 3.x component naming
+**By:** Daniel Scholl (via Copilot)
+**What:** Airflow 3.x renames webserver to api-server and adds dag-processor and triggerer components. Always use Airflow 3.x naming conventions.
+**Why:** Keep validation checks and documentation aligned with Airflow 3.x component names.
