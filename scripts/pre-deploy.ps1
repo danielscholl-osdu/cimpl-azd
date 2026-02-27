@@ -1,14 +1,16 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Pre-deploy: deploy platform software layer.
+    Pre-deploy: deploy default stack.
 .DESCRIPTION
-    Runs before service deployment (azd deploy) to deploy the platform Helm charts
-    (Elasticsearch, PostgreSQL, Redis, MinIO, etc.) onto the AKS cluster via Terraform.
+    Runs before service deployment (azd deploy) to deploy the default stack
+    (stack-1: middleware + OSDU services).
+
+    Foundation is deployed during post-provision (azd provision).
 
     Prerequisites:
     - Cluster provisioned (azd provision)
-    - Safeguards configured (post-provision)
+    - Safeguards configured and foundation deployed (post-provision)
     - Environment variables set: TF_VAR_acme_email, CIMPL_INGRESS_PREFIX
 .EXAMPLE
     azd deploy
@@ -169,15 +171,15 @@ function Get-PlatformVars {
     }
 }
 
-function Deploy-Platform {
+function Deploy-Stack {
     param([hashtable]$Ctx, [hashtable]$Vars)
 
     Write-Host ""
     Write-Host "=================================================================="
-    Write-Host "  [2/3] Deploying Platform Layer"
+    Write-Host "  [2/3] Deploying Stack-1"
     Write-Host "=================================================================="
 
-    Push-Location $PSScriptRoot/../platform
+    Push-Location $PSScriptRoot/../software/stacks/stack-1
 
     # Initialize terraform if needed
     if (-not (Test-Path ".terraform")) {
@@ -196,7 +198,6 @@ function Deploy-Platform {
         -var="resource_group_name=$($Ctx.ResourceGroup)" `
         -var="acme_email=$($Vars.AcmeEmail)" `
         -var="ingress_prefix=$($Vars.IngressPrefix)" `
-        -var="enable_public_ingress=$($Vars.EnablePublicIngress)" `
         -var="use_letsencrypt_production=$($Vars.UseLetsencryptProd)" `
         -var="enable_external_dns=$($Vars.EnableExternalDns)" `
         -var="dns_zone_name=$($Vars.DnsZoneName)" `
@@ -206,12 +207,12 @@ function Deploy-Platform {
         -var="tenant_id=$($Vars.TenantId)"
 
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "  ERROR: Platform deployment failed" -ForegroundColor Red
+        Write-Host "  ERROR: Stack-1 deployment failed" -ForegroundColor Red
         Pop-Location
         exit 1
     }
 
-    Write-Host "  Platform layer deployed" -ForegroundColor Green
+    Write-Host "  Stack-1 deployed" -ForegroundColor Green
     Pop-Location
 }
 
@@ -230,27 +231,30 @@ function Test-Deployment {
     $nodeCount = ($nodes -split "`n" | Where-Object { $_ }).Count
     Write-Host "  Nodes: $nodeCount ready" -ForegroundColor Green
 
-    $es = kubectl get elasticsearch -n elasticsearch -o jsonpath='{.items[0].status.health}' 2>$null
+    $es = kubectl get elasticsearch -n platform-1 -o jsonpath='{.items[0].status.health}' 2>$null
     if ($es) {
         Write-Host "  Elasticsearch: $es" -ForegroundColor $(if ($es -eq "green") { "Green" } else { "Yellow" })
     }
     else { Write-Host "  Elasticsearch: Pending" -ForegroundColor Yellow }
 
-    $kibana = kubectl get kibana -n elasticsearch -o jsonpath='{.items[0].status.health}' 2>$null
+    $kibana = kubectl get kibana -n platform-1 -o jsonpath='{.items[0].status.health}' 2>$null
     if ($kibana) {
         Write-Host "  Kibana: $kibana" -ForegroundColor $(if ($kibana -eq "green") { "Green" } else { "Yellow" })
     }
     else { Write-Host "  Kibana: Pending" -ForegroundColor Yellow }
 
-    $pgPods = kubectl get pods -n postgresql -o jsonpath='{.items[*].status.phase}' 2>$null
+    $pgPods = kubectl get pods -n platform-1 -l cnpg.io/cluster=postgresql -o jsonpath='{.items[*].status.phase}' 2>$null
     if ($pgPods -like "*Running*") { Write-Host "  PostgreSQL: Running" -ForegroundColor Green }
     else { Write-Host "  PostgreSQL: Pending" -ForegroundColor Yellow }
 
-    $redisPods = kubectl get pods -n redis -o jsonpath='{.items[*].status.phase}' 2>$null
+    $redisPods = kubectl get pods -n platform-1 -l app.kubernetes.io/name=redis -o jsonpath='{.items[*].status.phase}' 2>$null
     if ($redisPods -like "*Running*") { Write-Host "  Redis: Running" -ForegroundColor Green }
     else { Write-Host "  Redis: Pending" -ForegroundColor Yellow }
 
-    $minioPods = kubectl get pods -n platform -l 'minio.service/variant=api' -o jsonpath='{.items[*].status.phase}' 2>$null
+    $minioPods = kubectl get pods -n platform-1 -l 'minio.service/variant=api' -o jsonpath='{.items[*].status.phase}' 2>$null
+    if (-not $minioPods) {
+        $minioPods = kubectl get pods -n platform-1 -l 'app.kubernetes.io/component=minio-server' -o jsonpath='{.items[*].status.phase}' 2>$null
+    }
     if ($minioPods -like "*Running*") { Write-Host "  MinIO: Running" -ForegroundColor Green }
     else { Write-Host "  MinIO: Pending" -ForegroundColor Yellow }
 
@@ -263,10 +267,11 @@ function Show-Summary {
 
     Write-Host ""
     Write-Host "==================================================================" -ForegroundColor Green
-    Write-Host "  Pre-Deploy Complete: Platform Deployed"                            -ForegroundColor Green
+    Write-Host "  Pre-Deploy Complete: Stack-1 Deployed"                            -ForegroundColor Green
     Write-Host "==================================================================" -ForegroundColor Green
     Write-Host "  Cluster: $($Ctx.ClusterName)"
     Write-Host "  Resource Group: $($Ctx.ResourceGroup)"
+    Write-Host "  Namespaces: platform-1, osdu-1"
 
     if ($ExternalIp) {
         Write-Host "  External IP: $ExternalIp"
@@ -290,7 +295,7 @@ function Show-Summary {
             Write-Host "    1. Configure DNS zone for external access" -ForegroundColor Gray
         }
         Write-Host "    3. Get Elasticsearch password:" -ForegroundColor Gray
-        Write-Host "       kubectl get secret elasticsearch-es-elastic-user -n elasticsearch -o jsonpath='{.data.elastic}' | base64 -d" -ForegroundColor DarkGray
+        Write-Host "       kubectl get secret elasticsearch-es-elastic-user -n platform-1 -o jsonpath='{.data.elastic}' | base64 -d" -ForegroundColor DarkGray
     }
     Write-Host ""
 }
@@ -301,13 +306,13 @@ function Show-Summary {
 
 Write-Host ""
 Write-Host "==================================================================" -ForegroundColor Cyan
-Write-Host "  Pre-Deploy: Platform Layer"                                       -ForegroundColor Cyan
+Write-Host "  Pre-Deploy: Stack Deployment"                                     -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Cyan
 
 $ctx = Get-ClusterContext
 Connect-Cluster -Ctx $ctx
 $vars = Get-PlatformVars -Ctx $ctx
-Deploy-Platform -Ctx $ctx -Vars $vars
+Deploy-Stack -Ctx $ctx -Vars $vars
 $ip = Test-Deployment -Vars $vars
 Show-Summary -Ctx $ctx -Vars $vars -ExternalIp $ip
 

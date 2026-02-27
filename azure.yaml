@@ -18,14 +18,14 @@ hooks:
     shell: pwsh
     run: ./scripts/pre-provision.ps1
 
-  # Post-provision: Ensure AKS safeguards are ready
+  # Post-provision: Configure safeguards and deploy foundation layer
   postprovision:
     interactive: true
     continueOnError: false
     shell: pwsh
     run: ./scripts/post-provision.ps1
 
-  # Pre-deploy: Deploy platform layer (Layer 2)
+  # Pre-deploy: Deploy default stack (Layer 3)
   predeploy:
     interactive: true
     continueOnError: false

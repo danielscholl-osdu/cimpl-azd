@@ -1,11 +1,16 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    Post-provision: ensure AKS safeguards are ready.
+    Post-provision: configure safeguards and deploy foundation layer.
 .DESCRIPTION
-    Runs after cluster provisioning (azd provision) to configure safeguards,
-    wait for Gatekeeper readiness, and verify namespace exclusions before
-    any software deployment (azd deploy).
+    Runs after cluster provisioning (azd provision) to:
+    1. Configure kubeconfig and verify RBAC
+    2. Set up AKS deployment safeguards
+    3. Wait for Gatekeeper readiness
+    4. Verify namespace exclusions
+    5. Deploy foundation layer (cert-manager, ECK, CNPG, ExternalDNS, Gateway)
+
+    After this hook completes, the cluster is ready for stack deployment (azd deploy).
 .EXAMPLE
     azd hooks run postprovision
 .EXAMPLE
@@ -53,7 +58,7 @@ function Get-ClusterContext {
 function Connect-Cluster {
     param($Ctx)
 
-    Write-Host "`n[1/4] Configuring kubeconfig..." -ForegroundColor Cyan
+    Write-Host "`n[1/5] Configuring kubeconfig..." -ForegroundColor Cyan
 
     az aks get-credentials -g $Ctx.ResourceGroup -n $Ctx.ClusterName @($Ctx.SubArgs) --overwrite-existing
     if ($LASTEXITCODE -ne 0) {
@@ -64,7 +69,7 @@ function Connect-Cluster {
     Write-Host "  Kubeconfig configured" -ForegroundColor Green
 
     # Verify RBAC permissions (can take minutes to propagate on fresh clusters)
-    Write-Host "`n[1.5/4] Verifying RBAC permissions..." -ForegroundColor Cyan
+    Write-Host "`n[1.5/5] Verifying RBAC permissions..." -ForegroundColor Cyan
     $maxWait = 300  # 5 minutes
     $interval = 15
     $elapsed = 0
@@ -103,7 +108,7 @@ function Connect-Cluster {
 function Set-Safeguards {
     param($Ctx)
 
-    Write-Host "`n[2/4] Checking cluster configuration..." -ForegroundColor Cyan
+    Write-Host "`n[2/5] Checking cluster configuration..." -ForegroundColor Cyan
 
     $clusterSkuOutput = az aks show -g $Ctx.ResourceGroup -n $Ctx.ClusterName @($Ctx.SubArgs) --query "sku.name" -o tsv 2>$null
     if ($LASTEXITCODE -ne 0) {
@@ -131,7 +136,7 @@ function Set-Safeguards {
     Write-Host "  Configuring AKS safeguards..." -ForegroundColor Cyan
 
     $excludedNsList = @(
-        "kube-system", "gatekeeper-system", "platform",
+        "kube-system", "gatekeeper-system", "foundation",
         "elasticsearch", "aks-istio-ingress", "postgresql", "redis"
     )
 
@@ -174,7 +179,7 @@ function Set-Safeguards {
 function Wait-ForGatekeeper {
     param($Ctx)
 
-    Write-Host "`n[3/4] Waiting for Gatekeeper controller..." -ForegroundColor Cyan
+    Write-Host "`n[3/5] Waiting for Gatekeeper controller..." -ForegroundColor Cyan
 
     if ($env:SKIP_SAFEGUARDS_WAIT -eq "true") {
         Write-Host "  SKIP_SAFEGUARDS_WAIT=true — Bypassing all safeguards checks" -ForegroundColor Yellow
@@ -251,7 +256,7 @@ function Wait-ForGatekeeper {
 function Test-Exclusions {
     param($Ctx)
 
-    Write-Host "`n[4/4] Final verification..." -ForegroundColor Cyan
+    Write-Host "`n[4/5] Final verification..." -ForegroundColor Cyan
 
     if ($env:SKIP_SAFEGUARDS_WAIT -eq "true") {
         Write-Host "  Bypassed" -ForegroundColor Yellow
@@ -347,7 +352,7 @@ spec:
 }
 
 function Test-NamespaceExclusions {
-    $targetNamespaces = @("platform", "elasticsearch", "postgresql", "redis")
+    $targetNamespaces = @("foundation", "elasticsearch", "postgresql", "redis")
 
     foreach ($ns in $targetNamespaces) {
         $nsExists = kubectl get namespace $ns --no-headers 2>$null
@@ -429,13 +434,144 @@ spec:
     Write-Host "  All namespace exclusions verified" -ForegroundColor Green
 }
 
+function Get-PlatformVars {
+    param($Ctx)
+
+    $acmeEmail = $env:TF_VAR_acme_email
+    if ([string]::IsNullOrEmpty($acmeEmail)) {
+        Write-Host "  WARNING: TF_VAR_acme_email not set, foundation will skip cert-manager issuers" -ForegroundColor Yellow
+        $acmeEmail = ""
+    }
+
+    $ingressPrefix = $env:CIMPL_INGRESS_PREFIX
+
+    $useLetsencryptProd = $env:TF_VAR_use_letsencrypt_production
+    if ([string]::IsNullOrEmpty($useLetsencryptProd)) { $useLetsencryptProd = "false" }
+
+    $enablePublicIngress = $env:TF_VAR_enable_public_ingress
+    if ([string]::IsNullOrEmpty($enablePublicIngress)) { $enablePublicIngress = "true" }
+
+    $dnsZoneName = $env:TF_VAR_dns_zone_name
+    $dnsZoneRg = $env:TF_VAR_dns_zone_resource_group
+    $dnsZoneSubId = $env:TF_VAR_dns_zone_subscription_id
+
+    # Get UAMI client ID and tenant ID from azd environment
+    $externalDnsClientId = azd env get-value EXTERNAL_DNS_CLIENT_ID 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($externalDnsClientId)) {
+        $externalDnsClientId = ""
+    }
+    $tenantId = azd env get-value AZURE_TENANT_ID 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($tenantId)) {
+        $tenantId = ""
+    }
+
+    # Resolve infra working directory (azd copies infra/ to .azure/<env>/infra/)
+    $envName = $env:AZURE_ENV_NAME
+    $infraDir = "$PSScriptRoot/../infra"
+    if (-not [string]::IsNullOrEmpty($envName)) {
+        $azdInfraDir = "$PSScriptRoot/../.azure/$envName/infra"
+        if (Test-Path $azdInfraDir) { $infraDir = $azdInfraDir }
+    }
+
+    # Determine if DNS zone is fully configured
+    $hasDnsZoneConfig = (-not [string]::IsNullOrEmpty($dnsZoneName)) -and
+                        (-not [string]::IsNullOrEmpty($dnsZoneRg)) -and
+                        (-not [string]::IsNullOrEmpty($dnsZoneSubId))
+
+    # Fix #67: If DNS zone configured but ExternalDNS identity missing, re-apply infra layer
+    if ($hasDnsZoneConfig -and [string]::IsNullOrEmpty($externalDnsClientId)) {
+        Write-Host "  DNS zone configured but ExternalDNS identity not found — applying infra layer..." -ForegroundColor Yellow
+        Push-Location $infraDir
+        $env:ARM_SUBSCRIPTION_ID = $Ctx.SubscriptionId
+        $infraVarFileArgs = @()
+        $infraVarFile = Join-Path $infraDir "main.tfvars.json"
+        if (Test-Path $infraVarFile) {
+            $infraVarFileArgs = @("-var-file=$infraVarFile")
+        }
+        terraform apply -auto-approve @infraVarFileArgs
+        if ($LASTEXITCODE -eq 0) {
+            $externalDnsClientId = terraform output -raw EXTERNAL_DNS_CLIENT_ID 2>$null
+            if ($LASTEXITCODE -ne 0) { $externalDnsClientId = "" }
+            $tenantId = terraform output -raw AZURE_TENANT_ID 2>$null
+            if ($LASTEXITCODE -ne 0) { $tenantId = "" }
+            Write-Host "  ExternalDNS identity created" -ForegroundColor Green
+        }
+        else {
+            Write-Host "  WARNING: Infra re-apply failed, ExternalDNS will be disabled" -ForegroundColor Yellow
+        }
+        Pop-Location
+    }
+
+    $hasIdentityConfig = (-not [string]::IsNullOrEmpty($externalDnsClientId)) -and
+                         (-not [string]::IsNullOrEmpty($tenantId))
+    $enableExternalDns = if ($hasDnsZoneConfig -and $hasIdentityConfig) { "true" } else { "false" }
+
+    Write-Host "  ExternalDNS: $(if ($enableExternalDns -eq 'true') { 'enabled' } else { 'disabled' })" -ForegroundColor Gray
+
+    return @{
+        AcmeEmail            = $acmeEmail
+        IngressPrefix        = $ingressPrefix
+        UseLetsencryptProd   = $useLetsencryptProd
+        EnablePublicIngress  = $enablePublicIngress
+        DnsZoneName          = $dnsZoneName
+        DnsZoneRg            = $dnsZoneRg
+        DnsZoneSubId         = $dnsZoneSubId
+        ExternalDnsClientId  = $externalDnsClientId
+        TenantId             = $tenantId
+        EnableExternalDns    = $enableExternalDns
+    }
+}
+
+function Deploy-Foundation {
+    param($Ctx, $Vars)
+
+    Write-Host "`n[5/5] Deploying Foundation Layer..." -ForegroundColor Cyan
+
+    Push-Location $PSScriptRoot/../software/foundation
+
+    # Initialize terraform if needed
+    if (-not (Test-Path ".terraform")) {
+        Write-Host "  Initializing terraform..." -ForegroundColor Gray
+        terraform init -upgrade
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  ERROR: Terraform init failed" -ForegroundColor Red
+            Pop-Location
+            exit 1
+        }
+    }
+
+    Write-Host "  Running terraform apply..." -ForegroundColor Gray
+    terraform apply -auto-approve `
+        -var="cluster_name=$($Ctx.ClusterName)" `
+        -var="resource_group_name=$($Ctx.ResourceGroup)" `
+        -var="acme_email=$($Vars.AcmeEmail)" `
+        -var="ingress_prefix=$($Vars.IngressPrefix)" `
+        -var="enable_public_ingress=$($Vars.EnablePublicIngress)" `
+        -var="use_letsencrypt_production=$($Vars.UseLetsencryptProd)" `
+        -var="enable_external_dns=$($Vars.EnableExternalDns)" `
+        -var="dns_zone_name=$($Vars.DnsZoneName)" `
+        -var="dns_zone_resource_group=$($Vars.DnsZoneRg)" `
+        -var="dns_zone_subscription_id=$($Vars.DnsZoneSubId)" `
+        -var="external_dns_client_id=$($Vars.ExternalDnsClientId)" `
+        -var="tenant_id=$($Vars.TenantId)"
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  ERROR: Foundation deployment failed" -ForegroundColor Red
+        Pop-Location
+        exit 1
+    }
+
+    Write-Host "  Foundation layer deployed" -ForegroundColor Green
+    Pop-Location
+}
+
 #endregion
 
 # --- Main Flow ---
 
 Write-Host ""
 Write-Host "==================================================================" -ForegroundColor Cyan
-Write-Host "  Post-Provision: Ensure Safeguards Readiness"                      -ForegroundColor Cyan
+Write-Host "  Post-Provision: Safeguards + Foundation"                           -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Cyan
 
 $ctx = Get-ClusterContext
@@ -450,9 +586,20 @@ Set-Safeguards -Ctx $ctx
 Wait-ForGatekeeper -Ctx $ctx
 Test-Exclusions -Ctx $ctx
 
+# Deploy foundation if enabled (default: true)
+$enableFoundation = if ($env:FOUNDATION -eq "false") { $false } else { $true }
+if ($enableFoundation) {
+    $vars = Get-PlatformVars -Ctx $ctx
+    Deploy-Foundation -Ctx $ctx -Vars $vars
+}
+else {
+    Write-Host "`n[5/5] Foundation deployment skipped (FOUNDATION=false)" -ForegroundColor Yellow
+    Write-Host "  Re-enable with: azd env set FOUNDATION true" -ForegroundColor Gray
+}
+
 Write-Host ""
 Write-Host "==================================================================" -ForegroundColor Green
-Write-Host "  Post-Provision Complete — safeguards ready"                       -ForegroundColor Green
+Write-Host "  Post-Provision Complete — safeguards ready, foundation deployed"   -ForegroundColor Green
 Write-Host "==================================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Next step: azd deploy" -ForegroundColor Gray

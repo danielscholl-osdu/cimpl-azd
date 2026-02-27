@@ -1,0 +1,12 @@
+# OSDU service version configuration for this stack instance.
+# Copy this file to osdu-versions.auto.tfvars and customize versions.
+# The .auto.tfvars file is git-ignored — each deployment can pin different versions.
+
+# Default version for all OSDU services
+# osdu_chart_version = "0.0.7-latest"
+
+# Per-service version overrides
+# osdu_service_versions = {
+#   partition    = "0.0.9"
+#   entitlements = "0.0.8"
+# }
