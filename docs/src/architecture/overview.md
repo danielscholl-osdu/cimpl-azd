@@ -435,7 +435,7 @@ Gatekeeper policies enforcing:
 
 **Mode**: Enforcement on AKS Automatic (violations blocked at admission); Warning on standard AKS (violations logged)
 
-**Excluded Namespaces** (configured in `scripts/ensure-safeguards.ps1`):
+**Excluded Namespaces** (configured in `scripts/post-provision.ps1`):
 - kube-system (Kubernetes system)
 - gatekeeper-system (Policy controller)
 - platform (Operators: cert-manager, CNPG, ECK, ExternalDNS, MinIO)
@@ -524,25 +524,21 @@ The deployment uses a two-phase approach to handle Azure Policy/Gatekeeper event
 │           │                                                                 │
 │           ▼                                                                 │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │  post-provision (orchestrator)                                       │   │
-│  │                                                                      │   │
-│  │  ┌────────────────────────────────────────────────────────────────┐  │   │
-│  │  │  Phase 1: ensure-safeguards.ps1  [GATE]                        │  │   │
-│  │  │    1. Configure kubeconfig                                     │  │   │
-│  │  │    2. Configure AKS safeguards (Warning mode)                  │  │   │
-│  │  │    3. Wait for Gatekeeper controller ready                     │  │   │
-│  │  │    4. Wait for ALL constraints to leave deny mode              │  │   │
-│  │  │    5. EXIT with error if not ready (fail fast)                 │  │   │
-│  │  └────────────────────────────────────────────────────────────────┘  │   │
-│  │                              │                                       │   │
-│  │                     (only if Phase 1 succeeds)                       │   │
-│  │                              ▼                                       │   │
-│  │  ┌────────────────────────────────────────────────────────────────┐  │   │
-│  │  │  Phase 2: deploy-platform.ps1                                  │  │   │
-│  │  │    1. Verify cluster access                                    │  │   │
-│  │  │    2. terraform apply (platform/)                              │  │   │
-│  │  │    3. Verify component health                                  │  │   │
-│  │  └────────────────────────────────────────────────────────────────┘  │   │
+│  │  postprovision: post-provision.ps1  [GATE]                          │   │
+│  │    1. Configure kubeconfig                                          │   │
+│  │    2. Configure AKS safeguards (Warning mode)                       │   │
+│  │    3. Wait for Gatekeeper controller ready                          │   │
+│  │    4. Verify namespace exclusions / probe exemption                 │   │
+│  │    5. EXIT with error if not ready (fail fast)                      │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                │                                            │
+│                   (only if postprovision succeeds)                          │
+│                                ▼                                            │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │  predeploy: pre-deploy.ps1 → deploy-platform.ps1                    │   │
+│  │    1. Verify cluster access                                          │   │
+│  │    2. terraform apply (platform/)                                    │   │
+│  │    3. Verify component health                                        │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

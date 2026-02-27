@@ -18,12 +18,19 @@ hooks:
     shell: pwsh
     run: ./scripts/pre-provision.ps1
 
-  # Post-provision: Deploy platform layer (Layer 2)
+  # Post-provision: Ensure AKS safeguards are ready
   postprovision:
     interactive: true
     continueOnError: false
     shell: pwsh
     run: ./scripts/post-provision.ps1
+
+  # Pre-deploy: Deploy platform layer (Layer 2)
+  predeploy:
+    interactive: true
+    continueOnError: false
+    shell: pwsh
+    run: ./scripts/pre-deploy.ps1
 
   # Pre-down: Destroy platform layer before cluster teardown
   predown:
@@ -31,9 +38,3 @@ hooks:
     continueOnError: false
     shell: pwsh
     run: ./scripts/pre-down.ps1
-
-# Future: Services layer (Layer 3) will be added here
-# services:
-#   osdu-platform:
-#     project: ./services
-#     host: aks

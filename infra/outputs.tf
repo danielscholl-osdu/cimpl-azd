@@ -51,3 +51,8 @@ output "AZURE_TENANT_ID" {
   description = "Azure tenant ID"
   value       = data.azurerm_client_config.current.tenant_id
 }
+
+output "GRAFANA_ENDPOINT" {
+  description = "Azure Managed Grafana dashboard URL"
+  value       = azurerm_dashboard_grafana.main.endpoint
+}

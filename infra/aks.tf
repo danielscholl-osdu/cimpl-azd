@@ -4,14 +4,14 @@ data "azurerm_client_config" "current" {}
 # AKS Automatic Cluster using Azure Verified Module
 module "aks" {
   source  = "Azure/avm-res-containerservice-managedcluster/azurerm"
-  version = "0.4.2"
+  version = "0.4.3"
 
   name      = local.cluster_name
   location  = var.location
   parent_id = azurerm_resource_group.main.id
 
-  # Kubernetes Version (1.32 - KubernetesOfficial support, works with Standard tier)
-  kubernetes_version = "1.32"
+  # Kubernetes Version (1.33 - default, KubernetesOfficial support)
+  kubernetes_version = "1.33"
 
   # AKS Automatic SKU
   sku = {
@@ -91,12 +91,25 @@ module "aks" {
     }
   }
 
-  # Monitoring
+  # Monitoring: Managed Prometheus (metrics)
   azure_monitor_profile = {
     metrics = {
       enabled = true
     }
   }
+
+  # Monitoring: Container Insights (logs)
+  addon_profile_oms_agent = {
+    enabled = true
+    config = {
+      log_analytics_workspace_resource_id = azurerm_log_analytics_workspace.aks.id
+      use_aad_auth                        = true
+    }
+  }
+
+  # Monitoring: Wire up Prometheus data collection rules
+  onboard_monitoring      = true
+  prometheus_workspace_id = azurerm_monitor_workspace.prometheus.id
 
   # Managed Identities
   managed_identities = {

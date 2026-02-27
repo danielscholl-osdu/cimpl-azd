@@ -14,13 +14,12 @@ resource "azurerm_user_assigned_identity" "external_dns" {
 }
 
 resource "azurerm_federated_identity_credential" "external_dns" {
-  count               = local.enable_external_dns ? 1 : 0
-  name                = "external-dns"
-  resource_group_name = azurerm_resource_group.main.name
-  parent_id           = azurerm_user_assigned_identity.external_dns[0].id
-  audience            = ["api://AzureADTokenExchange"]
-  issuer              = module.aks.oidc_issuer_profile_issuer_url
-  subject             = "system:serviceaccount:external-dns:external-dns"
+  count     = local.enable_external_dns ? 1 : 0
+  name      = "external-dns"
+  parent_id = azurerm_user_assigned_identity.external_dns[0].id
+  audience  = ["api://AzureADTokenExchange"]
+  issuer    = module.aks.oidc_issuer_profile_issuer_url
+  subject   = "system:serviceaccount:external-dns:external-dns"
 }
 
 resource "azurerm_role_assignment" "external_dns_dns_contributor" {
