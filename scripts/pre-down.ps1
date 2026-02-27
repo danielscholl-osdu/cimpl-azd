@@ -154,20 +154,11 @@ function Get-ResourceGroupName {
     $rg = $env:AZURE_RESOURCE_GROUP
     if (-not [string]::IsNullOrEmpty($rg)) { return $rg }
 
-    $envName = $env:AZURE_ENV_NAME
-    $infraState = "$PSScriptRoot/../.azure/$envName/infra/terraform.tfstate"
-    Push-Location $PSScriptRoot/../infra
-    try {
-        if (Test-Path $infraState) {
-            $rg = terraform output -raw "-state=$infraState" AZURE_RESOURCE_GROUP 2>$null
-        }
-        else {
-            $rg = terraform output -raw AZURE_RESOURCE_GROUP 2>$null
-        }
-    }
-    finally { Pop-Location }
+    # Fallback: query azd environment (avoids deprecated -state flag)
+    $rg = azd env get-value AZURE_RESOURCE_GROUP 2>$null
+    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrEmpty($rg)) { return $rg }
 
-    return $rg
+    return $null
 }
 
 function Remove-ResourceGroup {
