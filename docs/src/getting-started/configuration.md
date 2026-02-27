@@ -20,6 +20,7 @@
 | `TF_VAR_rabbitmq_username` | No | RabbitMQ username (default: rabbitmq) |
 | `TF_VAR_rabbitmq_password` | No | RabbitMQ password (auto-generated if not set) |
 | `TF_VAR_rabbitmq_erlang_cookie` | No | RabbitMQ Erlang cookie (auto-generated if not set) |
+| `TF_VAR_datafier_client_secret` | No | Keycloak client secret for entitlements datafier service account (auto-generated if not set) |
 | `TF_VAR_cimpl_subscriber_private_key_id` | No | Subscriber private key identifier for OSDU services |
 | `TF_VAR_cimpl_project` | No | CIMPL project/group identifier |
 | `TF_VAR_cimpl_tenant` | No | CIMPL data partition ID (default: osdu) |

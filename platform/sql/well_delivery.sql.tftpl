@@ -1,0 +1,11 @@
+-- ===== well_delivery (relational) =====
+\c well_delivery
+CREATE TABLE IF NOT EXISTS public.jdbc_entity (
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY,
+    data jsonb, relationships jsonb,
+    deleted_at timestamp with time zone,
+    CONSTRAINT json_entity_pkey PRIMARY KEY (id)
+);
+ALTER TABLE IF EXISTS public.jdbc_entity OWNER TO osdu;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO osdu;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO osdu;

@@ -1,0 +1,27 @@
+-- ===== workflow (OSM + system namespace) =====
+\c workflow
+CREATE SCHEMA IF NOT EXISTS "${data_partition_id}" AUTHORIZATION osdu;
+CREATE SCHEMA IF NOT EXISTS system_workflow_namespace AUTHORIZATION osdu;
+
+CREATE TABLE IF NOT EXISTS "${data_partition_id}".workflow_osm (
+    id text NOT NULL, pk bigint NOT NULL GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    data jsonb NOT NULL, CONSTRAINT workflow_id UNIQUE (id)
+);
+ALTER TABLE IF EXISTS "${data_partition_id}".workflow_osm OWNER TO osdu;
+
+CREATE TABLE IF NOT EXISTS "${data_partition_id}".workflow_run_osm (
+    id text NOT NULL, pk bigint NOT NULL GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    data jsonb NOT NULL, CONSTRAINT workflow_run_id UNIQUE (id)
+);
+ALTER TABLE IF EXISTS "${data_partition_id}".workflow_run_osm OWNER TO osdu;
+
+CREATE TABLE IF NOT EXISTS system_workflow_namespace.system_workflow_osm (
+    id text NOT NULL, pk bigint NOT NULL GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    data jsonb NOT NULL, CONSTRAINT system_workflow_id UNIQUE (id)
+);
+ALTER TABLE IF EXISTS system_workflow_namespace.system_workflow_osm OWNER TO osdu;
+
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA "${data_partition_id}" TO osdu;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA "${data_partition_id}" TO osdu;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA system_workflow_namespace TO osdu;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA system_workflow_namespace TO osdu;

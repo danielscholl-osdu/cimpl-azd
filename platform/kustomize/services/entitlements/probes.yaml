@@ -2,10 +2,10 @@
   path: /spec/template/spec/containers/0/livenessProbe
   value:
     httpGet:
-      path: /api/entitlements/v2/health
-      port: 8080
+      path: /health/liveness
+      port: 8081
       scheme: HTTP
-    initialDelaySeconds: 30
+    initialDelaySeconds: 150
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 3
@@ -14,11 +14,11 @@
   path: /spec/template/spec/containers/0/readinessProbe
   value:
     httpGet:
-      path: /api/entitlements/v2/health
-      port: 8080
+      path: /health/readiness
+      port: 8081
       scheme: HTTP
     initialDelaySeconds: 10
-    periodSeconds: 5
-    timeoutSeconds: 3
+    periodSeconds: 10
+    timeoutSeconds: 5
     failureThreshold: 3
     successThreshold: 1
