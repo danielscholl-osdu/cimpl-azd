@@ -64,15 +64,13 @@ azd up
   |
   +-- preprovision        -> Validate prerequisites
   +-- provision           -> Create AKS cluster (Layer 1)
-  +-- postprovision       -> Two-phase deployment:
-        |
-        +-- Phase 1: ensure-safeguards.ps1
-        |     +-- Configure safeguards (Warning mode)
-        |     +-- Wait for Gatekeeper reconciliation (gate)
-        |
-        +-- Phase 2: deploy-platform.ps1
-              +-- Deploy platform Terraform (Layer 2)
-              +-- Verify component health
+  +-- postprovision       -> Ensure safeguards readiness (gate)
+  |     +-- Configure safeguards (Warning mode)
+  |     +-- Wait for Gatekeeper reconciliation
+  |
+  +-- predeploy           -> Deploy platform layer
+        +-- deploy-platform.ps1 (Layer 2 Terraform)
+        +-- Verify component health
 ```
 
 !!! info "Why Two Phases?"
@@ -101,9 +99,9 @@ cimpl-azd/
 |   +-- helm_minio.tf           # MinIO
 |   +-- k8s_gateway.tf          # Gateway API config
 +-- scripts/
-|   +-- pre-provision.ps1       # Pre-deploy validation
-|   +-- post-provision.ps1      # Orchestrator (calls Phase 1 + 2)
-|   +-- ensure-safeguards.ps1   # Phase 1: Safeguards readiness
-|   +-- deploy-platform.ps1     # Phase 2: Platform deployment
+|   +-- pre-provision.ps1       # Pre-provision validation & env defaults
+|   +-- post-provision.ps1      # Post-provision: safeguards readiness
+|   +-- pre-deploy.ps1          # Pre-deploy: platform layer deployment
+|   +-- deploy-platform.ps1     # Platform Terraform apply
 +-- docs/                       # Documentation (this site)
 ```

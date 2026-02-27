@@ -2,7 +2,7 @@
 # Phase 2: Deploy Platform Layer
 #
 # This script deploys the platform components (Elasticsearch, PostgreSQL, MinIO, etc.)
-# It should only be run AFTER Phase 1 (ensure-safeguards.ps1) completes successfully.
+# It should only be run AFTER post-provision (safeguards readiness) completes successfully.
 #
 # Prerequisites:
 # - Phase 1 completed successfully (safeguards in warn mode)
