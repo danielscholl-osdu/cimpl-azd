@@ -274,13 +274,11 @@ variable "tags" {
 variable "osdu_chart_version" {
   description = "Default OSDU Helm chart version for all services"
   type        = string
-  default     = "0.29.0"
+  default     = "0.0.7-latest"
 }
 
 variable "osdu_service_versions" {
   description = "Per-service version overrides (service_name -> chart_version)"
   type        = map(string)
-  default = {
-    entitlements = "0.29.2"
-  }
+  default     = {}
 }

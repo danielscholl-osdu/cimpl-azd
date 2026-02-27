@@ -11,6 +11,13 @@ infra:
 
 # Hooks for multi-layer deployment
 hooks:
+  # Pre-restore: Resolve OSDU chart versions from OCI registry
+  prerestore:
+    interactive: true
+    continueOnError: false
+    shell: pwsh
+    run: ./scripts/resolve-chart-versions.ps1
+
   # Pre-provision: Validate prerequisites
   preprovision:
     interactive: true
