@@ -16,27 +16,16 @@ Write-Host "==================================================================" 
 Write-Host "  Phase 2: Deploy Platform Layer"                                   -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Cyan
 
-# Get resource group, cluster name, and subscription from environment or terraform outputs
+# Get resource group, cluster name, and subscription from environment or azd env
 $resourceGroup = $env:AZURE_RESOURCE_GROUP
 $clusterName = $env:AZURE_AKS_CLUSTER_NAME
 $subscriptionId = $env:AZURE_SUBSCRIPTION_ID
 
 if ([string]::IsNullOrEmpty($resourceGroup) -or [string]::IsNullOrEmpty($clusterName)) {
-    Write-Host "  Getting values from terraform outputs..." -ForegroundColor Gray
-    $envNameFallback = $env:AZURE_ENV_NAME
-    $infraStateFallback = "$PSScriptRoot/../.azure/$envNameFallback/infra/terraform.tfstate"
-    Push-Location $PSScriptRoot/../infra
-    if (Test-Path $infraStateFallback) {
-        if ([string]::IsNullOrEmpty($resourceGroup)) { $resourceGroup = terraform output -raw "-state=$infraStateFallback" AZURE_RESOURCE_GROUP 2>$null }
-        if ([string]::IsNullOrEmpty($clusterName)) { $clusterName = terraform output -raw "-state=$infraStateFallback" AZURE_AKS_CLUSTER_NAME 2>$null }
-        if ([string]::IsNullOrEmpty($subscriptionId)) { $subscriptionId = terraform output -raw "-state=$infraStateFallback" AZURE_SUBSCRIPTION_ID 2>$null }
-    }
-    else {
-        if ([string]::IsNullOrEmpty($resourceGroup)) { $resourceGroup = terraform output -raw AZURE_RESOURCE_GROUP 2>$null }
-        if ([string]::IsNullOrEmpty($clusterName)) { $clusterName = terraform output -raw AZURE_AKS_CLUSTER_NAME 2>$null }
-        if ([string]::IsNullOrEmpty($subscriptionId)) { $subscriptionId = terraform output -raw AZURE_SUBSCRIPTION_ID 2>$null }
-    }
-    Pop-Location
+    Write-Host "  Getting values from azd environment..." -ForegroundColor Gray
+    if ([string]::IsNullOrEmpty($resourceGroup)) { $resourceGroup = azd env get-value AZURE_RESOURCE_GROUP 2>$null }
+    if ([string]::IsNullOrEmpty($clusterName)) { $clusterName = azd env get-value AZURE_AKS_CLUSTER_NAME 2>$null }
+    if ([string]::IsNullOrEmpty($subscriptionId)) { $subscriptionId = azd env get-value AZURE_SUBSCRIPTION_ID 2>$null }
 }
 
 if ([string]::IsNullOrEmpty($subscriptionId)) {
@@ -117,37 +106,25 @@ $dnsZoneName = $env:TF_VAR_dns_zone_name
 $dnsZoneRg = $env:TF_VAR_dns_zone_resource_group
 $dnsZoneSubId = $env:TF_VAR_dns_zone_subscription_id
 
-# Get UAMI client ID and tenant ID from infra terraform outputs
-# azd manages infra state at .azure/<env>/infra/terraform.tfstate, not in the source dir
-# Determine state file location
-$envName = $env:AZURE_ENV_NAME
-$stateArgs = @()
-if (-not [string]::IsNullOrEmpty($envName)) {
-    $infraStateFile = "$PSScriptRoot/../.azure/$envName/infra/terraform.tfstate"
-    if (Test-Path $infraStateFile) {
-        $stateArgs = @("-state=$infraStateFile")
-    }
-    else {
-        Write-Host "  WARNING: Infra state not found at $infraStateFile, falling back to local state" -ForegroundColor Yellow
-    }
-}
-else {
-    Write-Host "  WARNING: AZURE_ENV_NAME not set; using local infra state (non-azd workflow)" -ForegroundColor Yellow
-}
-
-# Read outputs (single block, uses $stateArgs if azd state exists)
-Push-Location $PSScriptRoot/../infra
-$externalDnsClientId = terraform output -raw @stateArgs EXTERNAL_DNS_CLIENT_ID 2>$null
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "  WARNING: Could not read EXTERNAL_DNS_CLIENT_ID from infra state" -ForegroundColor Yellow
+# Get UAMI client ID and tenant ID from azd environment (set by infra terraform outputs)
+$externalDnsClientId = azd env get-value EXTERNAL_DNS_CLIENT_ID 2>$null
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($externalDnsClientId)) {
+    Write-Host "  WARNING: Could not read EXTERNAL_DNS_CLIENT_ID from azd env" -ForegroundColor Yellow
     $externalDnsClientId = ""
 }
-$tenantId = terraform output -raw @stateArgs AZURE_TENANT_ID 2>$null
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "  WARNING: Could not read AZURE_TENANT_ID from infra state" -ForegroundColor Yellow
+$tenantId = azd env get-value AZURE_TENANT_ID 2>$null
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($tenantId)) {
+    Write-Host "  WARNING: Could not read AZURE_TENANT_ID from azd env" -ForegroundColor Yellow
     $tenantId = ""
 }
-Pop-Location
+
+# Resolve infra working directory (azd copies infra/ to .azure/<env>/infra/)
+$envName = $env:AZURE_ENV_NAME
+$infraDir = "$PSScriptRoot/../infra"
+if (-not [string]::IsNullOrEmpty($envName)) {
+    $azdInfraDir = "$PSScriptRoot/../.azure/$envName/infra"
+    if (Test-Path $azdInfraDir) { $infraDir = $azdInfraDir }
+}
 
 # Determine if DNS zone is fully configured
 $hasDnsZoneConfig = (-not [string]::IsNullOrEmpty($dnsZoneName)) -and `
@@ -157,21 +134,19 @@ $hasDnsZoneConfig = (-not [string]::IsNullOrEmpty($dnsZoneName)) -and `
 # Fix #67: If DNS zone configured but ExternalDNS identity missing, re-apply infra layer
 if ($hasDnsZoneConfig -and [string]::IsNullOrEmpty($externalDnsClientId)) {
     Write-Host "  DNS zone configured but ExternalDNS identity not found — applying infra layer..." -ForegroundColor Yellow
-    Push-Location $PSScriptRoot/../infra
+    Push-Location $infraDir
     $env:ARM_SUBSCRIPTION_ID = $subscriptionId
-    # azd stores infra variables in main.tfvars.json alongside the state file
+    # azd stores infra variables in main.tfvars.json alongside the state
     $infraVarFileArgs = @()
-    if (-not [string]::IsNullOrEmpty($envName)) {
-        $infraVarFile = "$PSScriptRoot/../.azure/$envName/infra/main.tfvars.json"
-        if (Test-Path $infraVarFile) {
-            $infraVarFileArgs = @("-var-file=$infraVarFile")
-        }
+    $infraVarFile = Join-Path $infraDir "main.tfvars.json"
+    if (Test-Path $infraVarFile) {
+        $infraVarFileArgs = @("-var-file=$infraVarFile")
     }
-    terraform apply -auto-approve @stateArgs @infraVarFileArgs
+    terraform apply -auto-approve @infraVarFileArgs
     if ($LASTEXITCODE -eq 0) {
-        $externalDnsClientId = terraform output -raw @stateArgs EXTERNAL_DNS_CLIENT_ID 2>$null
+        $externalDnsClientId = terraform output -raw EXTERNAL_DNS_CLIENT_ID 2>$null
         if ($LASTEXITCODE -ne 0) { $externalDnsClientId = "" }
-        $tenantId = terraform output -raw @stateArgs AZURE_TENANT_ID 2>$null
+        $tenantId = terraform output -raw AZURE_TENANT_ID 2>$null
         if ($LASTEXITCODE -ne 0) { $tenantId = "" }
         Write-Host "  ExternalDNS identity created" -ForegroundColor Green
     } else {
