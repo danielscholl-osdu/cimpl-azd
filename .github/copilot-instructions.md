@@ -103,8 +103,7 @@ cimpl-azd/
 ├── scripts/
 │   ├── pre-provision.ps1         # Pre-provision validation & env defaults
 │   ├── post-provision.ps1        # Post-provision: ensure safeguards readiness
-│   ├── pre-deploy.ps1            # Pre-deploy: deploy platform layer
-│   └── deploy-platform.ps1       # Platform Terraform apply
+│   └── pre-deploy.ps1            # Pre-deploy: deploy platform layer
 ├── docs/
 │   ├── mkdocs.yml                # Documentation site config
 │   └── src/                      # Documentation source (MkDocs)
