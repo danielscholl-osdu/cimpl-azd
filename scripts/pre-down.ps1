@@ -225,13 +225,24 @@ function Clear-TerraformState {
     $cleared = $false
     $stateFiles = @("terraform.tfstate", "terraform.tfstate.backup")
 
-    # Clear platform layer state
-    $platformDir = "$PSScriptRoot/../platform"
+    # Clear foundation layer state
+    $foundationDir = "$PSScriptRoot/../software/foundation"
     foreach ($file in $stateFiles) {
-        $path = Join-Path $platformDir $file
+        $path = Join-Path $foundationDir $file
         if (Test-Path $path) {
             Remove-Item -Path $path -Force
-            Write-Host "  Removed: platform/$file" -ForegroundColor Gray
+            Write-Host "  Removed: foundation/$file" -ForegroundColor Gray
+            $cleared = $true
+        }
+    }
+
+    # Clear stack layer state (config-driven stack)
+    $stateDir = "$PSScriptRoot/../software/stack/.tfstate"
+    if (Test-Path $stateDir) {
+        $stateItems = Get-ChildItem -Path $stateDir -Filter "*.tfstate*" -ErrorAction SilentlyContinue
+        foreach ($item in $stateItems) {
+            Remove-Item -Path $item.FullName -Force
+            Write-Host "  Removed: stack/.tfstate/$($item.Name)" -ForegroundColor Gray
             $cleared = $true
         }
     }

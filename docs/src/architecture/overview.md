@@ -535,7 +535,7 @@ The deployment uses a two-phase approach to handle Azure Policy/Gatekeeper event
 │                   (only if postprovision succeeds)                          │
 │                                ▼                                            │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │  predeploy: pre-deploy.ps1 → deploy-platform.ps1                    │   │
+│  │  predeploy: pre-deploy.ps1                                          │   │
 │  │    1. Verify cluster access                                          │   │
 │  │    2. terraform apply (platform/)                                    │   │
 │  │    3. Verify component health                                        │   │

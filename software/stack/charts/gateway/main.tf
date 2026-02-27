@@ -1,0 +1,136 @@
+# Stack-specific Gateway listeners, HTTPRoutes, and TLS Certificates
+
+# Add HTTPS listener to the shared Gateway for this stack's Kibana
+resource "null_resource" "gateway_https_listener" {
+  triggers = {
+    kibana_hostname = var.kibana_hostname
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<-EOT
+      cat <<'YAML' | kubectl apply --as=system:admin --as-group=system:masters -f -
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: Gateway
+      metadata:
+        name: istio
+        namespace: aks-istio-ingress
+      spec:
+        gatewayClassName: istio
+        addresses:
+          - value: aks-istio-ingressgateway-external
+            type: Hostname
+        listeners:
+          - name: http
+            protocol: HTTP
+            port: 80
+            allowedRoutes:
+              namespaces:
+                from: All
+          - name: https-stack-${var.stack_label}
+            protocol: HTTPS
+            port: 443
+            hostname: "${var.kibana_hostname}"
+            tls:
+              mode: Terminate
+              certificateRefs:
+                - kind: Secret
+                  name: kibana-tls-stack-${var.stack_label}
+                  namespace: aks-istio-ingress
+            allowedRoutes:
+              namespaces:
+                from: All
+      YAML
+    EOT
+  }
+}
+
+# HTTPRoute for Kibana
+resource "null_resource" "kibana_route" {
+  triggers = {
+    kibana_hostname = var.kibana_hostname
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<-EOT
+      cat <<'YAML' | kubectl apply --as=system:admin --as-group=system:masters -f -
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      metadata:
+        name: kibana-route-stack-${var.stack_label}
+        namespace: aks-istio-ingress
+      spec:
+        parentRefs:
+          - name: istio
+            namespace: aks-istio-ingress
+        hostnames:
+          - "${var.kibana_hostname}"
+        rules:
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /
+            backendRefs:
+              - name: kibana-kb-http
+                namespace: ${var.namespace}
+                port: 5601
+      YAML
+    EOT
+  }
+
+  depends_on = [null_resource.gateway_https_listener]
+}
+
+# ReferenceGrant for cross-namespace service access
+resource "kubectl_manifest" "kibana_reference_grant" {
+  yaml_body = <<-YAML
+    apiVersion: gateway.networking.k8s.io/v1beta1
+    kind: ReferenceGrant
+    metadata:
+      name: allow-istio-ingress-stack-${var.stack_label}
+      namespace: ${var.namespace}
+    spec:
+      from:
+        - group: gateway.networking.k8s.io
+          kind: HTTPRoute
+          namespace: aks-istio-ingress
+      to:
+        - group: ""
+          kind: Service
+          name: kibana-kb-http
+  YAML
+}
+
+# TLS Certificate
+resource "null_resource" "kibana_certificate" {
+  count = var.enable_cert_manager ? 1 : 0
+
+  triggers = {
+    kibana_hostname = var.kibana_hostname
+    cluster_issuer  = var.active_cluster_issuer
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<-EOT
+      cat <<'YAML' | kubectl apply --as=system:admin --as-group=system:masters -f -
+      apiVersion: cert-manager.io/v1
+      kind: Certificate
+      metadata:
+        name: kibana-tls-stack-${var.stack_label}
+        namespace: aks-istio-ingress
+      spec:
+        secretName: kibana-tls-stack-${var.stack_label}
+        duration: 2160h
+        renewBefore: 360h
+        commonName: "${var.kibana_hostname}"
+        dnsNames:
+          - "${var.kibana_hostname}"
+        issuerRef:
+          name: ${var.active_cluster_issuer}
+          kind: ClusterIssuer
+      YAML
+    EOT
+  }
+}

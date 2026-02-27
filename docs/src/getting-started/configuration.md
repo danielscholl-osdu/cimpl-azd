@@ -69,7 +69,7 @@ azd up
   |     +-- Wait for Gatekeeper reconciliation
   |
   +-- predeploy           -> Deploy platform layer
-        +-- deploy-platform.ps1 (Layer 2 Terraform)
+        +-- pre-deploy.ps1 (Layer 2 Terraform)
         +-- Verify component health
 ```
 
@@ -102,6 +102,5 @@ cimpl-azd/
 |   +-- pre-provision.ps1       # Pre-provision validation & env defaults
 |   +-- post-provision.ps1      # Post-provision: safeguards readiness
 |   +-- pre-deploy.ps1          # Pre-deploy: platform layer deployment
-|   +-- deploy-platform.ps1     # Platform Terraform apply
 +-- docs/                       # Documentation (this site)
 ```

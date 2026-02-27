@@ -1,0 +1,87 @@
+- op: add
+  path: /spec/template/spec/securityContext
+  value:
+    seccompProfile:
+      type: RuntimeDefault
+- op: add
+  path: /spec/template/spec/initContainers
+  value:
+    - name: wait-for-elasticsearch
+      image: curlimages/curl:8.12.1
+      command:
+        - sh
+        - -c
+        - |
+          until curl -fsS -k -u "elastic:${ES_PASSWORD}" "https://elasticsearch-es-http:9200/_cluster/health?wait_for_status=yellow&timeout=30s"; do
+            echo "Waiting for Elasticsearch to become healthy..."
+            sleep 10
+          done
+      env:
+        - name: ES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch-es-elastic-user
+              key: elastic
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+- op: add
+  path: /spec/template/spec/containers/0/resources
+  value:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+- op: add
+  path: /spec/template/spec/containers/0/livenessProbe
+  value:
+    exec:
+      command:
+        - sh
+        - -c
+        - "true"
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+- op: add
+  path: /spec/template/spec/containers/0/readinessProbe
+  value:
+    exec:
+      command:
+        - sh
+        - -c
+        - "true"
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: ELASTICSEARCH_HOST
+    value: "elasticsearch-es-http"
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: ELASTICSEARCH_PORT
+    value: "9200"
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: ELASTICSEARCH_USERNAME
+    value: "elastic"
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: ELASTICSEARCH_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: elasticsearch-es-elastic-user
+        key: elastic
