@@ -1,0 +1,14 @@
+-- ===== partition (OSM) =====
+\c partition
+CREATE SCHEMA IF NOT EXISTS partition AUTHORIZATION osdu;
+ALTER DATABASE partition SET search_path = "partition",public;
+CREATE TABLE IF NOT EXISTS partition."PartitionProperty" (
+    id text NOT NULL,
+    pk bigint NOT NULL GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    data jsonb NOT NULL,
+    CONSTRAINT "PartitionProperty_id_key" UNIQUE (id)
+);
+CREATE INDEX IF NOT EXISTS "PartitionProperty_datagin" ON partition."PartitionProperty" USING GIN (data);
+ALTER TABLE IF EXISTS partition."PartitionProperty" OWNER TO osdu;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA partition TO osdu;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA partition TO osdu;

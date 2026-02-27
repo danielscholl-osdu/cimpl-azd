@@ -378,6 +378,24 @@ if ([string]::IsNullOrEmpty($minioPassword)) {
 else {
     Write-Host " set" -ForegroundColor Green
 }
+
+# --- TF_VAR_datafier_client_secret: generate random if not set ---
+$datafierSecret = [Environment]::GetEnvironmentVariable("TF_VAR_datafier_client_secret")
+Write-Host "  TF_VAR_datafier_client_secret..." -NoNewline
+if ([string]::IsNullOrEmpty($datafierSecret)) {
+    $generatedDatafierSecret = New-RandomPassword
+    azd env set TF_VAR_datafier_client_secret $generatedDatafierSecret 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        [void]$issues.Add("Failed to set TF_VAR_datafier_client_secret")
+        Write-Host " FAILED" -ForegroundColor Red
+    }
+    else {
+        Write-Host " generated" -ForegroundColor Green
+    }
+}
+else {
+    Write-Host " set" -ForegroundColor Green
+}
 #endregion
 
 #region Azure Resource Providers

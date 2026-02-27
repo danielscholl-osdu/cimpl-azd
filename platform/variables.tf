@@ -203,6 +203,12 @@ variable "keycloak_admin_password" {
   default     = ""
 }
 
+variable "datafier_client_secret" {
+  description = "Keycloak client secret for the datafier service account (entitlements bootstrap)"
+  type        = string
+  sensitive   = true
+}
+
 variable "airflow_db_password" {
   description = "Airflow database password"
   type        = string

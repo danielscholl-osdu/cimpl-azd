@@ -297,7 +297,7 @@ Post-deploy Job that configures index templates, ILM policies, and aliases requi
 - Instances: 3 (synchronous quorum replication: `minSyncReplicas: 1, maxSyncReplicas: 1`)
 - Replication slots: HA enabled
 - Database: `osdu` (owner: `osdu`)
-- Additional databases: `keycloak`, `airflow` (created via idempotent Job in `platform/k8s_cnpg_databases.tf`)
+- Additional databases: `keycloak`, `airflow` (created via idempotent Job in `platform/k8s_cnpg_bootstrap.tf`, DDL in `platform/sql/*.sql.tftpl`)
 - Storage: 8Gi data + 4Gi WAL per instance on `pg-storageclass` (Premium_LRS, Retain)
 - Read-write: `postgresql-rw.postgresql.svc.cluster.local:5432`
 - Read-only: `postgresql-ro.postgresql.svc.cluster.local:5432`

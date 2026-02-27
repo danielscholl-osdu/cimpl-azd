@@ -13,9 +13,7 @@ patches:
   - path: probes.yaml
     target:
       kind: Deployment
-  - path: probes.yaml
-    target:
-      kind: StatefulSet
+      labelSelector: "type=core"
   - path: resources.yaml
     target:
       kind: Deployment

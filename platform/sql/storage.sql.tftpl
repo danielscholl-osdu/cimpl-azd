@@ -1,0 +1,27 @@
+-- ===== storage (OSM) =====
+\c storage
+CREATE SCHEMA IF NOT EXISTS "${data_partition_id}" AUTHORIZATION osdu;
+
+CREATE TABLE IF NOT EXISTS "${data_partition_id}"."StorageRecord" (
+    id text NOT NULL, pk bigint NOT NULL GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    data jsonb NOT NULL, CONSTRAINT "StorageRecord_id" UNIQUE (id)
+);
+ALTER TABLE IF EXISTS "${data_partition_id}"."StorageRecord" OWNER TO osdu;
+CREATE INDEX IF NOT EXISTS "StorageRecord_datagin" ON "${data_partition_id}"."StorageRecord" USING GIN (data);
+
+CREATE TABLE IF NOT EXISTS "${data_partition_id}"."StorageSchema" (
+    id text NOT NULL, pk bigint NOT NULL GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    data jsonb NOT NULL, CONSTRAINT "StorageSchema_id" UNIQUE (id)
+);
+ALTER TABLE IF EXISTS "${data_partition_id}"."StorageSchema" OWNER TO osdu;
+CREATE INDEX IF NOT EXISTS "StorageSchema_datagin" ON "${data_partition_id}"."StorageSchema" USING GIN (data);
+
+CREATE TABLE IF NOT EXISTS "${data_partition_id}"."ReplayStatus" (
+    id text NOT NULL, pk bigint NOT NULL GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    data jsonb NOT NULL, CONSTRAINT "ReplayStatus_id" UNIQUE (id)
+);
+ALTER TABLE IF EXISTS "${data_partition_id}"."ReplayStatus" OWNER TO osdu;
+CREATE INDEX IF NOT EXISTS "ReplayStatus_datagin" ON "${data_partition_id}"."ReplayStatus" USING GIN (data);
+
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA "${data_partition_id}" TO osdu;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA "${data_partition_id}" TO osdu;
