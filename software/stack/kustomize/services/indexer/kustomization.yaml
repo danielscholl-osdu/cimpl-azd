@@ -8,6 +8,11 @@ components:
   - ../../components/seccomp
   - ../../components/security-context
   - ../../components/topology-spread
+  - ../../components/pin-istio-proxy
+
+images:
+  - name: docker.io/library/redis
+    newTag: 7.2-alpine
 
 patches:
   - path: probes.yaml
