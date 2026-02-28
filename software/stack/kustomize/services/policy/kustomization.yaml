@@ -20,3 +20,10 @@ patches:
   - path: resources.yaml
     target:
       kind: StatefulSet
+  - path: init-resources.yaml
+    target:
+      kind: Deployment
+      name: opa
+  - path: pin-istio-proxy.yaml
+    target:
+      kind: Deployment

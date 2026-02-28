@@ -358,6 +358,93 @@ resource "kubernetes_secret" "minio_bootstrap" {
   depends_on = [kubernetes_namespace.osdu]
 }
 
+# ─── Storage secrets ──────────────────────────────────────────────────────────
+
+resource "kubernetes_secret" "storage_keycloak" {
+  count = var.enable_storage ? 1 : 0
+
+  metadata {
+    name      = "storage-keycloak-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    OPENID_PROVIDER_CLIENT_ID     = "datafier"
+    OPENID_PROVIDER_CLIENT_SECRET = var.datafier_client_secret
+    OPENID_PROVIDER_URL           = "http://${var.keycloak_host}:8080/realms/osdu"
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
+resource "kubernetes_secret" "storage_minio" {
+  count = var.enable_storage ? 1 : 0
+
+  metadata {
+    name      = "storage-minio-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    MINIO_ACCESS_KEY = var.minio_root_user
+    MINIO_SECRET_KEY = var.minio_root_password
+    AWS_REGION       = "us-east-1"
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
+resource "kubernetes_secret" "storage_redis" {
+  count = var.enable_storage ? 1 : 0
+
+  metadata {
+    name      = "storage-redis-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    REDIS_PASSWORD = var.redis_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
+# ─── File secrets ─────────────────────────────────────────────────────────────
+
+resource "kubernetes_secret" "file_keycloak" {
+  count = var.enable_file ? 1 : 0
+
+  metadata {
+    name      = "file-keycloak-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    OPENID_PROVIDER_CLIENT_ID     = "datafier"
+    OPENID_PROVIDER_CLIENT_SECRET = var.datafier_client_secret
+    OPENID_PROVIDER_URL           = "http://${var.keycloak_host}:8080/realms/osdu"
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
+resource "kubernetes_secret" "file_minio" {
+  count = var.enable_file ? 1 : 0
+
+  metadata {
+    name      = "file-minio-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    MINIO_ACCESS_KEY = var.minio_root_user
+    MINIO_SECRET_KEY = var.minio_root_password
+    AWS_REGION       = "us-east-1"
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
 # ─── RabbitMQ secret (shared by legal, schema, register, notification) ───────
 
 resource "kubernetes_secret" "rabbitmq" {
