@@ -277,11 +277,11 @@ module "dataset" {
   preconditions = [
     { condition = !var.enable_dataset || var.enable_entitlements, error_message = "Dataset requires Entitlements." },
     { condition = !var.enable_dataset || var.enable_partition, error_message = "Dataset requires Partition." },
-    { condition = !var.enable_dataset || var.enable_minio, error_message = "Dataset requires MinIO." },
+    { condition = !var.enable_dataset || var.enable_storage, error_message = "Dataset requires Storage." },
     { condition = !var.enable_dataset || var.enable_postgresql, error_message = "Dataset requires PostgreSQL." },
   ]
 
-  depends_on = [module.osdu_common, module.minio]
+  depends_on = [module.osdu_common, module.storage]
 }
 
 module "register" {
@@ -400,10 +400,10 @@ module "workflow" {
   preconditions = [
     { condition = !var.enable_workflow || var.enable_entitlements, error_message = "Workflow requires Entitlements." },
     { condition = !var.enable_workflow || var.enable_partition, error_message = "Workflow requires Partition." },
-    { condition = !var.enable_workflow || var.enable_minio, error_message = "Workflow requires MinIO." },
+    { condition = !var.enable_workflow || var.enable_storage, error_message = "Workflow requires Storage." },
     { condition = !var.enable_workflow || var.enable_postgresql, error_message = "Workflow requires PostgreSQL." },
     { condition = !var.enable_workflow || var.enable_airflow, error_message = "Workflow requires Airflow." },
   ]
 
-  depends_on = [module.osdu_common, module.minio]
+  depends_on = [module.osdu_common, module.storage]
 }
