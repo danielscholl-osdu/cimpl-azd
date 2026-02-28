@@ -45,3 +45,10 @@ hooks:
     continueOnError: false
     shell: pwsh
     run: ./scripts/pre-down.ps1
+
+  # Post-down: Clean up .terraform dirs and stale state artifacts
+  postdown:
+    interactive: false
+    continueOnError: true
+    shell: pwsh
+    run: ./scripts/post-down.ps1
