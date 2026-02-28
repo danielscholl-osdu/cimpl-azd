@@ -92,3 +92,21 @@ variable "enable_file" {
   type        = bool
   default     = true
 }
+
+variable "enable_dataset" {
+  description = "Enable OSDU Dataset service secrets"
+  type        = bool
+  default     = true
+}
+
+variable "enable_register" {
+  description = "Enable OSDU Register service secrets"
+  type        = bool
+  default     = true
+}
+
+variable "enable_workflow" {
+  description = "Enable OSDU Workflow service secrets"
+  type        = bool
+  default     = false
+}

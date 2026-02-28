@@ -131,6 +131,48 @@ variable "enable_file" {
   default     = true
 }
 
+variable "enable_notification" {
+  description = "Enable OSDU Notification service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_dataset" {
+  description = "Enable OSDU Dataset service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_register" {
+  description = "Enable OSDU Register service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_policy" {
+  description = "Enable OSDU Policy service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_secret" {
+  description = "Enable OSDU Secret service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_unit" {
+  description = "Enable OSDU Unit service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_workflow" {
+  description = "Enable OSDU Workflow service deployment"
+  type        = bool
+  default     = false
+}
+
 variable "enable_nodepool" {
   description = "Deploy shared Karpenter NodePool for stateful workloads"
   type        = bool

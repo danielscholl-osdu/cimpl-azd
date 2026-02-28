@@ -239,4 +239,7 @@ module "osdu_common" {
   enable_schema                   = var.enable_schema
   enable_storage                  = var.enable_storage
   enable_file                     = var.enable_file
+  enable_dataset                  = var.enable_dataset
+  enable_register                 = var.enable_register
+  enable_workflow                 = var.enable_workflow
 }

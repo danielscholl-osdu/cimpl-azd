@@ -164,6 +164,57 @@ resource "kubernetes_secret" "file_postgres" {
   depends_on = [kubernetes_namespace.osdu]
 }
 
+resource "kubernetes_secret" "dataset_postgres" {
+  count = var.enable_dataset ? 1 : 0
+
+  metadata {
+    name      = "dataset-postgres-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    OSM_POSTGRES_URL      = "jdbc:postgresql://${var.postgresql_host}:5432/dataset"
+    OSM_POSTGRES_USERNAME = var.postgresql_username
+    OSM_POSTGRES_PASSWORD = var.postgresql_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
+resource "kubernetes_secret" "register_postgres" {
+  count = var.enable_register ? 1 : 0
+
+  metadata {
+    name      = "register-postgres-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    OSM_POSTGRES_URL      = "jdbc:postgresql://${var.postgresql_host}:5432/register"
+    OSM_POSTGRES_USERNAME = var.postgresql_username
+    OSM_POSTGRES_PASSWORD = var.postgresql_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
+resource "kubernetes_secret" "workflow_postgres" {
+  count = var.enable_workflow ? 1 : 0
+
+  metadata {
+    name      = "workflow-postgres-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    OSM_POSTGRES_URL      = "jdbc:postgresql://${var.postgresql_host}:5432/workflow"
+    OSM_POSTGRES_USERNAME = var.postgresql_username
+    OSM_POSTGRES_PASSWORD = var.postgresql_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
 resource "kubernetes_secret" "datafier" {
   count = var.enable_entitlements ? 1 : 0
 
