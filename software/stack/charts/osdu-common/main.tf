@@ -531,6 +531,74 @@ resource "kubernetes_secret" "register_kms" {
   depends_on = [kubernetes_namespace.osdu]
 }
 
+# ─── Search secrets ───────────────────────────────────────────────────────────
+
+resource "kubernetes_secret" "search_redis" {
+  count = var.enable_search ? 1 : 0
+
+  metadata {
+    name      = "search-redis-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    REDIS_PASSWORD = var.redis_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
+# ─── Indexer secrets ─────────────────────────────────────────────────────────
+
+resource "kubernetes_secret" "indexer_keycloak" {
+  count = var.enable_indexer ? 1 : 0
+
+  metadata {
+    name      = "indexer-keycloak-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    OPENID_PROVIDER_CLIENT_ID     = "datafier"
+    OPENID_PROVIDER_CLIENT_SECRET = var.datafier_client_secret
+    OPENID_PROVIDER_URL           = "http://${var.keycloak_host}:8080/realms/osdu"
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
+resource "kubernetes_secret" "indexer_redis" {
+  count = var.enable_indexer ? 1 : 0
+
+  metadata {
+    name      = "indexer-redis-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    REDIS_PASSWORD = var.redis_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
+# ─── Dataset secrets ─────────────────────────────────────────────────────────
+
+resource "kubernetes_secret" "dataset_redis" {
+  count = var.enable_dataset ? 1 : 0
+
+  metadata {
+    name      = "dataset-redis-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    REDIS_PASSWORD = var.redis_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
 # ─── Elasticsearch secrets ────────────────────────────────────────────────────
 
 resource "kubernetes_secret" "indexer_elastic" {
