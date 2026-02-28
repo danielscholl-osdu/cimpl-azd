@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage
+spec:
+  template:
+    spec:
+      containers:
+      - name: storage
+        env:
+        - name: RABBITMQ_RETRY_DELAY
+          value: "0"
+        - name: RABBITMQ_RETRY_LIMIT
+          value: "0"
