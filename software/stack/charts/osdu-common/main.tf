@@ -96,6 +96,74 @@ resource "kubernetes_secret" "entitlements_postgres" {
   depends_on = [kubernetes_namespace.osdu]
 }
 
+resource "kubernetes_secret" "legal_postgres" {
+  count = var.enable_legal ? 1 : 0
+
+  metadata {
+    name      = "legal-postgres-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    OSM_POSTGRES_URL      = "jdbc:postgresql://${var.postgresql_host}:5432/legal"
+    OSM_POSTGRES_USERNAME = var.postgresql_username
+    OSM_POSTGRES_PASSWORD = var.postgresql_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
+resource "kubernetes_secret" "schema_postgres" {
+  count = var.enable_schema ? 1 : 0
+
+  metadata {
+    name      = "schema-postgres-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    OSM_POSTGRES_URL      = "jdbc:postgresql://${var.postgresql_host}:5432/schema"
+    OSM_POSTGRES_USERNAME = var.postgresql_username
+    OSM_POSTGRES_PASSWORD = var.postgresql_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
+resource "kubernetes_secret" "storage_postgres" {
+  count = var.enable_storage ? 1 : 0
+
+  metadata {
+    name      = "storage-postgres-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    OSM_POSTGRES_URL      = "jdbc:postgresql://${var.postgresql_host}:5432/storage"
+    OSM_POSTGRES_USERNAME = var.postgresql_username
+    OSM_POSTGRES_PASSWORD = var.postgresql_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
+resource "kubernetes_secret" "file_postgres" {
+  count = var.enable_file ? 1 : 0
+
+  metadata {
+    name      = "file-postgres-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    OSM_POSTGRES_URL      = "jdbc:postgresql://${var.postgresql_host}:5432/file"
+    OSM_POSTGRES_USERNAME = var.postgresql_username
+    OSM_POSTGRES_PASSWORD = var.postgresql_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
 resource "kubernetes_secret" "datafier" {
   count = var.enable_entitlements ? 1 : 0
 

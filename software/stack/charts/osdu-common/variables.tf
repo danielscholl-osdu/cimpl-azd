@@ -68,3 +68,27 @@ variable "enable_entitlements" {
   type        = bool
   default     = true
 }
+
+variable "enable_legal" {
+  description = "Enable OSDU Legal service secrets"
+  type        = bool
+  default     = true
+}
+
+variable "enable_schema" {
+  description = "Enable OSDU Schema service secrets"
+  type        = bool
+  default     = true
+}
+
+variable "enable_storage" {
+  description = "Enable OSDU Storage service secrets"
+  type        = bool
+  default     = true
+}
+
+variable "enable_file" {
+  description = "Enable OSDU File service secrets"
+  type        = bool
+  default     = true
+}
