@@ -349,11 +349,11 @@ OSDU services are deployed into the `osdu` namespace using a reusable Terraform 
 |---------|-------|-------------|-----------|
 | Partition | `core-plus-partition-deploy` | PostgreSQL | Registers data partition (`osdu`) with all service endpoints |
 | Entitlements | `core-plus-entitlements-deploy` | Keycloak, Partition, PostgreSQL, Redis | Provisions tenant entitlements groups |
-| Wellbore | `core-plus-wellbore-deploy` | Entitlements, Partition, PostgreSQL, Storage (MinIO) | TBD (bootstrap skipped for now) |
+| Wellbore | `core-plus-wellbore-deploy` | Entitlements, Partition, PostgreSQL, Storage | TBD (bootstrap skipped for now) |
 | Wellbore Worker | `core-plus-wellbore-worker-deploy` | Entitlements, Partition, Wellbore | None |
 | CRS Conversion | `core-plus-crs-conversion-deploy` | Entitlements, Partition | None |
 | CRS Catalog | `core-plus-crs-catalog-deploy` | Entitlements, Partition | None |
-| EDS-DMS | `core-plus-eds-dms-deploy` | Entitlements, Partition, Storage (MinIO) | None |
+| EDS-DMS | `core-plus-eds-dms-deploy` | Entitlements, Partition, Storage | None |
 
 ### Service Deployment Pattern
 
