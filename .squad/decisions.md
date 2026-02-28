@@ -138,7 +138,42 @@ Scribe merges inbox entries here and deduplicates.
 **What:** Follow the exact pattern in `platform/helm_partition.tf` as the template for the Entitlements Helm release and kustomize overlays.
 **Why:** User request — captured for team memory
 
-### 2026-02-26: OSDU service enable_* defaults are opt-in
+### 2026-02-26: OSDU service enable_* defaults are opt-in (**SUPERSEDED — see 2026-02-27 below**)
 **By:** Daniel Scholl (via Copilot)
-**What:** All OSDU service enable_* variables must default to false. Services are opt-in, not opt-out. Platform infrastructure (elasticsearch, redis, etc.) defaults to true.
-**Why:** User request — captured for team memory
+**What:** ~~All OSDU service enable_* variables must default to false.~~ This was reversed — see decision below.
+**Why:** Superseded by opt-out model decision.
+
+### 2026-02-27: Feature flags changed to opt-out model
+**By:** Daniel Scholl
+**What:** All `enable_*` variables (middleware AND services) now default to `true`. To disable a component, set `TF_VAR_enable_<component>=false` in the azd environment. Exceptions: `enable_airflow` (default false, not yet ready) and `enable_external_dns` (default false, environment-specific).
+**Why:** With 25+ services, cluttering `.env` with `enable_foo=true` for each one is unwieldy. Opt-out is cleaner — only disable what you don't want.
+
+### 2026-02-27: Consolidated namespace architecture (ADR-0017)
+**By:** Daniel Scholl
+**What:** All middleware runs in `platform` namespace; all OSDU services run in `osdu` namespace. Replaced per-component namespaces (elasticsearch, postgresql, redis, etc.). Namespace supports multi-stack isolation via optional `stack_id` suffix (`platform-blue`, `osdu-blue`).
+**Why:** Fewer Gatekeeper exclusions (2 vs 6+), Istio injection boundary matches namespace boundary, simpler FQDN locals for cross-namespace service discovery.
+
+### 2026-02-27: Raw Kubernetes manifests for Keycloak (ADR-0016, supersedes ADR-0012)
+**By:** Daniel Scholl
+**What:** Keycloak deployed via raw `kubectl_manifest` resources (StatefulSet, Services, ConfigMap) instead of Bitnami Helm chart. Image: `quay.io/keycloak/keycloak:26.5.4`. Realm import includes `datafier` client with service account and email claim. Internal-only access at `keycloak.platform.svc.cluster.local:8080`.
+**Why:** Bitnami chart templates assume Bitnami image conventions (paths, UID, env vars) incompatible with official Keycloak image. Raw manifests give full control for AKS safeguards compliance. Same pattern as RabbitMQ (ADR-0003).
+
+### 2026-02-27: Two-layer Terraform architecture (replaces three-layer)
+**By:** Daniel Scholl
+**What:** Project uses two Terraform states: `infra/` (AKS cluster, managed by azd) and `software/stack/` (all middleware + OSDU services, deployed via `pre-deploy.ps1`). The former `platform/` directory was reorganized into `software/stack/` with per-component modules under `charts/` and a reusable `modules/osdu-service/` wrapper.
+**Why:** Services are not a separate layer — they share Terraform state with middleware for dependency ordering. The `software/stack/` structure groups all deployable software in one place.
+
+### 2026-02-27: Reusable OSDU service module (ADR-0015)
+**By:** Daniel Scholl
+**What:** All OSDU services use `software/stack/modules/osdu-service/` — a ~50-line Terraform module that wraps Helm release + postrender. Each service is ~20 lines in `software/stack/osdu.tf`. Pattern established with Partition and Entitlements (PR #144).
+**Why:** Eliminates boilerplate. Adding a new service requires: (1) module block in osdu.tf, (2) feature flag in variables.tf, (3) kustomize overlay in kustomize/services/<name>/, (4) secrets in osdu-common if needed.
+
+### 2026-02-27: Backlog restructured — batch by phase
+**By:** Daniel Scholl
+**What:** Old per-service issues (#86–#104) closed and replaced with 3 batched issues: #145 (Phase 3: Legal, Schema, Storage, Search, Indexer, File), #146 (Phase 4: Notification, Dataset, Register, Policy, Secret, Unit, Workflow), #147 (Phase 5: Wellbore, Wellbore Worker, CRS Conversion, CRS Catalog, EDS-DMS, Bootstrap Data). Epic #105 updated. Phase 2 validation #126 closed (complete).
+**Why:** Per-service issues were stale and had wrong content. Batched issues are more appropriate now that the deployment pattern is established — each service is mechanical (same module, same kustomize, same pattern).
+
+### 2026-02-27: Partition and Entitlements deployed (Phase 2 complete)
+**By:** Daniel Scholl
+**What:** Partition and Entitlements services deployed and verified on AKS dev cluster (PR #144, release v0.2.0). Both pods Running in `osdu` namespace. Bootstrap pods completed successfully. Keycloak `datafier` client configured with service account email for JWT auth.
+**Why:** Validates the full deployment pattern: osdu-service module, kustomize postrender, osdu-common secrets, PostgreSQL DDL, Keycloak integration. All future services follow this exact pattern.

@@ -1,33 +1,32 @@
-# Naomi — Infra Dev
+# Naomi — Infra Dev (RETIRED)
 
-## Role
-Infrastructure specialist owning the AKS cluster layer (infra/) and cloud-level resources.
+## Status
+**Retired as of v0.2.0.** The infra layer is stable and requires no active development. Naomi's scope (AKS cluster config, Karpenter, networking) has been absorbed by Holden (Lead).
 
-## Responsibilities
-- AKS Automatic cluster configuration (infra/aks.tf)
-- Karpenter NodePool and AKSNodeClass resources (platform/k8s_karpenter.tf)
-- ExternalDNS UAMI and federated credentials (infra/external_dns.tf)
-- Networking: Azure CNI Overlay, Cilium, Istio managed mesh config
-- Node pool sizing, VM SKUs, availability zones
-- Terraform provider versions and constraints (infra/versions.tf)
-- infra/ outputs consumed by platform/ layer
-- PowerShell deployment scripts (scripts/*.ps1)
+## Original Role
+Infrastructure specialist who owned the AKS cluster layer (`infra/`) and cloud-level resources.
 
-## Boundaries
-- Owns infra/*.tf and scripts/*.ps1
-- May modify platform/k8s_karpenter.tf (Karpenter is infra-adjacent)
-- Does NOT modify Helm chart configurations in platform/helm_*.tf — that's Amos
-- Does NOT create service modules — that's Alex
+## What Was Built (complete)
+- AKS Automatic cluster (K8s 1.32, SKU Automatic, Standard tier)
+- Istio asm-1-28 managed mesh
+- Karpenter `platform` NodePool (D-series 4-8 vCPU) at `software/stack/main.tf`
+- Azure CNI Overlay + Cilium networking
+- System pool: Standard_D4lds_v5, zones 1 & 3
+- ExternalDNS UAMI + federated credentials
+- PowerShell deployment scripts (`scripts/*.ps1`)
+- Two-phase deployment gate for Gatekeeper convergence
 
-## Key Context
-- AKS cluster named `cimpl-${var.environment_name}`, RG `rg-cimpl-${var.environment_name}`
-- Kubernetes 1.32, SKU Automatic, Standard tier
-- Istio asm-1-28 managed by AKS
-- System pool: Standard_D4s_v5
-- Stateful workloads use Karpenter NAP with D-series (4-8 vCPU)
-- State managed by azd at .azure/<env>/infra/terraform.tfstate
-- deploy-platform.ps1 reads infra outputs via `-state=` flag
-- PowerShell scripts must check $LASTEXITCODE after external commands
+## Key Files (for reference)
+- `infra/aks.tf` — AKS cluster definition
+- `infra/variables.tf` — Cluster input variables
+- `infra/outputs.tf` — Outputs consumed by software/stack layer
+- `scripts/pre-provision.ps1` — Pre-provision validation & env defaults
+- `scripts/post-provision.ps1` — Safeguards readiness gate
+- `scripts/pre-deploy.ps1` — Stack Terraform apply
 
-## Model
-Preferred: gpt-5.2-codex
+## Reactivation Criteria
+Reactivate Naomi if:
+- AKS version upgrade is needed
+- Karpenter NodePool changes required
+- Networking or RBAC changes needed
+- New infra-level resources (Key Vault, storage accounts, etc.)

@@ -1,22 +1,20 @@
 # Naomi — History
 
-## Project Learnings (from import)
-- Project converts OSDU platform from ROSA to AKS Automatic using azd + Terraform
-- User: Daniel Scholl
-- infra/ layer: AKS Automatic cluster (K8s 1.32, Istio asm-1-28, Standard_D4s_v5 system pool)
-- Karpenter NAP for stateful workloads (D-series 4-8 vCPU)
+## Status: RETIRED (2026-02-27)
+
+Infra layer complete and stable. Scope absorbed by Holden (Lead).
+
+## What Was Delivered
+- AKS Automatic cluster (K8s 1.32, Istio asm-1-28, Standard_D4lds_v5 system pool, zones 1 & 3)
+- Karpenter `platform` NodePool for stateful workloads (D-series 4-8 vCPU)
 - ExternalDNS with UAMI + federated credentials
-- State at .azure/<env>/infra/terraform.tfstate (azd-managed)
-- deploy-platform.ps1 reads infra outputs via -state= flag
+- PowerShell deployment scripts (pre-provision, post-provision, pre-deploy)
+- Two-phase deployment gate for Gatekeeper convergence (ADR-0005)
+- Pre-down cleanup script for DNS record removal
 
-## Team Updates
-
-📌 **2026-02-17:** ROSA parity gap analysis complete (Holden) — 4 missing infra components identified (Common, Keycloak, RabbitMQ, Airflow); all ~22 OSDU services missing. Key decisions: AKS-managed Istio confirmed (self-managed blocked by NET_ADMIN/NET_RAW), CloudNativePG is an upgrade (services must use postgresql-rw endpoint), service namespace strategy needs Daniel's input.
-
-📌 **2026-02-17:** User directives clarified (Daniel Scholl) — Keycloak must be deployed as infra component (Entra ID cannot replace); RabbitMQ deployment required; Airflow should share existing Redis; Elasticsearch already running (check Elastic Bootstrap status).
-
-## Learnings
-- Pre-down cleanup in scripts/pre-down.ps1 identifies ExternalDNS-owned records via TXT `external-dns/owner=<cluster>` stamps and removes A/CNAME/TXT entries for the cluster.
-- infra/main.tfvars.json must map DNS_ZONE_* variables for azd to pass DNS zone values to infra Terraform.
-- scripts/pre-provision.ps1 sets both TF_VAR_dns_zone_* and DNS_ZONE_* env vars for ExternalDNS configuration.
-- TF_VAR_enable_public_ingress (default true) toggles the Istio ingress LoadBalancer via platform/k8s_gateway.tf and is passed through pre-provision/deploy-platform scripts.
+## Key Learnings (preserved for future reference)
+- Pre-down cleanup in `scripts/pre-down.ps1` identifies ExternalDNS-owned records via TXT stamps
+- `infra/main.tfvars.json` must map DNS_ZONE_* variables for azd passthrough
+- `scripts/pre-provision.ps1` sets both TF_VAR_dns_zone_* and DNS_ZONE_* env vars
+- AKS Automatic overrides VM SKUs (e.g., Standard_D4s_v5 → Standard_D4lds_v5)
+- OverconstrainedZonalAllocationRequest fixed by configurable availability zones

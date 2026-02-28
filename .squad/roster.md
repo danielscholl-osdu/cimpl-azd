@@ -13,7 +13,6 @@
 | Name | Role | Charter | Status |
 |------|------|---------|--------|
 | Holden | Lead | `.squad/agents/holden/charter.md` | ✅ Active |
-| Naomi | Infra Dev | `.squad/agents/naomi/charter.md` | ✅ Active |
 | Amos | Platform Dev | `.squad/agents/amos/charter.md` | ✅ Active |
 | Alex | Services Dev | `.squad/agents/alex/charter.md` | ✅ Active |
 | Drummer | Tester | `.squad/agents/drummer/charter.md` | ✅ Active |
@@ -31,20 +30,21 @@
 ### Capabilities
 
 **Good fit — auto-route when enabled:**
-- Mechanical OSDU service ports after the pattern/template is established
+- Mechanical OSDU service ports following the established `osdu.tf` + `modules/osdu-service` pattern
 - Terraform fmt fixes and linting cleanup
 - Documentation updates and README fixes
 - Dependency version bumps
+- Creating kustomize overlays for new services (copy from partition/entitlements template)
 
 **Needs review — route to @copilot but flag for squad member PR review:**
-- New OSDU service modules following the established postrender template
-- Kustomize overlay additions for new services
-- Helm values configuration for well-documented services
+- New OSDU service modules in `software/stack/osdu.tf`
+- Kustomize overlay additions at `software/stack/kustomize/services/<service>/`
+- Conditional secrets in `software/stack/charts/osdu-common/main.tf`
 
 **Not suitable — route to squad member instead:**
-- Architecture decisions (layer boundaries, namespace strategy)
-- Shared postrender framework design
-- Cross-layer integration (infra outputs → platform inputs)
+- Architecture decisions (namespace strategy, module design)
+- Shared postrender framework changes
+- Cross-layer integration (infra outputs → stack inputs)
 - Safeguards compliance for new component types
 - Debugging AKS Automatic constraint violations
 
@@ -52,5 +52,5 @@
 
 - **Owner:** Daniel Scholl
 - **Stack:** Terraform (HCL), PowerShell, Helm, AKS Automatic, Istio, Gateway API
-- **Description:** Three-layer azd deployment converting OSDU from ROSA to AKS Automatic
+- **Description:** Two-layer azd deployment converting OSDU from ROSA to AKS Automatic
 - **Created:** 2026-02-17
