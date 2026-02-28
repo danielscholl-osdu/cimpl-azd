@@ -30,11 +30,17 @@ AKS Automatic blocks `NET_ADMIN` and `NET_RAW` capabilities, which are required 
 
 Chosen option: "Selective sidecar injection now, with ambient mode as future aspiration", because it provides mTLS where possible today while maintaining forward compatibility with ambient mode when AKS supports it.
 
+### Implementation
+
+All platform middleware and OSDU services share two namespaces (see ADR-0017):
+
+- **`platform`** — Istio sidecar injection **disabled**. Contains Elasticsearch, PostgreSQL, Redis, RabbitMQ, MinIO, Keycloak, and Airflow. RabbitMQ and several operators require capabilities that conflict with Istio's `istio-init` container on AKS Automatic, so injection is off for the entire namespace. STRICT mTLS is enforced via `PeerAuthentication` resources for individual workloads where sidecar injection is not needed because they use application-layer TLS (ECK self-signed TLS for Elasticsearch) or network-level isolation.
+- **`osdu`** — Istio sidecar injection **enabled** (`istio-injection: enabled`). OSDU services (Partition, Entitlements, and future services) run with Istio sidecars and STRICT mTLS via `PeerAuthentication`.
+
 ### Consequences
 
-- Good, because Elasticsearch and PostgreSQL namespaces have STRICT mTLS via PeerAuthentication
+- Good, because OSDU service namespace has full STRICT mTLS via PeerAuthentication and sidecar injection
 - Good, because Istio ingress gateway works without sidecar injection (uses Gateway API)
-- Good, because forward-compatible — when ambient mode is available, namespaces can migrate without workload changes
-- Bad, because RabbitMQ namespace has no mesh coverage (no mTLS, no traffic policies)
-- Bad, because inconsistent security posture — some namespaces encrypted at mesh layer, others not
+- Good, because forward-compatible — when ambient mode is available, the platform namespace can gain mesh coverage without workload changes
+- Bad, because the `platform` namespace has no mesh-layer mTLS (relies on application-layer TLS where available)
 - Bad, because namespace-level injection label (`istio-injection: enabled`) is coarse — all-or-nothing per namespace

@@ -11,6 +11,13 @@ infra:
 
 # Hooks for multi-layer deployment
 hooks:
+  # Pre-restore: Resolve OSDU chart versions from OCI registry
+  prerestore:
+    interactive: true
+    continueOnError: false
+    shell: pwsh
+    run: ./scripts/resolve-chart-versions.ps1
+
   # Pre-provision: Validate prerequisites
   preprovision:
     interactive: true
@@ -18,12 +25,19 @@ hooks:
     shell: pwsh
     run: ./scripts/pre-provision.ps1
 
-  # Post-provision: Deploy platform layer (Layer 2)
+  # Post-provision: Configure safeguards and deploy foundation layer
   postprovision:
     interactive: true
     continueOnError: false
     shell: pwsh
     run: ./scripts/post-provision.ps1
+
+  # Pre-deploy: Deploy default stack (Layer 3)
+  predeploy:
+    interactive: true
+    continueOnError: false
+    shell: pwsh
+    run: ./scripts/pre-deploy.ps1
 
   # Pre-down: Destroy platform layer before cluster teardown
   predown:
@@ -32,8 +46,9 @@ hooks:
     shell: pwsh
     run: ./scripts/pre-down.ps1
 
-# Future: Services layer (Layer 3) will be added here
-# services:
-#   osdu-platform:
-#     project: ./services
-#     host: aks
+  # Post-down: Clean up .terraform dirs and stale state artifacts
+  postdown:
+    interactive: false
+    continueOnError: true
+    shell: pwsh
+    run: ./scripts/post-down.ps1

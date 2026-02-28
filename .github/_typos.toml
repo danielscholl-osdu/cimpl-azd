@@ -4,7 +4,7 @@ extend-exclude = [
   "*.tfstate.*",
   "*.lock.hcl",
   "*.excalidraw",
-  "platform/crds/**",
+  "software/foundation/crds/**",
   "docs/diagrams/**",
   "docs/plans/**",
   ".azure/**",

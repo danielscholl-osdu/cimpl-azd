@@ -27,9 +27,13 @@ jobs:
         run: terraform fmt -check -recursive
         working-directory: ./infra
 
-      - name: Check platform/ formatting
+      - name: Check software/foundation/ formatting
         run: terraform fmt -check -recursive
-        working-directory: ./platform
+        working-directory: ./software/foundation
+
+      - name: Check software/stack/ formatting
+        run: terraform fmt -check -recursive
+        working-directory: ./software/stack
 
   powershell-syntax:
     name: PowerShell Syntax Check

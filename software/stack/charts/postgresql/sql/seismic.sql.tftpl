@@ -1,0 +1,10 @@
+-- ===== seismic (custom relational) =====
+\c seismic
+CREATE TABLE IF NOT EXISTS public."SeismicData" (
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name text NOT NULL, key text NOT NULL, data jsonb NOT NULL
+);
+ALTER TABLE IF EXISTS public."SeismicData" OWNER TO osdu;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_key_name ON public."SeismicData" (key, name);
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO osdu;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO osdu;

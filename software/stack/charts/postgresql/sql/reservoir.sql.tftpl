@@ -1,0 +1,4 @@
+-- ===== reservoir (schema only) =====
+\c reservoir
+CREATE SCHEMA IF NOT EXISTS "${data_partition_id}" AUTHORIZATION osdu;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA "${data_partition_id}" TO osdu;
