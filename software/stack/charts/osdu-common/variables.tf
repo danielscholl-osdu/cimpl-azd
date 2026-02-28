@@ -156,3 +156,28 @@ variable "rabbitmq_password" {
   type        = string
   sensitive   = true
 }
+
+variable "elastic_password" {
+  description = "Elasticsearch elastic user password"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "elastic_host" {
+  description = "Elasticsearch HTTP service host"
+  type        = string
+  default     = ""
+}
+
+variable "enable_search" {
+  description = "Enable search service ES secret"
+  type        = bool
+  default     = false
+}
+
+variable "enable_indexer" {
+  description = "Enable indexer service ES secret"
+  type        = bool
+  default     = false
+}

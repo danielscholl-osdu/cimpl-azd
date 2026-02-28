@@ -238,6 +238,10 @@ module "osdu_common" {
   minio_root_password             = var.minio_root_password
   rabbitmq_username               = var.rabbitmq_username
   rabbitmq_password               = var.rabbitmq_password
+  elastic_password                = var.enable_elasticsearch && var.enable_elastic_bootstrap ? module.elastic[0].elastic_password : ""
+  elastic_host                    = "elasticsearch-es-http.${local.platform_namespace}.svc.cluster.local"
+  enable_search                   = var.enable_search
+  enable_indexer                  = var.enable_indexer
   enable_partition                = var.enable_partition
   enable_entitlements             = var.enable_entitlements
   enable_legal                    = var.enable_legal
