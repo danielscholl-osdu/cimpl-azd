@@ -95,6 +95,42 @@ variable "enable_entitlements" {
   default     = true
 }
 
+variable "enable_legal" {
+  description = "Enable OSDU Legal service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_schema" {
+  description = "Enable OSDU Schema service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_storage" {
+  description = "Enable OSDU Storage service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_search" {
+  description = "Enable OSDU Search service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_indexer" {
+  description = "Enable OSDU Indexer service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_file" {
+  description = "Enable OSDU File service deployment"
+  type        = bool
+  default     = true
+}
+
 variable "enable_nodepool" {
   description = "Deploy shared Karpenter NodePool for stateful workloads"
   type        = bool

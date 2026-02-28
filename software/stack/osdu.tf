@@ -51,3 +51,131 @@ module "entitlements" {
 
   depends_on = [module.osdu_common, module.keycloak, module.partition]
 }
+
+module "legal" {
+  source = "./modules/osdu-service"
+
+  service_name              = "legal"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/security-and-compliance/legal/cimpl-helm"
+  chart                     = "core-plus-legal-deploy"
+  chart_version             = lookup(var.osdu_service_versions, "legal", var.osdu_chart_version)
+  enable                    = var.enable_legal
+  enable_common             = var.enable_common
+  namespace                 = local.osdu_namespace
+  osdu_domain               = local.osdu_domain
+  cimpl_tenant              = var.cimpl_tenant
+  cimpl_project             = var.cimpl_project
+  subscriber_private_key_id = var.cimpl_subscriber_private_key_id
+  kustomize_path            = path.module
+
+  depends_on = [module.osdu_common, module.entitlements]
+}
+
+module "schema" {
+  source = "./modules/osdu-service"
+
+  service_name              = "schema"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/schema-service/cimpl-helm"
+  chart                     = "core-plus-schema-deploy"
+  chart_version             = lookup(var.osdu_service_versions, "schema", var.osdu_chart_version)
+  enable                    = var.enable_schema
+  enable_common             = var.enable_common
+  namespace                 = local.osdu_namespace
+  osdu_domain               = local.osdu_domain
+  cimpl_tenant              = var.cimpl_tenant
+  cimpl_project             = var.cimpl_project
+  subscriber_private_key_id = var.cimpl_subscriber_private_key_id
+  kustomize_path            = path.module
+
+  depends_on = [module.osdu_common, module.entitlements]
+}
+
+module "storage" {
+  source = "./modules/osdu-service"
+
+  service_name              = "storage"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/storage/cimpl-helm"
+  chart                     = "core-plus-storage-deploy"
+  chart_version             = lookup(var.osdu_service_versions, "storage", var.osdu_chart_version)
+  enable                    = var.enable_storage
+  enable_common             = var.enable_common
+  namespace                 = local.osdu_namespace
+  osdu_domain               = local.osdu_domain
+  cimpl_tenant              = var.cimpl_tenant
+  cimpl_project             = var.cimpl_project
+  subscriber_private_key_id = var.cimpl_subscriber_private_key_id
+  kustomize_path            = path.module
+
+  depends_on = [module.osdu_common, module.legal]
+}
+
+module "search" {
+  source = "./modules/osdu-service"
+
+  service_name              = "search"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/search-service/cimpl-helm"
+  chart                     = "core-plus-search-deploy"
+  chart_version             = lookup(var.osdu_service_versions, "search", var.osdu_chart_version)
+  enable                    = var.enable_search
+  enable_common             = var.enable_common
+  namespace                 = local.osdu_namespace
+  osdu_domain               = local.osdu_domain
+  cimpl_tenant              = var.cimpl_tenant
+  cimpl_project             = var.cimpl_project
+  subscriber_private_key_id = var.cimpl_subscriber_private_key_id
+  kustomize_path            = path.module
+
+  extra_set = [
+    {
+      name  = "data.elasticHost"
+      value = "elasticsearch-es-http.${local.platform_namespace}.svc.cluster.local"
+    }
+  ]
+
+  depends_on = [module.osdu_common, module.storage]
+}
+
+module "indexer" {
+  source = "./modules/osdu-service"
+
+  service_name              = "indexer"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/indexer-service/cimpl-helm"
+  chart                     = "core-plus-indexer-deploy"
+  chart_version             = lookup(var.osdu_service_versions, "indexer", var.osdu_chart_version)
+  enable                    = var.enable_indexer
+  enable_common             = var.enable_common
+  namespace                 = local.osdu_namespace
+  osdu_domain               = local.osdu_domain
+  cimpl_tenant              = var.cimpl_tenant
+  cimpl_project             = var.cimpl_project
+  subscriber_private_key_id = var.cimpl_subscriber_private_key_id
+  kustomize_path            = path.module
+
+  extra_set = [
+    {
+      name  = "data.elasticHost"
+      value = "elasticsearch-es-http.${local.platform_namespace}.svc.cluster.local"
+    }
+  ]
+
+  depends_on = [module.osdu_common, module.storage]
+}
+
+module "file" {
+  source = "./modules/osdu-service"
+
+  service_name              = "file"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/file/cimpl-helm"
+  chart                     = "core-plus-file-deploy"
+  chart_version             = lookup(var.osdu_service_versions, "file", var.osdu_chart_version)
+  enable                    = var.enable_file
+  enable_common             = var.enable_common
+  namespace                 = local.osdu_namespace
+  osdu_domain               = local.osdu_domain
+  cimpl_tenant              = var.cimpl_tenant
+  cimpl_project             = var.cimpl_project
+  subscriber_private_key_id = var.cimpl_subscriber_private_key_id
+  kustomize_path            = path.module
+
+  depends_on = [module.osdu_common, module.legal]
+}

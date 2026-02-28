@@ -235,4 +235,8 @@ module "osdu_common" {
   datafier_client_secret          = var.datafier_client_secret
   enable_partition                = var.enable_partition
   enable_entitlements             = var.enable_entitlements
+  enable_legal                    = var.enable_legal
+  enable_schema                   = var.enable_schema
+  enable_storage                  = var.enable_storage
+  enable_file                     = var.enable_file
 }
