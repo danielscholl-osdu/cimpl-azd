@@ -303,7 +303,55 @@ resource "null_resource" "keycloak_jwks_wait" {
       kubectl wait --for=condition=Ready pod \
         -n ${var.namespace} -l app.kubernetes.io/instance=keycloak \
         --timeout=600s
-      echo "Keycloak is ready."
+      echo "Keycloak pod is ready. Waiting for JWKS endpoint (realm import)..."
+
+      JWKS_URL="http://keycloak.${var.namespace}.svc.cluster.local:8080/realms/osdu/protocol/openid-connect/certs"
+      TIMEOUT=300
+      INTERVAL=10
+      ELAPSED=0
+
+      while [ $ELAPSED -lt $TIMEOUT ]; do
+        RESULT=$(kubectl run jwks-check-$RANDOM --rm -i --restart=Never \
+          --image=curlimages/curl:8.12.1 \
+          -n ${var.namespace} \
+          --override-type=strategic \
+          --overrides='{
+            "spec": {
+              "securityContext": {
+                "runAsNonRoot": true,
+                "runAsUser": 1000,
+                "runAsGroup": 1000,
+                "seccompProfile": {"type": "RuntimeDefault"}
+              },
+              "containers": [{
+                "name": "jwks-check",
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {"drop": ["ALL"]},
+                  "runAsNonRoot": true,
+                  "seccompProfile": {"type": "RuntimeDefault"}
+                },
+                "resources": {
+                  "requests": {"cpu": "50m", "memory": "32Mi"},
+                  "limits": {"cpu": "100m", "memory": "64Mi"}
+                }
+              }]
+            }
+          }' \
+          -- curl -sf --max-time 5 "$JWKS_URL" 2>/dev/null || true)
+
+        if echo "$RESULT" | grep -q '"keys"'; then
+          echo "Keycloak JWKS endpoint is serving keys. Realm import complete."
+          exit 0
+        fi
+
+        echo "JWKS not ready yet ($ELAPSED/$TIMEOUT s). Retrying in $INTERVAL s..."
+        sleep $INTERVAL
+        ELAPSED=$((ELAPSED + INTERVAL))
+      done
+
+      echo "ERROR: Keycloak JWKS endpoint did not become available within $TIMEOUT seconds."
+      exit 1
     EOT
   }
 

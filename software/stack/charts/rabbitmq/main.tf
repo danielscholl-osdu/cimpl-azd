@@ -32,6 +32,106 @@ resource "kubectl_manifest" "rabbitmq_config" {
         management.tcp.port = 15672
         log.console = true
         log.console.level = info
+        management.load_definitions = /etc/rabbitmq/definitions.json
+      definitions.json: |
+        {
+          "exchanges": [
+            {"name": "legaltags", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "legaltagschanged", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "legaltagspublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "compliance-change--integration-test", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "recordstopic", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "recordstopicpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "recordschangedtopic", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "recordschangedtopicpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "schemachangedtopic", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "schemachangedtopicpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "indexing-progress", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "indexing-progresspublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "statuschangedtopic", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "statuschangedtopicpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "file-stagingarea-topic", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "file-stagingarea-topicpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "workflowrunevent", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "workflowruneventpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "datasettopic", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "datasettopicpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "registertopic", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "registertopicpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "registersubscription", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "registersubscriptionpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "notificationtopic", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "notificationtopicpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "legaltagschangedpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false}
+          ],
+          "queues": [
+            {"name": "legaltags-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "legaltagschanged-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "legaltagspublish-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "compliance-change--integration-test-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "recordstopic-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "recordstopicpublish-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "recordschangedtopic-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "recordschangedtopicpublish-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "schemachangedtopic-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "schemachangedtopicpublish-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "indexing-progress-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "indexing-progresspublish-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "statuschangedtopic-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "statuschangedtopicpublish-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "file-stagingarea-topic-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "file-stagingarea-topicpublish-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "workflowrunevent-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "workflowruneventpublish-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "datasettopic-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "datasettopicpublish-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "registertopic-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "registertopicpublish-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "registersubscription-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "registersubscriptionpublish-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notificationtopic-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notificationtopicpublish-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "legaltagschangedpublish-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-legal", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-schema", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-storage", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-register", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-file", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-indexer", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-workflow", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-dataset", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-search", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-wellbore", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}}
+          ],
+          "bindings": [
+            {"source": "legaltags", "vhost": "/", "destination": "legaltags-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "legaltagschanged", "vhost": "/", "destination": "legaltagschanged-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "legaltagspublish", "vhost": "/", "destination": "legaltagspublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "compliance-change--integration-test", "vhost": "/", "destination": "compliance-change--integration-test-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "recordstopic", "vhost": "/", "destination": "recordstopic-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "recordstopicpublish", "vhost": "/", "destination": "recordstopicpublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "recordschangedtopic", "vhost": "/", "destination": "recordschangedtopic-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "recordschangedtopicpublish", "vhost": "/", "destination": "recordschangedtopicpublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "schemachangedtopic", "vhost": "/", "destination": "schemachangedtopic-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "schemachangedtopicpublish", "vhost": "/", "destination": "schemachangedtopicpublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "indexing-progress", "vhost": "/", "destination": "indexing-progress-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "indexing-progresspublish", "vhost": "/", "destination": "indexing-progresspublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "statuschangedtopic", "vhost": "/", "destination": "statuschangedtopic-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "statuschangedtopicpublish", "vhost": "/", "destination": "statuschangedtopicpublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "file-stagingarea-topic", "vhost": "/", "destination": "file-stagingarea-topic-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "file-stagingarea-topicpublish", "vhost": "/", "destination": "file-stagingarea-topicpublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "workflowrunevent", "vhost": "/", "destination": "workflowrunevent-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "workflowruneventpublish", "vhost": "/", "destination": "workflowruneventpublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "datasettopic", "vhost": "/", "destination": "datasettopic-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "datasettopicpublish", "vhost": "/", "destination": "datasettopicpublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "registertopic", "vhost": "/", "destination": "registertopic-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "registertopicpublish", "vhost": "/", "destination": "registertopicpublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "registersubscription", "vhost": "/", "destination": "registersubscription-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "registersubscriptionpublish", "vhost": "/", "destination": "registersubscriptionpublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "notificationtopic", "vhost": "/", "destination": "notificationtopic-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "legaltagschangedpublish", "vhost": "/", "destination": "legaltagschangedpublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}}
+          ]
+        }
       enabled_plugins: |
         [rabbitmq_peer_discovery_common,rabbitmq_management,rabbitmq_prometheus].
   YAML
@@ -204,6 +304,9 @@ resource "kubectl_manifest" "rabbitmq_statefulset" {
                 - name: plugins
                   mountPath: /etc/rabbitmq/enabled_plugins
                   subPath: enabled_plugins
+                - name: definitions
+                  mountPath: /etc/rabbitmq/definitions.json
+                  subPath: definitions.json
               resources:
                 requests:
                   cpu: 250m
@@ -240,6 +343,9 @@ resource "kubectl_manifest" "rabbitmq_statefulset" {
               configMap:
                 name: rabbitmq-config
             - name: plugins
+              configMap:
+                name: rabbitmq-config
+            - name: definitions
               configMap:
                 name: rabbitmq-config
       volumeClaimTemplates:
