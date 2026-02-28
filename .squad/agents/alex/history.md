@@ -41,6 +41,13 @@
 - JDBC URL needs `?currentSchema=<schema>` AND database needs `ALTER DATABASE SET search_path`
 - CNPG endpoint: `postgresql-rw.platform.svc.cluster.local`
 
+## Learnings
+
+- Phase 5 services are added in `software/stack/osdu.tf` using the osdu-service module pattern with explicit `preconditions` and `depends_on` wiring.
+- Per-service AKS safeguards overlays live at `software/stack/kustomize/services/<service>/` and copy the Partition probes/resources/seccomp pattern.
+- Wellbore uses the `wellbore-postgres-secret` created in `software/stack/charts/osdu-common/main.tf` with the `well_delivery` database.
+- New service feature flags belong in `software/stack/variables.tf` and default to `true` (opt-out model).
+
 ## ARCHIVED: OCI Registry Investigation (2025-07-18)
 
 All OSDU service Helm charts pull from `oci://community.opengroup.org:5555/osdu/platform/...`. Chart version `0.0.7-latest` for most services. `helm registry login` required.

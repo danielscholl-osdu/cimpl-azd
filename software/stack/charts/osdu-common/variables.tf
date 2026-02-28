@@ -68,3 +68,9 @@ variable "enable_entitlements" {
   type        = bool
   default     = true
 }
+
+variable "enable_wellbore" {
+  description = "Enable OSDU Wellbore service secrets"
+  type        = bool
+  default     = true
+}

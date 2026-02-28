@@ -95,6 +95,42 @@ variable "enable_entitlements" {
   default     = true
 }
 
+variable "enable_storage" {
+  description = "Enable OSDU Storage service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_wellbore" {
+  description = "Enable OSDU Wellbore service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_wellbore_worker" {
+  description = "Enable OSDU Wellbore Worker service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_crs_conversion" {
+  description = "Enable OSDU CRS Conversion service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_crs_catalog" {
+  description = "Enable OSDU CRS Catalog service deployment"
+  type        = bool
+  default     = true
+}
+
+variable "enable_eds_dms" {
+  description = "Enable OSDU EDS-DMS service deployment"
+  type        = bool
+  default     = true
+}
+
 variable "enable_nodepool" {
   description = "Deploy shared Karpenter NodePool for stateful workloads"
   type        = bool

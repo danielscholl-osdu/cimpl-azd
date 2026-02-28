@@ -235,4 +235,5 @@ module "osdu_common" {
   datafier_client_secret          = var.datafier_client_secret
   enable_partition                = var.enable_partition
   enable_entitlements             = var.enable_entitlements
+  enable_wellbore                 = var.enable_wellbore
 }

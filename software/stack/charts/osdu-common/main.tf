@@ -96,6 +96,23 @@ resource "kubernetes_secret" "entitlements_postgres" {
   depends_on = [kubernetes_namespace.osdu]
 }
 
+resource "kubernetes_secret" "wellbore_postgres" {
+  count = var.enable_wellbore ? 1 : 0
+
+  metadata {
+    name      = "wellbore-postgres-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    SPRING_DATASOURCE_URL      = "jdbc:postgresql://${var.postgresql_host}:5432/well_delivery"
+    SPRING_DATASOURCE_USERNAME = var.postgresql_username
+    SPRING_DATASOURCE_PASSWORD = var.postgresql_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
 resource "kubernetes_secret" "datafier" {
   count = var.enable_entitlements ? 1 : 0
 
