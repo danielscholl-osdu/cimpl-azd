@@ -170,6 +170,7 @@ module "search" {
     { condition = !var.enable_search || var.enable_entitlements, error_message = "Search requires Entitlements." },
     { condition = !var.enable_search || var.enable_partition, error_message = "Search requires Partition." },
     { condition = !var.enable_search || var.enable_elasticsearch, error_message = "Search requires Elasticsearch." },
+    { condition = !var.enable_search || var.enable_elastic_bootstrap, error_message = "Search requires Elastic Bootstrap." },
   ]
 
   depends_on = [module.osdu_common, module.storage]
@@ -206,6 +207,7 @@ module "indexer" {
     { condition = !var.enable_indexer || var.enable_entitlements, error_message = "Indexer requires Entitlements." },
     { condition = !var.enable_indexer || var.enable_partition, error_message = "Indexer requires Partition." },
     { condition = !var.enable_indexer || var.enable_elasticsearch, error_message = "Indexer requires Elasticsearch." },
+    { condition = !var.enable_indexer || var.enable_elastic_bootstrap, error_message = "Indexer requires Elastic Bootstrap." },
   ]
 
   depends_on = [module.osdu_common, module.storage]

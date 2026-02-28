@@ -444,6 +444,44 @@ resource "kubernetes_secret" "register_kms" {
   depends_on = [kubernetes_namespace.osdu]
 }
 
+# ─── Elasticsearch secrets ────────────────────────────────────────────────────
+
+resource "kubernetes_secret" "indexer_elastic" {
+  count = var.enable_indexer ? 1 : 0
+
+  metadata {
+    name      = "indexer-elastic-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    ELASTIC_HOST_SYSTEM = var.elastic_host
+    ELASTIC_PORT_SYSTEM = "9200"
+    ELASTIC_USER_SYSTEM = "elastic"
+    ELASTIC_PASS_SYSTEM = var.elastic_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
+resource "kubernetes_secret" "search_elastic" {
+  count = var.enable_search ? 1 : 0
+
+  metadata {
+    name      = "search-elastic-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    ELASTIC_HOST_SYSTEM = var.elastic_host
+    ELASTIC_PORT_SYSTEM = "9200"
+    ELASTIC_USER_SYSTEM = "elastic"
+    ELASTIC_PASS_SYSTEM = var.elastic_password
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
 # ─── Cross-namespace service aliases ──────────────────────────────────────────
 # Partition properties reference middleware by short hostname (minio, rabbitmq,
 # elasticsearch). ExternalName services in the osdu namespace alias these to
