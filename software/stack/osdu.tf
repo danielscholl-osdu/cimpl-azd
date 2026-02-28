@@ -68,6 +68,12 @@ module "legal" {
   subscriber_private_key_id = var.cimpl_subscriber_private_key_id
   kustomize_path            = path.module
 
+  preconditions = [
+    { condition = !var.enable_legal || var.enable_entitlements, error_message = "Legal requires Entitlements." },
+    { condition = !var.enable_legal || var.enable_partition, error_message = "Legal requires Partition." },
+    { condition = !var.enable_legal || var.enable_postgresql, error_message = "Legal requires PostgreSQL." },
+  ]
+
   depends_on = [module.osdu_common, module.entitlements]
 }
 
@@ -87,6 +93,12 @@ module "schema" {
   subscriber_private_key_id = var.cimpl_subscriber_private_key_id
   kustomize_path            = path.module
 
+  preconditions = [
+    { condition = !var.enable_schema || var.enable_entitlements, error_message = "Schema requires Entitlements." },
+    { condition = !var.enable_schema || var.enable_partition, error_message = "Schema requires Partition." },
+    { condition = !var.enable_schema || var.enable_postgresql, error_message = "Schema requires PostgreSQL." },
+  ]
+
   depends_on = [module.osdu_common, module.entitlements]
 }
 
@@ -105,6 +117,13 @@ module "storage" {
   cimpl_project             = var.cimpl_project
   subscriber_private_key_id = var.cimpl_subscriber_private_key_id
   kustomize_path            = path.module
+
+  preconditions = [
+    { condition = !var.enable_storage || var.enable_legal, error_message = "Storage requires Legal." },
+    { condition = !var.enable_storage || var.enable_entitlements, error_message = "Storage requires Entitlements." },
+    { condition = !var.enable_storage || var.enable_partition, error_message = "Storage requires Partition." },
+    { condition = !var.enable_storage || var.enable_postgresql, error_message = "Storage requires PostgreSQL." },
+  ]
 
   depends_on = [module.osdu_common, module.legal]
 }
@@ -129,7 +148,17 @@ module "search" {
     {
       name  = "data.elasticHost"
       value = "elasticsearch-es-http.${local.platform_namespace}.svc.cluster.local"
-    }
+    },
+    {
+      name  = "data.elasticPort"
+      value = "9200"
+    },
+  ]
+
+  preconditions = [
+    { condition = !var.enable_search || var.enable_entitlements, error_message = "Search requires Entitlements." },
+    { condition = !var.enable_search || var.enable_partition, error_message = "Search requires Partition." },
+    { condition = !var.enable_search || var.enable_elasticsearch, error_message = "Search requires Elasticsearch." },
   ]
 
   depends_on = [module.osdu_common, module.storage]
@@ -155,7 +184,17 @@ module "indexer" {
     {
       name  = "data.elasticHost"
       value = "elasticsearch-es-http.${local.platform_namespace}.svc.cluster.local"
-    }
+    },
+    {
+      name  = "data.elasticPort"
+      value = "9200"
+    },
+  ]
+
+  preconditions = [
+    { condition = !var.enable_indexer || var.enable_entitlements, error_message = "Indexer requires Entitlements." },
+    { condition = !var.enable_indexer || var.enable_partition, error_message = "Indexer requires Partition." },
+    { condition = !var.enable_indexer || var.enable_elasticsearch, error_message = "Indexer requires Elasticsearch." },
   ]
 
   depends_on = [module.osdu_common, module.storage]
@@ -176,6 +215,13 @@ module "file" {
   cimpl_project             = var.cimpl_project
   subscriber_private_key_id = var.cimpl_subscriber_private_key_id
   kustomize_path            = path.module
+
+  preconditions = [
+    { condition = !var.enable_file || var.enable_legal, error_message = "File requires Legal." },
+    { condition = !var.enable_file || var.enable_entitlements, error_message = "File requires Entitlements." },
+    { condition = !var.enable_file || var.enable_partition, error_message = "File requires Partition." },
+    { condition = !var.enable_file || var.enable_postgresql, error_message = "File requires PostgreSQL." },
+  ]
 
   depends_on = [module.osdu_common, module.legal]
 }
