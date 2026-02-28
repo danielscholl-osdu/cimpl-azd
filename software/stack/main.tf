@@ -242,4 +242,5 @@ module "osdu_common" {
   enable_dataset                  = var.enable_dataset
   enable_register                 = var.enable_register
   enable_workflow                 = var.enable_workflow
+  enable_wellbore                 = var.enable_wellbore
 }

@@ -110,3 +110,9 @@ variable "enable_workflow" {
   type        = bool
   default     = false
 }
+
+variable "enable_wellbore" {
+  description = "Enable OSDU Wellbore service secrets"
+  type        = bool
+  default     = true
+}

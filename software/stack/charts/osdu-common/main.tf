@@ -215,6 +215,24 @@ resource "kubernetes_secret" "workflow_postgres" {
   depends_on = [kubernetes_namespace.osdu]
 }
 
+resource "kubernetes_secret" "wellbore_postgres" {
+  count = var.enable_wellbore ? 1 : 0
+
+  metadata {
+    name      = "wellbore-postgres-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    OSM_POSTGRES_URL          = "jdbc:postgresql://${var.postgresql_host}:5432/well_delivery"
+    OSM_POSTGRES_USERNAME     = var.postgresql_username
+    OSM_POSTGRES_PASSWORD     = var.postgresql_password
+    WELLBORE_POSTGRES_DB_NAME = "well_delivery"
+  }
+
+  depends_on = [kubernetes_namespace.osdu]
+}
+
 resource "kubernetes_secret" "datafier" {
   count = var.enable_entitlements ? 1 : 0
 
