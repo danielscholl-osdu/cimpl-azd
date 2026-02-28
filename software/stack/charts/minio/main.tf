@@ -61,7 +61,19 @@ resource "helm_release" "minio" {
       seccompProfile:
         type: RuntimeDefault
     users: []
-    buckets: []
+    buckets:
+      - name: refi-opa-policies
+        policy: none
+        purge: false
+      - name: refi-osdu-records
+        policy: none
+        purge: false
+      - name: refi-osdu-system-schema
+        policy: none
+        purge: false
+      - name: refi-osdu-schema
+        policy: none
+        purge: false
     policies: []
     svcaccts: []
     customCommands: []
