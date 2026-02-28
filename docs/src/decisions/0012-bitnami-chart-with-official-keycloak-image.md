@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by [ADR-0016](0016-raw-manifests-for-keycloak.md)
 date: 2026-02-25
 deciders: platform team
 ---

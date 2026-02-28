@@ -27,7 +27,7 @@ Airflow needs an executor strategy for running DAG tasks on AKS Automatic. The e
 
 Chosen option: "KubernetesExecutor with NAP task pod scaling", because it provides true scale-to-zero, eliminates the need for Redis as a broker, removes the worker fleet management burden, and naturally leverages NAP for right-sized node provisioning per task.
 
-**How it works**: The Airflow scheduler creates an ephemeral pod for each DAG task. Task pods have no tolerations or nodeSelector, so they land on the default pool. NAP detects the pending pod, provisions a right-sized node, runs the task, and consolidates the node after idle timeout. Control-plane components (scheduler, webserver, API server, triggerer) run on the stateful nodepool for stability.
+**How it works**: The Airflow scheduler creates an ephemeral pod for each DAG task. Task pods have no tolerations or nodeSelector, so they land on the default pool. NAP detects the pending pod, provisions a right-sized node, runs the task, and consolidates the node after idle timeout. Control-plane components (scheduler, webserver, API server, triggerer) run on the `platform` Karpenter NodePool for stability, alongside other middleware components (see ADR-0017).
 
 **Chart and image**: Official Apache Airflow Helm chart v1.19.0 with Airflow 3.1.7. The official chart is maintained by the Apache Airflow project and is the recommended deployment method.
 

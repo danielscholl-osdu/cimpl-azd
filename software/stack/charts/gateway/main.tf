@@ -36,7 +36,7 @@ resource "null_resource" "gateway_https_listener" {
               certificateRefs:
                 - kind: Secret
                   name: kibana-tls-stack-${var.stack_label}
-                  namespace: aks-istio-ingress
+                  namespace: ${var.namespace}
             allowedRoutes:
               namespaces:
                 from: All
@@ -102,7 +102,10 @@ resource "kubectl_manifest" "kibana_reference_grant" {
   YAML
 }
 
-# TLS Certificate
+# TLS Certificate — created in the stack namespace (not aks-istio-ingress) because
+# AKS Automatic's ValidatingAdmissionPolicy blocks cert-manager from operating
+# in managed system namespaces. The Gateway references the secret cross-namespace
+# via a ReferenceGrant (below).
 resource "null_resource" "kibana_certificate" {
   count = var.enable_cert_manager ? 1 : 0
 
@@ -114,12 +117,12 @@ resource "null_resource" "kibana_certificate" {
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<-EOT
-      cat <<'YAML' | kubectl apply --as=system:admin --as-group=system:masters -f -
+      cat <<'YAML' | kubectl apply -f -
       apiVersion: cert-manager.io/v1
       kind: Certificate
       metadata:
         name: kibana-tls-stack-${var.stack_label}
-        namespace: aks-istio-ingress
+        namespace: ${var.namespace}
       spec:
         secretName: kibana-tls-stack-${var.stack_label}
         duration: 2160h
@@ -133,4 +136,28 @@ resource "null_resource" "kibana_certificate" {
       YAML
     EOT
   }
+}
+
+# ReferenceGrant allowing the Gateway in aks-istio-ingress to read TLS secrets
+# from the stack namespace (needed because the Certificate/Secret lives here,
+# not in the managed aks-istio-ingress namespace).
+resource "kubectl_manifest" "tls_reference_grant" {
+  count = var.enable_cert_manager ? 1 : 0
+
+  yaml_body = <<-YAML
+    apiVersion: gateway.networking.k8s.io/v1beta1
+    kind: ReferenceGrant
+    metadata:
+      name: allow-gateway-tls-stack-${var.stack_label}
+      namespace: ${var.namespace}
+    spec:
+      from:
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          namespace: aks-istio-ingress
+      to:
+        - group: ""
+          kind: Secret
+          name: kibana-tls-stack-${var.stack_label}
+  YAML
 }

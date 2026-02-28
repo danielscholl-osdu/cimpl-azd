@@ -53,7 +53,9 @@ Create ADRs for:
 | [0009](0009-workload-identity-for-dns-management.md) | Workload Identity for cross-subscription DNS management | Accepted |
 | [0010](0010-unique-service-selector-label-pattern.md) | UniqueServiceSelector compliance via label differentiation | Accepted |
 | [0011](0011-airflow-kubernetes-executor-with-nap.md) | KubernetesExecutor for Airflow with NAP task pod scaling | Accepted |
-| [0012](0012-bitnami-chart-with-official-keycloak-image.md) | Bitnami Helm chart with official Keycloak image | Accepted |
+| [0012](0012-bitnami-chart-with-official-keycloak-image.md) | Bitnami Helm chart with official Keycloak image | Superseded by 0016 |
 | [0013](0013-chart-default-images-over-explicit-overrides.md) | Use CIMPL chart default images over explicit overrides | Accepted |
 | [0014](0014-rosa-alignment-and-deliberate-differences.md) | ROSA alignment with deliberate AKS differences | Accepted |
 | [0015](0015-osdu-service-module-and-sql-extraction.md) | Reusable OSDU service module and SQL template extraction | Accepted |
+| [0016](0016-raw-manifests-for-keycloak.md) | Raw Kubernetes manifests for Keycloak | Accepted |
+| [0017](0017-consolidated-namespace-architecture.md) | Consolidated namespace architecture | Accepted |

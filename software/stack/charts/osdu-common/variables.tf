@@ -60,11 +60,11 @@ variable "datafier_client_secret" {
 variable "enable_partition" {
   description = "Enable OSDU Partition service secrets"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_entitlements" {
   description = "Enable OSDU Entitlements service secrets"
   type        = bool
-  default     = false
+  default     = true
 }
