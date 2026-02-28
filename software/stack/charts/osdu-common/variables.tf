@@ -3,6 +3,12 @@ variable "namespace" {
   type        = string
 }
 
+variable "platform_namespace" {
+  description = "Platform Kubernetes namespace (for cross-namespace service references)"
+  type        = string
+  default     = "platform"
+}
+
 variable "osdu_domain" {
   description = "OSDU domain (e.g. prefix.dnszone)"
   type        = string
@@ -111,8 +117,42 @@ variable "enable_workflow" {
   default     = false
 }
 
+variable "enable_notification" {
+  description = "Enable OSDU Notification service secrets"
+  type        = bool
+  default     = true
+}
+
+variable "enable_policy" {
+  description = "Enable OSDU Policy service secrets"
+  type        = bool
+  default     = true
+}
+
 variable "enable_wellbore" {
   description = "Enable OSDU Wellbore service secrets"
   type        = bool
   default     = true
+}
+
+variable "minio_root_user" {
+  description = "MinIO root username"
+  type        = string
+}
+
+variable "minio_root_password" {
+  description = "MinIO root password"
+  type        = string
+  sensitive   = true
+}
+
+variable "rabbitmq_username" {
+  description = "RabbitMQ username"
+  type        = string
+}
+
+variable "rabbitmq_password" {
+  description = "RabbitMQ password"
+  type        = string
+  sensitive   = true
 }

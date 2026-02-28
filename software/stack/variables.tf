@@ -164,7 +164,7 @@ variable "enable_secret" {
 variable "enable_unit" {
   description = "Enable OSDU Unit service deployment"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "enable_workflow" {
@@ -176,31 +176,31 @@ variable "enable_workflow" {
 variable "enable_wellbore" {
   description = "Enable OSDU Wellbore service deployment"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "enable_wellbore_worker" {
   description = "Enable OSDU Wellbore Worker service deployment"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "enable_crs_conversion" {
   description = "Enable OSDU CRS Conversion service deployment"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "enable_crs_catalog" {
   description = "Enable OSDU CRS Catalog service deployment"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "enable_eds_dms" {
   description = "Enable OSDU EDS-DMS service deployment"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "enable_nodepool" {

@@ -16,6 +16,17 @@ module "partition" {
   subscriber_private_key_id = var.cimpl_subscriber_private_key_id
   kustomize_path            = path.module
 
+  extra_set = [
+    {
+      name  = "data.minioExternalEndpoint"
+      value = "http://minio.${local.platform_namespace}.svc.cluster.local:9000"
+    },
+    {
+      name  = "data.minioUIEndpoint"
+      value = "http://minio.${local.platform_namespace}.svc.cluster.local:9001"
+    },
+  ]
+
   depends_on = [module.osdu_common, module.postgresql]
 }
 
