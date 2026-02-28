@@ -46,7 +46,43 @@ resource "kubernetes_config_map" "keycloak_realm" {
         "realm": "osdu",
         "enabled": true,
         "displayName": "OSDU",
-        "clients": []
+        "clients": [
+          {
+            "clientId": "datafier",
+            "secret": "${var.datafier_client_secret}",
+            "enabled": true,
+            "publicClient": false,
+            "serviceAccountsEnabled": true,
+            "standardFlowEnabled": false,
+            "directAccessGrantsEnabled": false,
+            "clientAuthenticatorType": "client-secret",
+            "protocol": "openid-connect",
+            "protocolMappers": [
+              {
+                "name": "email",
+                "protocol": "openid-connect",
+                "protocolMapper": "oidc-usermodel-attribute-mapper",
+                "config": {
+                  "user.attribute": "email",
+                  "claim.name": "email",
+                  "id.token.claim": "true",
+                  "access.token.claim": "true",
+                  "userinfo.token.claim": "true",
+                  "jsonType.label": "String"
+                }
+              }
+            ]
+          }
+        ],
+        "users": [
+          {
+            "username": "service-account-datafier",
+            "enabled": true,
+            "email": "datafier@service.local",
+            "emailVerified": true,
+            "serviceAccountClientId": "datafier"
+          }
+        ]
       }
     JSON
   }

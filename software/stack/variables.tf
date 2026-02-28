@@ -62,7 +62,7 @@ variable "enable_rabbitmq" {
 variable "enable_keycloak" {
   description = "Enable Keycloak deployment"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_airflow" {
@@ -86,13 +86,13 @@ variable "enable_common" {
 variable "enable_partition" {
   description = "Enable OSDU Partition service deployment"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_entitlements" {
   description = "Enable OSDU Entitlements service deployment"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_nodepool" {

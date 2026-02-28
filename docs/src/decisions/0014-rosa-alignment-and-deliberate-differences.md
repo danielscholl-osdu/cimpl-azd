@@ -43,7 +43,7 @@ Align with ROSA conventions wherever chart compatibility is at stake (secret key
 | Redis topology | Per-service Redis sidecars | Shared Redis cluster (`redis-master.redis.svc.cluster.local`) | Reduces resource overhead from ~10 Redis instances to 1 managed cluster. Can revisit if service isolation is needed. |
 | PostgreSQL HA | Single managed instance | CloudNativePG (3-node HA) | AKS has no built-in managed PostgreSQL inside the cluster. CNPG provides HA with automated failover and backup. |
 | Platform | OpenShift (ROSA) on AWS | AKS Automatic + managed Istio on Azure | Different cloud provider. AKS Automatic handles node provisioning via NAP/Karpenter. |
-| Bootstrap pattern | Deployment (runs indefinitely) | Job (run-once with backoffLimit) | Jobs are idempotent and release resources after completion. ROSA uses Deployments for restart-on-failure, but our Jobs achieve the same via backoffLimit. |
+| Bootstrap pattern | Deployment (runs indefinitely) | Deployment (aligned with ROSA) | ROSA bootstrap containers run as long-lived Deployments that retry on failure and sleep after success. We follow the same pattern — the CIMPL charts ship bootstrap Deployments alongside the core service Deployment. |
 | Schema naming | `entitlements_osdu_1` (multi-tenant convention) | `entitlements` (service name) | Single-tenant simplification. The schema name is stored in partition properties, so the app resolves it dynamically regardless of the actual name. |
 | Security enforcement | OpenShift Security Context Constraints | AKS Deployment Safeguards (Gatekeeper) | Platform-specific enforcement. Postrender/kustomize patches handle compliance (ADR-0002). |
 
