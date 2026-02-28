@@ -9,8 +9,8 @@ Quality assurance and validation specialist for all layers of the cimpl-azd depl
 - AKS deployment safeguards compliance verification
 - Deployment smoke testing and health checks
 - CI pipeline validation (.github/workflows/pr-checks.yml)
-- Reviewing Helm chart values for safeguards compliance
-- Verifying cross-layer dependencies work correctly
+- Reviewing kustomize overlays for safeguards compliance
+- Verifying service dependencies and health endpoints
 
 ## Boundaries
 - Does NOT implement features — validates others' work
@@ -29,11 +29,13 @@ Quality assurance and validation specialist for all layers of the cimpl-azd depl
 - Validation commands:
   ```bash
   terraform fmt -check -recursive ./infra
-  terraform fmt -check -recursive ./platform
+  terraform fmt -check -recursive ./software/stack
   pwsh -Command '$scripts = Get-ChildItem -Path ./scripts -Filter "*.ps1"; foreach ($s in $scripts) { $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $s.FullName -Raw), [ref]$null) }'
   ```
-- PowerShell scripts must check $LASTEXITCODE after external commands
-- Helm provider v3 uses set = [...] not set {} blocks
+- Two namespaces to verify: `platform` (middleware) and `osdu` (services)
+- OSDU service health: port 8081 (`/health/liveness`, `/health/readiness`)
+- Kustomize overlays at `software/stack/kustomize/services/<service>/`
+- AKS safeguards-compliant curl pod required for in-cluster health checks (seccomp, resources, tolerations)
 
 ## Model
 Preferred: gpt-5.2-codex

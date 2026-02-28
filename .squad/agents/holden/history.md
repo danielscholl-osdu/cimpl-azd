@@ -1,41 +1,33 @@
 # Holden — History
 
+## Current State (v0.2.0, 2026-02-27)
+
+**Architecture settled.** Two-layer model with consolidated namespaces:
+- `infra/` — AKS cluster (stable, Naomi's scope absorbed)
+- `software/stack/` — All middleware + OSDU services in one Terraform state
+- `platform` namespace — All middleware (ES, PG, Redis, RabbitMQ, MinIO, Keycloak, Airflow)
+- `osdu` namespace — All OSDU services (Partition, Entitlements deployed; ~18 remaining)
+
+**Key ADRs:** 0015 (reusable osdu-service module), 0016 (raw manifests for Keycloak), 0017 (consolidated namespaces)
+
+**Backlog:** Epic #105, Phase 3 #145, Phase 4 #146, Phase 5 #147, Validation #127. Old per-service issues (#86–#104) closed.
+
 ## ARCHIVED: Core Analysis Summary (2025-07-18 to 2026-02-17)
 
-Completed comprehensive ROSA-to-AKS parity analysis covering 8 infra components and ~22 OSDU services. Key findings:
+Completed comprehensive ROSA-to-AKS parity analysis covering 8 infra components and ~22 OSDU services.
 
-**ROSA Reference Stack:** 8 infra components (Istio self-managed, Common, Airflow, Elasticsearch, Keycloak, MinIO, PostgreSQL, RabbitMQ) + ~22 services all in single `osdu` namespace via CIMPL registry. Strict dependency chain: Istio → Common → {PostgreSQL, Elastic, MinIO} → {Keycloak, RabbitMQ, Airflow} → Services.
+**ROSA Reference Stack:** 8 infra components (Istio, Common, Airflow, ES, Keycloak, MinIO, PG, RabbitMQ) + ~22 services in single `osdu` namespace via CIMPL registry.
 
-**AKS vs ROSA:** Managed Istio (NET_ADMIN blocked self-managed), ECK for Elasticsearch, CloudNativePG HA upgrade (postgresql-rw endpoint required), per-component namespaces (vs ROSA single namespace).
+**AKS Differences:** Managed Istio (NET_ADMIN blocked), ECK for Elasticsearch, CloudNativePG 3-instance HA, two consolidated namespaces (`platform` + `osdu`).
 
-**Gap:** 4 missing infra components (Common, Keycloak, RabbitMQ, Airflow); all ~22 services missing. Every service needs AKS safeguards compliance (probes, resource requests, seccomp, versioned tags, unique selectors). CIMPL charts built for OpenShift — postrender/kustomize patches needed. Jobs problematic (probes semantically wrong but required).
-
-**Key Paths:** ROSA masters at `reference-rosa/terraform/master-chart/{main.tf,variables.tf}`; infra modules at `infra/`; service modules at `services/`; AKS platform at `platform/*.tf`.
-
-**Decisions Recorded:** 4 architectural decisions merged into `.ai-team/decisions.md` (Istio approach confirmed, ECK strategy, CNPG upgrade, namespace strategy needs decision).
-
-## Team Updates
-
-📌 **2026-02-17:** Gap analysis complete and decisions merged into team registry.
-
-## Project Learnings (from import)
-- Project converts OSDU platform from ROSA (OpenShift) to AKS Automatic using azd + Terraform
-- Three-layer architecture: infra (AKS), platform (middleware), services (OSDU apps)
-- User: Daniel Scholl
-- AKS Automatic has strict, non-negotiable deployment safeguards
-- Reference ROSA codebase at reference-rosa/ has ~20 OSDU services + infra components
-- Layers 1 and 2 are built; Layer 3 (OSDU services) is the next frontier
+**Decisions Recorded:** Istio approach, ECK strategy, CNPG upgrade, namespace strategy → ADR-0017.
 
 ## Learnings
 
-📌 **2026-02-17:** Team investigation findings merged into decisions registry — All 3 agents contributed findings (Amos: Common/Elastic Bootstrap clarifications; Alex: service chart compliance patterns; Copilot: user directives on Keycloak, RabbitMQ, Airflow Redis-sharing, Bootstrap Data). New user directives confirm OCI registry sourcing and Bootstrap Data implementation required.
+📌 **2026-02-27:** Absorbed Naomi's infra scope — infra layer is stable. Holden now reviews both infra and stack changes.
 
-📌 **2026-02-17:** Created 28 GitHub issues (#78–#105) for ROSA→AKS migration, organized by phase:
-- **Phase 0.5:** #78 (postrender framework) — critical path, assigned to Amos
-- **Phase 1:** #79 (Keycloak), #80 (RabbitMQ), #81 (Airflow), #82 (Common), #83 (Elastic Bootstrap) — assigned to Amos
-- **Phase 2:** #84 (Partition), #85 (Entitlements) — assigned to Alex
-- **Phase 3:** #86 (Legal), #87 (Schema), #88 (Storage), #89 (Search), #90 (Indexer), #91 (File) — assigned to Alex
-- **Phase 4:** #92 (Notification), #93 (Dataset), #94 (Register), #95 (Policy), #96 (Secret), #97 (Unit), #98 (Workflow) — assigned to Alex
-- **Phase 5:** #99 (Wellbore), #100 (Wellbore Worker), #101 (CRS Conversion), #102 (CRS Catalog), #103 (EDS-DMS), #104 (Bootstrap Data) — assigned to Alex
-- **Tracking:** #105 (master tracking issue) — assigned to Holden
-- **Label scheme:** `phase:0`–`phase:5`, `layer:platform`/`layer:services`/`layer:infra`, `squad:amos`/`squad:alex`/`squad:holden`, `squad`, `enhancement`, `blocked`
+📌 **2026-02-27:** Phase 2 complete (Partition + Entitlements, PR #144, release v0.2.0). Deployment pattern validated. Each service is ~20 lines in osdu.tf using reusable module.
+
+📌 **2026-02-27:** Backlog consolidated from 23 open issues to 5. Batched by phase for mechanical service deployment.
+
+📌 **2026-02-17:** Created 28 GitHub issues (#78–#105) for ROSA→AKS migration. Subsequently reorganized into batched issues (#145, #146, #147) after pattern was established.

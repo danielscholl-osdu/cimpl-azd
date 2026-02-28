@@ -2,16 +2,17 @@
 
 | Domain | Agent | Examples |
 |--------|-------|----------|
-| AKS cluster, node pools, networking, RBAC | Naomi ⚙️ | AKS config, Karpenter NodePools, ExternalDNS UAMI, CNI, Istio mesh config |
-| Terraform infra layer | Naomi ⚙️ | infra/*.tf changes, provider versions, AKS SKU, outputs |
-| Elasticsearch, PostgreSQL, MinIO, Redis | Amos 🔧 | platform/helm_*.tf, postrender patches, kustomize overlays, safeguards compliance for middleware |
-| cert-manager, Airflow, RabbitMQ, Keycloak | Amos 🔧 | New platform components from ROSA reference, Helm chart porting |
-| Istio Gateway, ingress, TLS | Amos 🔧 | platform/k8s_gateway.tf, HTTPRoute, cert-manager integration |
-| OSDU service porting | Alex 🛠️ | Partition, entitlements, legal, indexer, search, schema, storage, dataset, notification, file, register, policy, secret, unit, workflow, wellbore, CRS, OETP |
-| Service Helm modules | Alex 🛠️ | Creating service Terraform modules from reference-rosa/terraform/master-chart/services/* |
-| Service dependency chains | Alex 🛠️ | Service ordering, depends_on, enable/disable flags |
+| AKS cluster, networking, RBAC | Holden 🏗️ | infra/*.tf changes, AKS config, Karpenter, Istio mesh config |
+| Middleware charts | Amos 🔧 | `software/stack/charts/{elastic,postgresql,redis,rabbitmq,minio,keycloak,airflow}/`, safeguards compliance for middleware |
+| Gateway, ingress, TLS | Amos 🔧 | `software/stack/charts/gateway/main.tf`, HTTPRoute, cert-manager integration |
+| OSDU common resources | Amos 🔧 | `software/stack/charts/osdu-common/main.tf` (namespace, shared secrets, ConfigMaps) |
+| Postrender framework | Amos 🔧 | `software/stack/kustomize/postrender.sh`, `software/stack/kustomize/components/` |
+| OSDU service porting | Alex 🛠️ | `software/stack/osdu.tf` module blocks, `software/stack/kustomize/services/<service>/` overlays |
+| Service Helm module | Alex 🛠️ | `software/stack/modules/osdu-service/` — reusable wrapper for all OSDU services |
+| Service dependency chains | Alex 🛠️ | Service ordering, depends_on, enable/disable flags in `software/stack/variables.tf` |
+| Feature flags + variables | Alex 🛠️ | `software/stack/variables.tf` (enable_<service>, credentials, config) |
 | Architecture, cross-layer decisions | Holden 🏗️ | Layer boundaries, state management, deployment strategy, review gates |
 | Code review, PR review | Holden 🏗️ | Terraform review, safeguards compliance review |
-| Safeguards compliance testing | Drummer 🧪 | Terraform fmt/validate, PowerShell syntax, deployment verification |
+| Safeguards compliance testing | Drummer 🧪 | Terraform fmt/validate, AKS safeguards verification, deployment verification |
 | Deployment testing | Drummer 🧪 | Pre-provision checks, post-provision verification, smoke tests |
 | PowerShell scripts | Drummer 🧪 | scripts/*.ps1 validation, $LASTEXITCODE checks |
