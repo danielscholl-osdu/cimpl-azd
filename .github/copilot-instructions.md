@@ -56,9 +56,10 @@ azd up
 **Deployment Flow:**
 1. `preprovision` hook: Runs `./scripts/pre-provision.ps1` - validates prerequisites
 2. `provision`: Terraform creates AKS cluster (Layer 1) in `./infra` directory
-3. `postprovision` hook: Runs `./scripts/post-provision.ps1` which orchestrates:
-   - Phase 1: `./scripts/ensure-safeguards.ps1` - Waits for Gatekeeper/Policy readiness
-   - Phase 2: `./scripts/deploy-platform.ps1` - Deploys platform components (Layer 2) via Terraform in `./platform`
+3. `postprovision` hook: Runs `./scripts/post-provision.ps1` - waits for Gatekeeper/Policy readiness
+4. `predeploy` hook: Runs `./scripts/pre-deploy.ps1` - deploys platform components (Layer 2) via Terraform in `./platform`
+
+Use `azd provision` for infrastructure only, `azd deploy` for software only, or `azd up` for both.
 
 ### Manual Platform Deployment
 If you need to deploy just the platform layer (after cluster exists):
@@ -100,10 +101,9 @@ cimpl-azd/
 │   ├── variables.tf              # Platform variables
 │   └── versions.tf               # Provider versions
 ├── scripts/
-│   ├── pre-provision.ps1         # Pre-deploy validation
-│   ├── post-provision.ps1        # Two-phase deployment orchestrator
-│   ├── ensure-safeguards.ps1     # Phase 1: Wait for Gatekeeper
-│   └── deploy-platform.ps1       # Phase 2: Deploy platform Terraform
+│   ├── pre-provision.ps1         # Pre-provision validation & env defaults
+│   ├── post-provision.ps1        # Post-provision: ensure safeguards readiness
+│   └── pre-deploy.ps1            # Pre-deploy: deploy platform layer
 ├── docs/
 │   ├── mkdocs.yml                # Documentation site config
 │   └── src/                      # Documentation source (MkDocs)
@@ -157,7 +157,7 @@ cimpl-azd/
 5. Deployments with replicas > 1 MUST have `topologySpreadConstraints` or `podAntiAffinity`
 6. Pod Security Standards (runAsNonRoot, etc.) enforced
 
-**Resolution:** Make all workloads compliant, not bypass safeguards. The `ensure-safeguards.ps1` script waits for Gatekeeper readiness before platform deployment.
+**Resolution:** Make all workloads compliant, not bypass safeguards. The `post-provision.ps1` script waits for Gatekeeper readiness before platform deployment.
 
 ### Issue 2: Two-Phase Deployment Required
 **Problem:** Azure Policy/Gatekeeper is eventually consistent. Fresh clusters need time for policies to reconcile.

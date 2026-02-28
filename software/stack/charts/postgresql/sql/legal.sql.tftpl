@@ -1,0 +1,13 @@
+-- ===== legal (OSM) =====
+\c legal
+CREATE SCHEMA IF NOT EXISTS "${data_partition_id}" AUTHORIZATION osdu;
+CREATE TABLE IF NOT EXISTS "${data_partition_id}"."LegalTagOsm" (
+    id text NOT NULL,
+    pk bigint NOT NULL GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    data jsonb NOT NULL,
+    CONSTRAINT "LegalTagOsm_id" UNIQUE (id)
+);
+ALTER TABLE IF EXISTS "${data_partition_id}"."LegalTagOsm" OWNER TO osdu;
+CREATE INDEX IF NOT EXISTS "LegalTagOsm_dataGin" ON "${data_partition_id}"."LegalTagOsm" USING GIN (data);
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA "${data_partition_id}" TO osdu;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA "${data_partition_id}" TO osdu;
