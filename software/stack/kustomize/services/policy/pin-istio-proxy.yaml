@@ -1,9 +1,0 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: placeholder
-spec:
-  template:
-    metadata:
-      annotations:
-        sidecar.istio.io/proxyImage: mcr.microsoft.com/oss/v2/istio/proxyv2:v1.28.3-2

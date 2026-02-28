@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opa
+spec:
+  template:
+    spec:
+      containers:
+      - $patch: delete
+        name: istio-proxy

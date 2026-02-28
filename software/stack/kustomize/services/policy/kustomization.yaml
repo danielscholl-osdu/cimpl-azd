@@ -25,3 +25,7 @@ patches:
     target:
       kind: Deployment
       name: opa
+  - path: opa-remove-istio-container.yaml
+    target:
+      kind: Deployment
+      name: opa
