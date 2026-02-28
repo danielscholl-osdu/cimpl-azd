@@ -349,6 +349,11 @@ OSDU services are deployed into the `osdu` namespace using a reusable Terraform 
 |---------|-------|-------------|-----------|
 | Partition | `core-plus-partition-deploy` | PostgreSQL | Registers data partition (`osdu`) with all service endpoints |
 | Entitlements | `core-plus-entitlements-deploy` | Keycloak, Partition, PostgreSQL, Redis | Provisions tenant entitlements groups |
+| Wellbore | `core-plus-wellbore-deploy` | Entitlements, Partition, PostgreSQL, Storage (MinIO) | TBD (bootstrap skipped for now) |
+| Wellbore Worker | `core-plus-wellbore-worker-deploy` | Entitlements, Partition, Wellbore | None |
+| CRS Conversion | `core-plus-crs-conversion-deploy` | Entitlements, Partition | None |
+| CRS Catalog | `core-plus-crs-catalog-deploy` | Entitlements, Partition | None |
+| EDS-DMS | `core-plus-eds-dms-deploy` | Entitlements, Partition, Storage (MinIO) | None |
 
 ### Service Deployment Pattern
 
@@ -371,6 +376,7 @@ OSDU services discover middleware via secrets created by the `osdu-common` modul
 |--------|---------|------------|
 | `partition-postgres-secret` | Partition | `OSM_POSTGRES_URL`, `OSM_POSTGRES_USERNAME`, `OSM_POSTGRES_PASSWORD` |
 | `entitlements-multi-tenant-postgres-secret` | Entitlements | `ENT_PG_URL_SYSTEM`, `ENT_PG_USER_SYSTEM`, `ENT_PG_PASS_SYSTEM`, `SPRING_DATASOURCE_*` |
+| `wellbore-postgres-secret` | Wellbore | `OSM_POSTGRES_URL`, `OSM_POSTGRES_USERNAME`, `OSM_POSTGRES_PASSWORD`, `WELLBORE_POSTGRES_DB_NAME` |
 | `datafier-secret` | Entitlements bootstrap | `OPENID_PROVIDER_CLIENT_ID`, `OPENID_PROVIDER_CLIENT_SECRET`, `OPENID_PROVIDER_URL` |
 | `entitlements-redis-secret` | Entitlements | `REDIS_PASSWORD` |
 
