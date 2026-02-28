@@ -25,3 +25,7 @@ patches:
   - path: resources.yaml
     target:
       kind: StatefulSet
+  - path: redis-security.yaml
+    target:
+      kind: Deployment
+      name: redis-dataset
