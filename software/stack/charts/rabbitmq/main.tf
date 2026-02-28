@@ -62,7 +62,20 @@ resource "kubectl_manifest" "rabbitmq_config" {
             {"name": "registersubscriptionpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
             {"name": "notificationtopic", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
             {"name": "notificationtopicpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
-            {"name": "legaltagschangedpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false}
+            {"name": "legaltagschangedpublish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "legaltags-changed", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "legaltags-changed-publish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "records-changed", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "records-changed-publish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "records-changed-v2", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "records-changed-v2-publish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "schema-changed", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "schema-changed-publish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "status-changed", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "status-changed-publish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "indexing-progress-publish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "replaytopic", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "replaytopicsubscription-exchange", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false}
           ],
           "queues": [
             {"name": "legaltags-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
@@ -101,7 +114,12 @@ resource "kubectl_manifest" "rabbitmq_config" {
             {"name": "notification-workflow", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
             {"name": "notification-dataset", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
             {"name": "notification-search", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
-            {"name": "notification-wellbore", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}}
+            {"name": "notification-wellbore", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "storage-oqm-legaltags-changed", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "replaytopicsubscription", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "replaytopic-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "dead-lettering-replay-subscription", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "indexer-records-changed", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}}
           ],
           "bindings": [
             {"source": "legaltags", "vhost": "/", "destination": "legaltags-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
@@ -129,7 +147,12 @@ resource "kubectl_manifest" "rabbitmq_config" {
             {"source": "registersubscription", "vhost": "/", "destination": "registersubscription-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
             {"source": "registersubscriptionpublish", "vhost": "/", "destination": "registersubscriptionpublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
             {"source": "notificationtopic", "vhost": "/", "destination": "notificationtopic-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
-            {"source": "legaltagschangedpublish", "vhost": "/", "destination": "legaltagschangedpublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}}
+            {"source": "legaltagschangedpublish", "vhost": "/", "destination": "legaltagschangedpublish-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "legaltags-changed", "vhost": "/", "destination": "storage-oqm-legaltags-changed", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "replaytopic", "vhost": "/", "destination": "replaytopicsubscription", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "replaytopic", "vhost": "/", "destination": "replaytopic-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "replaytopicsubscription-exchange", "vhost": "/", "destination": "dead-lettering-replay-subscription", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "records-changed", "vhost": "/", "destination": "indexer-records-changed", "destination_type": "queue", "routing_key": "", "arguments": {}}
           ]
         }
       enabled_plugins: |

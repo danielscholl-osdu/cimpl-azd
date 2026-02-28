@@ -29,3 +29,7 @@ patches:
     target:
       kind: Deployment
       name: redis-indexer
+  - path: oqm-retry-override.yaml
+    target:
+      kind: Deployment
+      name: indexer
