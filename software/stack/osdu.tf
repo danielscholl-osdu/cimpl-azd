@@ -225,3 +225,185 @@ module "file" {
 
   depends_on = [module.osdu_common, module.legal]
 }
+
+module "notification" {
+  source = "./modules/osdu-service"
+
+  service_name              = "notification"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/notification/cimpl-helm"
+  chart                     = "core-plus-notification-deploy"
+  chart_version             = lookup(var.osdu_service_versions, "notification", var.osdu_chart_version)
+  enable                    = var.enable_notification
+  enable_common             = var.enable_common
+  namespace                 = local.osdu_namespace
+  osdu_domain               = local.osdu_domain
+  cimpl_tenant              = var.cimpl_tenant
+  cimpl_project             = var.cimpl_project
+  subscriber_private_key_id = var.cimpl_subscriber_private_key_id
+  kustomize_path            = path.module
+
+  extra_set = [
+    {
+      name  = "data.rabbitmqHost"
+      value = local.rabbitmq_host
+    }
+  ]
+
+  preconditions = [
+    { condition = !var.enable_notification || var.enable_entitlements, error_message = "Notification requires Entitlements." },
+    { condition = !var.enable_notification || var.enable_partition, error_message = "Notification requires Partition." },
+    { condition = !var.enable_notification || var.enable_rabbitmq, error_message = "Notification requires RabbitMQ." },
+  ]
+
+  depends_on = [module.osdu_common, module.entitlements]
+}
+
+module "dataset" {
+  source = "./modules/osdu-service"
+
+  service_name              = "dataset"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/dataset/cimpl-helm"
+  chart                     = "core-plus-dataset-deploy"
+  chart_version             = lookup(var.osdu_service_versions, "dataset", var.osdu_chart_version)
+  enable                    = var.enable_dataset
+  enable_common             = var.enable_common
+  namespace                 = local.osdu_namespace
+  osdu_domain               = local.osdu_domain
+  cimpl_tenant              = var.cimpl_tenant
+  cimpl_project             = var.cimpl_project
+  subscriber_private_key_id = var.cimpl_subscriber_private_key_id
+  kustomize_path            = path.module
+
+  preconditions = [
+    { condition = !var.enable_dataset || var.enable_entitlements, error_message = "Dataset requires Entitlements." },
+    { condition = !var.enable_dataset || var.enable_partition, error_message = "Dataset requires Partition." },
+    { condition = !var.enable_dataset || var.enable_minio, error_message = "Dataset requires MinIO." },
+    { condition = !var.enable_dataset || var.enable_postgresql, error_message = "Dataset requires PostgreSQL." },
+  ]
+
+  depends_on = [module.osdu_common, module.minio]
+}
+
+module "register" {
+  source = "./modules/osdu-service"
+
+  service_name              = "register"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/register/cimpl-helm"
+  chart                     = "core-plus-register-deploy"
+  chart_version             = lookup(var.osdu_service_versions, "register", var.osdu_chart_version)
+  enable                    = var.enable_register
+  enable_common             = var.enable_common
+  namespace                 = local.osdu_namespace
+  osdu_domain               = local.osdu_domain
+  cimpl_tenant              = var.cimpl_tenant
+  cimpl_project             = var.cimpl_project
+  subscriber_private_key_id = var.cimpl_subscriber_private_key_id
+  kustomize_path            = path.module
+
+  preconditions = [
+    { condition = !var.enable_register || var.enable_entitlements, error_message = "Register requires Entitlements." },
+    { condition = !var.enable_register || var.enable_partition, error_message = "Register requires Partition." },
+    { condition = !var.enable_register || var.enable_postgresql, error_message = "Register requires PostgreSQL." },
+  ]
+
+  depends_on = [module.osdu_common, module.entitlements]
+}
+
+module "policy" {
+  source = "./modules/osdu-service"
+
+  service_name              = "policy"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/security-and-compliance/policy/cimpl-helm"
+  chart                     = "core-plus-policy-deploy"
+  chart_version             = lookup(var.osdu_service_versions, "policy", var.osdu_chart_version)
+  enable                    = var.enable_policy
+  enable_common             = var.enable_common
+  namespace                 = local.osdu_namespace
+  osdu_domain               = local.osdu_domain
+  cimpl_tenant              = var.cimpl_tenant
+  cimpl_project             = var.cimpl_project
+  subscriber_private_key_id = var.cimpl_subscriber_private_key_id
+  kustomize_path            = path.module
+
+  preconditions = [
+    { condition = !var.enable_policy || var.enable_entitlements, error_message = "Policy requires Entitlements." },
+    { condition = !var.enable_policy || var.enable_partition, error_message = "Policy requires Partition." },
+  ]
+
+  depends_on = [module.osdu_common, module.entitlements]
+}
+
+module "secret" {
+  source = "./modules/osdu-service"
+
+  service_name              = "secret"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/security-and-compliance/secret/cimpl-helm"
+  chart                     = "core-plus-secret-deploy"
+  chart_version             = lookup(var.osdu_service_versions, "secret", var.osdu_chart_version)
+  enable                    = var.enable_secret
+  enable_common             = var.enable_common
+  namespace                 = local.osdu_namespace
+  osdu_domain               = local.osdu_domain
+  cimpl_tenant              = var.cimpl_tenant
+  cimpl_project             = var.cimpl_project
+  subscriber_private_key_id = var.cimpl_subscriber_private_key_id
+  kustomize_path            = path.module
+
+  preconditions = [
+    { condition = !var.enable_secret || var.enable_entitlements, error_message = "Secret requires Entitlements." },
+    { condition = !var.enable_secret || var.enable_partition, error_message = "Secret requires Partition." },
+  ]
+
+  depends_on = [module.osdu_common, module.entitlements]
+}
+
+module "unit" {
+  source = "./modules/osdu-service"
+
+  service_name              = "unit"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/unit/cimpl-helm"
+  chart                     = "core-plus-unit-deploy"
+  chart_version             = lookup(var.osdu_service_versions, "unit", var.osdu_chart_version)
+  enable                    = var.enable_unit
+  enable_common             = var.enable_common
+  namespace                 = local.osdu_namespace
+  osdu_domain               = local.osdu_domain
+  cimpl_tenant              = var.cimpl_tenant
+  cimpl_project             = var.cimpl_project
+  subscriber_private_key_id = var.cimpl_subscriber_private_key_id
+  kustomize_path            = path.module
+
+  preconditions = [
+    { condition = !var.enable_unit || var.enable_entitlements, error_message = "Unit requires Entitlements." },
+    { condition = !var.enable_unit || var.enable_partition, error_message = "Unit requires Partition." },
+  ]
+
+  depends_on = [module.osdu_common, module.entitlements]
+}
+
+module "workflow" {
+  source = "./modules/osdu-service"
+
+  service_name              = "workflow"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/data-flow/ingestion/workflow/cimpl-helm"
+  chart                     = "core-plus-workflow-deploy"
+  chart_version             = lookup(var.osdu_service_versions, "workflow", var.osdu_chart_version)
+  enable                    = var.enable_workflow
+  enable_common             = var.enable_common
+  namespace                 = local.osdu_namespace
+  osdu_domain               = local.osdu_domain
+  cimpl_tenant              = var.cimpl_tenant
+  cimpl_project             = var.cimpl_project
+  subscriber_private_key_id = var.cimpl_subscriber_private_key_id
+  kustomize_path            = path.module
+
+  preconditions = [
+    { condition = !var.enable_workflow || var.enable_entitlements, error_message = "Workflow requires Entitlements." },
+    { condition = !var.enable_workflow || var.enable_partition, error_message = "Workflow requires Partition." },
+    { condition = !var.enable_workflow || var.enable_minio, error_message = "Workflow requires MinIO." },
+    { condition = !var.enable_workflow || var.enable_postgresql, error_message = "Workflow requires PostgreSQL." },
+    { condition = !var.enable_workflow || var.enable_airflow, error_message = "Workflow requires Airflow." },
+  ]
+
+  depends_on = [module.osdu_common, module.minio]
+}
