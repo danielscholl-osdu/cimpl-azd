@@ -305,40 +305,21 @@ resource "null_resource" "keycloak_jwks_wait" {
         --timeout=600s
       echo "Keycloak pod is ready. Waiting for JWKS endpoint (realm import)..."
 
-      JWKS_URL="http://keycloak.${var.namespace}.svc.cluster.local:8080/realms/osdu/protocol/openid-connect/certs"
-      TIMEOUT=300
-      INTERVAL=10
+      # Use port-forward for fast local polling (avoids slow ephemeral pod creation)
+      kubectl port-forward svc/keycloak -n ${var.namespace} 28080:8080 > /dev/null 2>&1 &
+      PF_PID=$!
+      sleep 3
+
+      cleanup() { kill $PF_PID 2>/dev/null || true; wait $PF_PID 2>/dev/null || true; }
+      trap cleanup EXIT
+
+      JWKS_URL="http://localhost:28080/realms/osdu/protocol/openid-connect/certs"
+      TIMEOUT=600
+      INTERVAL=5
       ELAPSED=0
 
       while [ $ELAPSED -lt $TIMEOUT ]; do
-        RESULT=$(kubectl run jwks-check-$RANDOM --rm -i --restart=Never \
-          --image=curlimages/curl:8.12.1 \
-          -n ${var.namespace} \
-          --override-type=strategic \
-          --overrides='{
-            "spec": {
-              "securityContext": {
-                "runAsNonRoot": true,
-                "runAsUser": 1000,
-                "runAsGroup": 1000,
-                "seccompProfile": {"type": "RuntimeDefault"}
-              },
-              "containers": [{
-                "name": "jwks-check",
-                "securityContext": {
-                  "allowPrivilegeEscalation": false,
-                  "capabilities": {"drop": ["ALL"]},
-                  "runAsNonRoot": true,
-                  "seccompProfile": {"type": "RuntimeDefault"}
-                },
-                "resources": {
-                  "requests": {"cpu": "50m", "memory": "32Mi"},
-                  "limits": {"cpu": "100m", "memory": "64Mi"}
-                }
-              }]
-            }
-          }' \
-          -- curl -sf --max-time 5 "$JWKS_URL" 2>/dev/null || true)
+        RESULT=$(curl -sf --max-time 5 "$JWKS_URL" 2>/dev/null || true)
 
         if echo "$RESULT" | grep -q '"keys"'; then
           echo "Keycloak JWKS endpoint is serving keys. Realm import complete."
