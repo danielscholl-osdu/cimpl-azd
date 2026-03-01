@@ -35,6 +35,15 @@ resource "kubectl_manifest" "rabbitmq_config" {
         management.load_definitions = /etc/rabbitmq/definitions.json
       definitions.json: |
         {
+          "vhosts": [
+            {"name": "/"}
+          ],
+          "users": [
+            {"name": "${var.rabbitmq_username}", "password": "${var.rabbitmq_password}", "tags": "administrator"}
+          ],
+          "permissions": [
+            {"user": "${var.rabbitmq_username}", "vhost": "/", "configure": ".*", "write": ".*", "read": ".*"}
+          ],
           "exchanges": [
             {"name": "legaltags", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
             {"name": "legaltagschanged", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
@@ -75,7 +84,10 @@ resource "kubectl_manifest" "rabbitmq_config" {
             {"name": "status-changed-publish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
             {"name": "indexing-progress-publish", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
             {"name": "replaytopic", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
-            {"name": "replaytopicsubscription-exchange", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false}
+            {"name": "replaytopicsubscription-exchange", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "notification-control", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "reprocess", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
+            {"name": "reindex", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false}
           ],
           "queues": [
             {"name": "legaltags-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
@@ -119,7 +131,22 @@ resource "kubectl_manifest" "rabbitmq_config" {
             {"name": "replaytopicsubscription", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
             {"name": "replaytopic-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
             {"name": "dead-lettering-replay-subscription", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
-            {"name": "indexer-records-changed", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}}
+            {"name": "indexer-records-changed", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "indexer-schema-changed", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-control-sub", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-records-changed-service", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-records-changed-publish", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-legaltags-changed-service", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-legaltags-changed-publish", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-schema-changed-service", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-schema-changed-publish", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-status-changed-service", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-status-changed-publish", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-records-changed-v2-service", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "notification-records-changed-v2-publish", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "indexer-reprocess", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "indexer-reindex", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}},
+            {"name": "indexer-records-changed-v2", "vhost": "/", "durable": true, "auto_delete": false, "arguments": {}}
           ],
           "bindings": [
             {"source": "legaltags", "vhost": "/", "destination": "legaltags-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
@@ -152,7 +179,22 @@ resource "kubectl_manifest" "rabbitmq_config" {
             {"source": "replaytopic", "vhost": "/", "destination": "replaytopicsubscription", "destination_type": "queue", "routing_key": "", "arguments": {}},
             {"source": "replaytopic", "vhost": "/", "destination": "replaytopic-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
             {"source": "replaytopicsubscription-exchange", "vhost": "/", "destination": "dead-lettering-replay-subscription", "destination_type": "queue", "routing_key": "", "arguments": {}},
-            {"source": "records-changed", "vhost": "/", "destination": "indexer-records-changed", "destination_type": "queue", "routing_key": "", "arguments": {}}
+            {"source": "records-changed", "vhost": "/", "destination": "indexer-records-changed", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "schema-changed", "vhost": "/", "destination": "indexer-schema-changed", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "notification-control", "vhost": "/", "destination": "notification-control-sub", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "records-changed", "vhost": "/", "destination": "notification-records-changed-service", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "records-changed-publish", "vhost": "/", "destination": "notification-records-changed-publish", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "legaltags-changed", "vhost": "/", "destination": "notification-legaltags-changed-service", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "legaltags-changed-publish", "vhost": "/", "destination": "notification-legaltags-changed-publish", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "schema-changed", "vhost": "/", "destination": "notification-schema-changed-service", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "schema-changed-publish", "vhost": "/", "destination": "notification-schema-changed-publish", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "status-changed", "vhost": "/", "destination": "notification-status-changed-service", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "status-changed-publish", "vhost": "/", "destination": "notification-status-changed-publish", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "records-changed-v2", "vhost": "/", "destination": "notification-records-changed-v2-service", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "records-changed-v2-publish", "vhost": "/", "destination": "notification-records-changed-v2-publish", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "reprocess", "vhost": "/", "destination": "indexer-reprocess", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "reindex", "vhost": "/", "destination": "indexer-reindex", "destination_type": "queue", "routing_key": "", "arguments": {}},
+            {"source": "records-changed-v2", "vhost": "/", "destination": "indexer-records-changed-v2", "destination_type": "queue", "routing_key": "", "arguments": {}}
           ]
         }
       enabled_plugins: |
