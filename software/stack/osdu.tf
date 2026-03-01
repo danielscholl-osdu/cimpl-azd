@@ -46,18 +46,10 @@ module "entitlements" {
   subscriber_private_key_id = var.cimpl_subscriber_private_key_id
   kustomize_path            = path.module
 
-  extra_set = [
-    {
-      name  = "data.redisEntHost"
-      value = local.redis_host
-    }
-  ]
-
   preconditions = [
     { condition = !var.enable_entitlements || var.enable_keycloak, error_message = "Entitlements requires Keycloak." },
     { condition = !var.enable_entitlements || var.enable_partition, error_message = "Entitlements requires Partition." },
     { condition = !var.enable_entitlements || var.enable_postgresql, error_message = "Entitlements requires PostgreSQL." },
-    { condition = !var.enable_entitlements || var.enable_redis, error_message = "Entitlements requires Redis." },
   ]
 
   depends_on = [module.osdu_common, module.keycloak, module.partition]
