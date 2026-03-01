@@ -35,6 +35,15 @@ resource "kubectl_manifest" "rabbitmq_config" {
         management.load_definitions = /etc/rabbitmq/definitions.json
       definitions.json: |
         {
+          "vhosts": [
+            {"name": "/"}
+          ],
+          "users": [
+            {"name": "${var.rabbitmq_username}", "password": "${var.rabbitmq_password}", "tags": "administrator"}
+          ],
+          "permissions": [
+            {"user": "${var.rabbitmq_username}", "vhost": "/", "configure": ".*", "write": ".*", "read": ".*"}
+          ],
           "exchanges": [
             {"name": "legaltags", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
             {"name": "legaltagschanged", "vhost": "/", "type": "fanout", "durable": true, "auto_delete": false},
