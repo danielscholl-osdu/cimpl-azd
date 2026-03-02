@@ -299,6 +299,25 @@ resource "null_resource" "keycloak_jwks_wait" {
     interpreter = ["/bin/bash", "-c"]
     command     = <<-EOT
       set -euo pipefail
+      echo "Waiting for Keycloak pod to exist..."
+      TIMEOUT=300
+      INTERVAL=5
+      ELAPSED=0
+      while [ $ELAPSED -lt $TIMEOUT ]; do
+        COUNT=$(kubectl get pods -n ${var.namespace} -l app.kubernetes.io/instance=keycloak --no-headers 2>/dev/null | wc -l)
+        if [ "$COUNT" -gt 0 ]; then
+          echo "Keycloak pod found after $ELAPSED seconds."
+          break
+        fi
+        echo "No Keycloak pod yet ($ELAPSED/$TIMEOUT s). Waiting..."
+        sleep $INTERVAL
+        ELAPSED=$((ELAPSED + INTERVAL))
+      done
+      if [ $ELAPSED -ge $TIMEOUT ]; then
+        echo "ERROR: Keycloak pod did not appear within $TIMEOUT seconds."
+        exit 1
+      fi
+
       echo "Waiting for Keycloak pod to become ready..."
       kubectl wait --for=condition=Ready pod \
         -n ${var.namespace} -l app.kubernetes.io/instance=keycloak \
