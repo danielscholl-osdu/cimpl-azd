@@ -4,7 +4,7 @@
 
 cimpl-azd packages the entire CIMPL stack — infrastructure, middleware, and OSDU services — into a single `azd up` command. Every resource is defined in Terraform, every decision is documented in an ADR, and every component can be toggled with a feature flag.
 
-![Platform Architecture](images/platform-architecture.png)
+![Platform Overview](images/platform-overview.png)
 
 ---
 
