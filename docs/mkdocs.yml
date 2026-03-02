@@ -1,5 +1,9 @@
 site_name: cimpl-azd
 site_description: Azure Developer CLI deployment for CIMPL on AKS Automatic
+site_url: https://danielscholl-osdu.github.io/cimpl-azd/
+repo_name: danielscholl-osdu/cimpl-azd
+repo_url: https://github.com/danielscholl-osdu/cimpl-azd
+copyright: Copyright &copy; 2024-2026 cimpl-azd contributors
 docs_dir: src
 
 
@@ -7,6 +11,9 @@ theme:
   name: material
   logo: https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Microsoft_Azure.svg/150px-Microsoft_Azure.svg.png
   favicon: https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Microsoft_Azure.svg/150px-Microsoft_Azure.svg.png
+  font:
+    text: Inter
+    code: Fira Code
   palette:
     - scheme: default
       primary: custom
@@ -25,8 +32,13 @@ theme:
     - navigation.sections
     - navigation.top
     - navigation.indexes
+    - navigation.footer
+    - navigation.instant
+    - navigation.instant.preview
+    - navigation.expand
     - search.suggest
     - search.highlight
+    - search.share
     - content.tabs.link
     - content.code.copy
     - content.action.edit
@@ -56,14 +68,20 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.tasklist:
       custom_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - tables
   - attr_list
   - md_in_html
+  - def_list
   - toc:
       permalink: true
 
 plugins:
   - search
+  - minify:
+      minify_html: true
 
 nav:
   - Home: index.md
@@ -71,8 +89,20 @@ nav:
       - Prerequisites: getting-started/prerequisites.md
       - Quick Start: getting-started/quickstart.md
       - Configuration: getting-started/configuration.md
-  - Architecture:
-      - Overview: architecture/overview.md
+      - Feature Flags: getting-started/feature-flags.md
+  - Design:
+      - Overview: design/overview.md
+      - Infrastructure: design/infrastructure.md
+      - Platform Components: design/platform.md
+      - Software Patterns: design/software.md
+      - Request & Event Flow: design/data-flow.md
+  - Services:
+      - Overview: services/overview.md
+      - Core Services: services/core.md
+      - Reference & Domain: services/reference.md
+  - Tutorials:
+      - Deployment: tutorials/deployment.md
+      - Debugging: tutorials/debugging.md
   - Operations:
       - CI/CD Pipelines: operations/pipelines.md
       - Troubleshooting: operations/troubleshooting.md
@@ -88,3 +118,11 @@ nav:
       - ADR-0008 Istio Injection: decisions/0008-selective-istio-sidecar-injection.md
       - ADR-0009 Workload Identity: decisions/0009-workload-identity-for-dns-management.md
       - ADR-0010 Unique Selectors: decisions/0010-unique-service-selector-label-pattern.md
+      - ADR-0011 Airflow Executor: decisions/0011-airflow-kubernetes-executor-with-nap.md
+      - ADR-0012 Keycloak Chart: decisions/0012-bitnami-chart-with-official-keycloak-image.md
+      - ADR-0013 Chart Defaults: decisions/0013-chart-default-images-over-explicit-overrides.md
+      - ADR-0014 ROSA Alignment: decisions/0014-rosa-alignment-and-deliberate-differences.md
+      - ADR-0015 OSDU Module: decisions/0015-osdu-service-module-and-sql-extraction.md
+      - ADR-0016 Keycloak Manifests: decisions/0016-raw-manifests-for-keycloak.md
+      - ADR-0017 Namespace Architecture: decisions/0017-consolidated-namespace-architecture.md
+      - ADR-0018 File Layout: decisions/0018-stack-file-layout-reorganization.md

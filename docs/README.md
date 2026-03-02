@@ -27,19 +27,22 @@ zensical serve
 
 ```
 docs/
-+-- mkdocs.yml          # Site configuration (Material for MkDocs)
-+-- Dockerfile          # Docs container image
-+-- docker-compose.yml  # One-command local dev
-+-- src/                # Source root (docs_dir)
-|   +-- index.md        # Landing page
-|   +-- getting-started/
-|   +-- architecture/
-|   +-- operations/
-|   +-- decisions/
-|   +-- stylesheets/
-|   +-- javascripts/
-+-- diagrams/           # Excalidraw diagrams (not published)
-+-- plans/              # Internal planning docs (not published)
+├── mkdocs.yml          # Site configuration (Material for MkDocs)
+├── Dockerfile          # Docs container image
+├── docker-compose.yml  # One-command local dev
+├── src/                # Source root (docs_dir)
+│   ├── index.md        # Landing page
+│   ├── getting-started/  # Prerequisites, quickstart, config, feature flags
+│   ├── design/           # Architecture, infrastructure, platform, patterns, data flow
+│   ├── services/         # OSDU service catalog (core, reference, domain)
+│   ├── tutorials/        # Deployment walkthrough, debugging guide
+│   ├── operations/       # CI/CD pipelines, troubleshooting
+│   ├── decisions/        # ADRs (18 architectural decision records)
+│   ├── images/           # Published diagram PNGs
+│   ├── stylesheets/      # Custom CSS
+│   └── javascripts/      # Custom JS
+├── diagrams/           # Excalidraw source files (not published)
+└── plans/              # Internal planning docs (not published)
 ```
 
 ## Deployment
