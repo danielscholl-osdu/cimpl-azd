@@ -522,10 +522,35 @@ function Get-PlatformVars {
     }
 }
 
+function Clear-FailedHelmReleases {
+    Write-Host "  Checking for failed Helm releases in foundation namespace..." -ForegroundColor Gray
+
+    $releases = helm list -n foundation --failed --short 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($releases)) {
+        Write-Host "  No failed releases found" -ForegroundColor Gray
+        return
+    }
+
+    foreach ($release in ($releases -split "`n" | Where-Object { $_.Trim() -ne "" })) {
+        $release = $release.Trim()
+        Write-Host "  Removing failed release: $release" -ForegroundColor Yellow
+        helm uninstall $release -n foundation 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  Removed: $release" -ForegroundColor Green
+        }
+        else {
+            Write-Host "  WARNING: Could not remove $release (may need manual cleanup)" -ForegroundColor Yellow
+        }
+    }
+}
+
 function Deploy-Foundation {
     param($Ctx, $Vars)
 
     Write-Host "`n[5/5] Deploying Foundation Layer..." -ForegroundColor Cyan
+
+    # Clean up any failed Helm releases from previous runs
+    Clear-FailedHelmReleases
 
     Push-Location $PSScriptRoot/../software/foundation
 
