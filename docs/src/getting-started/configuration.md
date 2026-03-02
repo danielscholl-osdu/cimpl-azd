@@ -50,16 +50,19 @@
 | Elasticsearch | 8.15.2 | 3x 128Gi Premium SSD | `enable_elasticsearch` (default: true) |
 | Kibana | 8.15.2 | — | (with Elasticsearch) |
 | PostgreSQL (CNPG) | 17 | 3x 8Gi + 4Gi WAL | `enable_postgresql` (default: true) |
-| RabbitMQ | 4.1.0 | 3x 8Gi managed-csi-premium | `enable_rabbitmq` (default: true) |
-| Redis | latest | — | `enable_redis` (default: true) |
-| MinIO | Latest | 10Gi managed-csi | `enable_minio` (default: true) |
-| cert-manager | 1.16.2 | — | `enable_cert_manager` (default: true) |
+| RabbitMQ | 4.1.0 | 3x 8Gi Premium SSD | `enable_rabbitmq` (default: true) |
+| Redis | 8.2.1 (chart 24.1.3) | 1x master + 2x replica, 8Gi each | `enable_redis` (default: true) |
+| MinIO | chart 5.4.0 | 10Gi managed-csi | `enable_minio` (default: true) |
+| cert-manager | 1.19.3 | — | `enable_cert_manager` (default: true) |
 | Keycloak | 26.5.4 | — (uses PostgreSQL) | `enable_keycloak` (default: true) |
-| Airflow | 3.1.7 | — (uses PostgreSQL) | `enable_airflow` (default: false) |
+| Airflow | chart 1.19.0 | — (uses PostgreSQL) | `enable_airflow` (default: false) |
+
+!!! note
+    cert-manager, ECK operator (v3.3.0), and CNPG operator (v0.27.1) are deployed in the **foundation** layer (`software/foundation/`), separate from the stack.
 
 ## OSDU Services
 
-All OSDU services use the reusable `modules/osdu-service` wrapper and default to chart version `0.0.7-latest` (override per-service via `osdu_service_versions` map).
+All OSDU services use the reusable `modules/osdu-service` wrapper and default to chart version `0.0.7-latest` (override per-service via `osdu_service_versions` map). For the full list of all flags, see [Feature Flags](feature-flags.md).
 
 **Core Services** (`osdu-services-core.tf`):
 
@@ -98,25 +101,26 @@ All OSDU services use the reusable `modules/osdu-service` wrapper and default to
 
 ## Deployment Flow
 
-The deployment uses a **two-phase approach** to handle Azure Policy/Gatekeeper eventual consistency:
+The deployment uses a **three-layer approach** with a safeguards gate:
 
 ```
 azd up
   |
-  +-- preprovision        -> Validate prerequisites
-  +-- provision           -> Create AKS cluster (Layer 1)
+  +-- preprovision        -> Validate prerequisites, auto-generate credentials
+  +-- provision           -> Create AKS cluster (Layer 1: infra/)
   +-- postprovision       -> Ensure safeguards readiness (gate)
   |     +-- Configure safeguards (Warning mode)
   |     +-- Wait for Gatekeeper reconciliation
+  |     +-- Deploy foundation (Layer 2: software/foundation/)
   |
-  +-- predeploy           -> Deploy software stack (Layer 2)
+  +-- predeploy           -> Deploy software stack (Layer 3: software/stack/)
         +-- pre-deploy.ps1 (software/stack/ Terraform)
         +-- Middleware + OSDU services in dependency order
         +-- Verify component health
 ```
 
-!!! info "Why Two Phases?"
-    Azure Policy/Gatekeeper is eventually consistent. Fresh clusters have a window where policies aren't fully reconciled. The two-phase approach makes safeguards readiness an explicit gate, eliminating the race condition.
+!!! info "Why a safeguards gate?"
+    Azure Policy/Gatekeeper is eventually consistent. Fresh clusters have a window where policies aren't fully reconciled. The post-provision hook makes safeguards readiness an explicit gate, then deploys the foundation layer once the cluster is ready.
 
 ## Project Structure
 
@@ -128,34 +132,24 @@ cimpl-azd/
 |   +-- aks.tf                       # AKS Automatic cluster
 |   +-- variables.tf                 # Input variables
 |   +-- outputs.tf                   # Outputs for azd
-+-- software/stack/                  # Layer 2: Middleware + OSDU Services
-|   +-- locals.tf                    # Naming derivation, FQDNs, hostnames
-|   +-- platform.tf                  # Platform namespace, Istio mTLS, Karpenter
-|   +-- middleware.tf                # 8 middleware module calls
-|   +-- osdu-common.tf              # OSDU common resources module call
-|   +-- osdu-services-core.tf       # Core OSDU services (14)
-|   +-- osdu-services-reference.tf  # Reference systems (3)
-|   +-- osdu-services-domain.tf     # Domain + external data services (3)
-|   +-- variables-flags.tf          # enable_* feature flags
-|   +-- variables-infra.tf          # Infrastructure variables
-|   +-- variables-credentials.tf    # Sensitive credential variables
-|   +-- variables-osdu.tf           # OSDU project/tenant/version config
-|   +-- outputs.tf                   # Stack outputs (hosts, URLs)
-|   +-- modules/                     # Child Terraform modules
-|   |   +-- elastic/                 # ECK + Elasticsearch + Kibana
-|   |   +-- postgresql/              # CNPG + PostgreSQL + SQL DDL
-|   |   +-- redis/                   # Redis cache
-|   |   +-- rabbitmq/                # RabbitMQ (raw manifests)
-|   |   +-- minio/                   # MinIO object storage
-|   |   +-- keycloak/                # Keycloak (raw manifests)
-|   |   +-- airflow/                 # Apache Airflow
-|   |   +-- gateway/                 # Gateway API + TLS
-|   |   +-- osdu-common/             # OSDU namespace + shared secrets
-|   |   +-- osdu-service/            # Reusable OSDU Helm wrapper
-|   +-- kustomize/                   # Postrender patches per service
++-- software/
+|   +-- foundation/                  # Layer 2: Foundation (cluster-wide singletons)
+|   |   +-- main.tf                  # Foundation namespace, Gateway CRDs, StorageClasses
+|   |   +-- charts/                  # cert-manager, ECK, CNPG, ExternalDNS
+|   +-- stack/                       # Layer 3: Software Stack
+|   |   +-- locals.tf                # Naming derivation, FQDNs, hostnames
+|   |   +-- platform.tf              # Platform namespace, Istio mTLS, Karpenter
+|   |   +-- middleware.tf            # Middleware module calls
+|   |   +-- osdu-common.tf          # OSDU common resources module call
+|   |   +-- osdu-services-core.tf   # Core OSDU services (14)
+|   |   +-- osdu-services-reference.tf  # Reference systems (3)
+|   |   +-- osdu-services-domain.tf # Domain + external data services (3)
+|   |   +-- variables-flags.tf      # enable_* feature flags
+|   |   +-- modules/                 # Child Terraform modules
+|   |   +-- kustomize/               # Postrender patches per service
 +-- scripts/
 |   +-- pre-provision.ps1            # Pre-provision validation & env defaults
-|   +-- post-provision.ps1           # Post-provision: safeguards readiness
-|   +-- pre-deploy.ps1               # Pre-deploy: stack Terraform apply
+|   +-- post-provision.ps1           # Safeguards gate + foundation deploy
+|   +-- pre-deploy.ps1               # Stack Terraform apply
 +-- docs/                            # Documentation (this site)
 ```
