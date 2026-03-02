@@ -59,10 +59,42 @@
 
 ## OSDU Services
 
-| Service | Chart Version | Dependencies | Enable Flag |
-|---------|---------------|-------------|-------------|
-| Partition | `0.0.7-latest` | PostgreSQL | `enable_partition` (default: true) |
-| Entitlements | `0.0.7-latest` | Keycloak, Partition, PostgreSQL, Redis | `enable_entitlements` (default: true) |
+All OSDU services use the reusable `modules/osdu-service` wrapper and default to chart version `0.0.7-latest` (override per-service via `osdu_service_versions` map).
+
+**Core Services** (`osdu-services-core.tf`):
+
+| Service | Dependencies | Enable Flag |
+|---------|-------------|-------------|
+| Partition | PostgreSQL | `enable_partition` (default: true) |
+| Entitlements | Keycloak, Partition, PostgreSQL | `enable_entitlements` (default: true) |
+| Legal | Entitlements, Partition, PostgreSQL | `enable_legal` (default: true) |
+| Schema | Entitlements, Partition, PostgreSQL | `enable_schema` (default: true) |
+| Storage | Legal, Entitlements, Partition, PostgreSQL | `enable_storage` (default: true) |
+| Search | Entitlements, Partition, Elasticsearch | `enable_search` (default: true) |
+| Indexer | Entitlements, Partition, Elasticsearch | `enable_indexer` (default: true) |
+| File | Legal, Entitlements, Partition, PostgreSQL | `enable_file` (default: true) |
+| Notification | Entitlements, Partition, RabbitMQ | `enable_notification` (default: true) |
+| Dataset | Entitlements, Partition, Storage, PostgreSQL | `enable_dataset` (default: true) |
+| Register | Entitlements, Partition, PostgreSQL | `enable_register` (default: true) |
+| Policy | Entitlements, Partition | `enable_policy` (default: true) |
+| Secret | Entitlements, Partition | `enable_secret` (default: true) |
+| Workflow | Entitlements, Partition, Storage, PostgreSQL, Airflow | `enable_workflow` (default: false) |
+
+**Reference Systems** (`osdu-services-reference.tf`):
+
+| Service | Dependencies | Enable Flag |
+|---------|-------------|-------------|
+| CRS Conversion | Entitlements, Partition | `enable_crs_conversion` (default: false) |
+| CRS Catalog | Entitlements, Partition | `enable_crs_catalog` (default: false) |
+| Unit | Entitlements, Partition | `enable_unit` (default: false) |
+
+**Domain + External Data** (`osdu-services-domain.tf`):
+
+| Service | Dependencies | Enable Flag |
+|---------|-------------|-------------|
+| Wellbore | Entitlements, Partition, Storage, PostgreSQL | `enable_wellbore` (default: false) |
+| Wellbore Worker | Entitlements, Partition, Wellbore | `enable_wellbore_worker` (default: false) |
+| EDS-DMS | Entitlements, Partition, Storage | `enable_eds_dms` (default: false) |
 
 ## Deployment Flow
 
@@ -97,11 +129,19 @@ cimpl-azd/
 |   +-- variables.tf                 # Input variables
 |   +-- outputs.tf                   # Outputs for azd
 +-- software/stack/                  # Layer 2: Middleware + OSDU Services
-|   +-- main.tf                      # Namespace locals, Karpenter, module calls
-|   +-- osdu.tf                      # OSDU service module calls
-|   +-- variables.tf                 # Feature flags, credentials, config
+|   +-- locals.tf                    # Naming derivation, FQDNs, hostnames
+|   +-- platform.tf                  # Platform namespace, Istio mTLS, Karpenter
+|   +-- middleware.tf                # 8 middleware module calls
+|   +-- osdu-common.tf              # OSDU common resources module call
+|   +-- osdu-services-core.tf       # Core OSDU services (14)
+|   +-- osdu-services-reference.tf  # Reference systems (3)
+|   +-- osdu-services-domain.tf     # Domain + external data services (3)
+|   +-- variables-flags.tf          # enable_* feature flags
+|   +-- variables-infra.tf          # Infrastructure variables
+|   +-- variables-credentials.tf    # Sensitive credential variables
+|   +-- variables-osdu.tf           # OSDU project/tenant/version config
 |   +-- outputs.tf                   # Stack outputs (hosts, URLs)
-|   +-- charts/                      # Per-component Terraform modules
+|   +-- modules/                     # Child Terraform modules
 |   |   +-- elastic/                 # ECK + Elasticsearch + Kibana
 |   |   +-- postgresql/              # CNPG + PostgreSQL + SQL DDL
 |   |   +-- redis/                   # Redis cache
@@ -111,7 +151,6 @@ cimpl-azd/
 |   |   +-- airflow/                 # Apache Airflow
 |   |   +-- gateway/                 # Gateway API + TLS
 |   |   +-- osdu-common/             # OSDU namespace + shared secrets
-|   +-- modules/
 |   |   +-- osdu-service/            # Reusable OSDU Helm wrapper
 |   +-- kustomize/                   # Postrender patches per service
 +-- scripts/
