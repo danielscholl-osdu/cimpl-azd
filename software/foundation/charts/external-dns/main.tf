@@ -6,6 +6,8 @@ resource "helm_release" "external_dns" {
   version          = "9.0.3"
   namespace        = var.namespace
   create_namespace = false
+  timeout          = 600
+  atomic           = true
 
   set = [
     {

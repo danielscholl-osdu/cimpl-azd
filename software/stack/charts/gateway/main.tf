@@ -1,9 +1,11 @@
 # Stack-specific Gateway listeners, HTTPRoutes, and TLS Certificates
 
-# Add HTTPS listener to the shared Gateway for this stack's Kibana
+# Add HTTPS listener to the shared Gateway for this stack's Kibana.
+# Uses always_run trigger to ensure the HTTPS listener is re-applied every deploy,
+# since the foundation layer or other processes could reset the Gateway to HTTP-only.
 resource "null_resource" "gateway_https_listener" {
   triggers = {
-    kibana_hostname = var.kibana_hostname
+    always_run = timestamp()
   }
 
   provisioner "local-exec" {

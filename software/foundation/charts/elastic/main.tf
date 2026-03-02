@@ -6,6 +6,8 @@ resource "helm_release" "elastic_operator" {
   version          = "3.3.0"
   namespace        = var.namespace
   create_namespace = false
+  timeout          = 600
+  atomic           = true
 
   set = [
     {
