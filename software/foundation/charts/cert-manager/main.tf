@@ -9,6 +9,8 @@ resource "helm_release" "cert_manager" {
   version          = "v1.19.3"
   namespace        = var.namespace
   create_namespace = false
+  timeout          = 600
+  atomic           = true
 
   postrender = {
     binary_path = "${path.module}/postrender.sh"

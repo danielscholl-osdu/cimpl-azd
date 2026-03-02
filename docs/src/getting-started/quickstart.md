@@ -62,7 +62,7 @@ After deployment:
 kubectl get svc -n aks-istio-ingress aks-istio-ingressgateway-external
 
 # Get Elasticsearch password
-kubectl get secret elasticsearch-es-elastic-user -n elasticsearch \
+kubectl get secret elasticsearch-es-elastic-user -n platform \
   -o jsonpath='{.data.elastic}' | base64 -d
 ```
 

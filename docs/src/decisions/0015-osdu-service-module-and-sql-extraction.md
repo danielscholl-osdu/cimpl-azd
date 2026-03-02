@@ -30,23 +30,21 @@ Separately, `k8s_cnpg_databases.tf` (504 lines) embeds 340 lines of SQL DDL as a
 
 Chosen option: "Reusable module with explicit calls", because it eliminates per-service boilerplate (~90 → ~20 lines) while preserving explicit dependency graphs and service-specific configuration. Unlike `for_each`, explicit calls allow per-service `depends_on` blocks, which are critical for OSDU's ordered startup (e.g. entitlements depends on partition).
 
-SQL DDL is extracted into per-database `.sql.tftpl` template files under `software/stack/charts/postgresql/sql/`, assembled at plan time via `templatefile()` + `join()`. This makes each database's schema independently readable, diffable, and lintable.
+SQL DDL is extracted into per-database `.sql.tftpl` template files under `software/stack/modules/postgresql/sql/`, assembled at plan time via `templatefile()` + `join()`. This makes each database's schema independently readable, diffable, and lintable.
 
 ### Changes
 
 | Action | File(s) | Purpose |
 |--------|---------|---------|
 | Create | `software/stack/modules/osdu-service/{main,variables,outputs}.tf` | Reusable module with common Helm values |
-| Create | `software/stack/osdu.tf` | Explicit module calls per OSDU service |
-| Create | `software/stack/moved.tf` | State migration blocks for existing resources |
-| Create | `software/stack/charts/postgresql/sql/*.sql.tftpl` | Per-database DDL templates |
-| Create | `software/stack/charts/osdu-common/main.tf` | OSDU namespace, ConfigMap, secrets |
+| Create | `software/stack/osdu-services-*.tf` | Explicit module calls per OSDU service (core, reference, domain) |
+| Create | `software/stack/modules/postgresql/sql/*.sql.tftpl` | Per-database DDL templates |
+| Create | `software/stack/modules/osdu-common/*.tf` | OSDU namespace, ConfigMap, secrets |
 
 ### Consequences
 
-- Good, because adding a new OSDU service requires only ~20 lines in `osdu.tf` instead of a new 90-line file
+- Good, because adding a new OSDU service requires only ~20 lines in the appropriate `osdu-services-*.tf` file instead of a new 90-line file
 - Good, because common Helm value changes are made once in the module, not N times
 - Good, because SQL DDL files can be compared against ROSA reference with standard diff tools
-- Good, because `moved` blocks ensure zero state churn during migration
 - Neutral, because module indirection adds one level of abstraction to navigate
 - Bad, because Terraform doesn't support dynamic `lifecycle` blocks, so preconditions use an `alltrue()` workaround
