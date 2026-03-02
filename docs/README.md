@@ -38,7 +38,7 @@ docs/
 │   ├── tutorials/        # Deployment walkthrough, debugging guide
 │   ├── operations/       # CI/CD pipelines, troubleshooting
 │   ├── decisions/        # ADRs (18 architectural decision records)
-│   ├── images/           # Published diagram PNGs
+│   ├── images/           # Published diagram images
 │   ├── stylesheets/      # Custom CSS
 │   └── javascripts/      # Custom JS
 ├── diagrams/           # Excalidraw source files (not published)
