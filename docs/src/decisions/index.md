@@ -59,3 +59,4 @@ Create ADRs for:
 | [0015](0015-osdu-service-module-and-sql-extraction.md) | Reusable OSDU service module and SQL template extraction | Accepted |
 | [0016](0016-raw-manifests-for-keycloak.md) | Raw Kubernetes manifests for Keycloak | Accepted |
 | [0017](0017-consolidated-namespace-architecture.md) | Consolidated namespace architecture | Accepted |
+| [0018](0018-stack-file-layout-reorganization.md) | Stack file layout reorganization | Accepted |

@@ -91,11 +91,12 @@ This layer combines middleware and OSDU services in a single Terraform state bec
 - Karpenter NodePool + AKSNodeClass for workloads (NAP)
 - Custom StorageClasses for Elasticsearch and PostgreSQL
 
-**OSDU Services** (all in `osdu` namespace):
-- OSDU common resources (namespace, ConfigMap, secrets, mTLS)
-- Partition service (data partition management)
-- Entitlements service (access control)
-- Additional OSDU services as they are ported
+**OSDU Services** (all in `osdu` namespace, grouped per [OSDU platform taxonomy](https://community.opengroup.org/osdu/platform)):
+
+- *Common resources*: namespace, ConfigMap, secrets, service accounts, mTLS
+- *Core services*: partition, entitlements, legal, schema, storage, search, indexer, file, notification, dataset, register, policy, secret, workflow
+- *Reference systems*: crs-conversion, crs-catalog, unit
+- *Domain + external data*: wellbore, wellbore-worker, eds-dms
 
 ---
 

@@ -32,7 +32,7 @@ This mirrors the same problem encountered with RabbitMQ (ADR-0003): Bitnami depr
 
 Chosen option: "Raw Kubernetes manifests", because Keycloak's deployment footprint is small enough (one StatefulSet, two Services, one ConfigMap for realm import) that a Helm chart adds more complexity than it removes. This follows the same pattern as RabbitMQ (ADR-0003).
 
-**Implementation**: All Keycloak resources are defined in `software/stack/charts/keycloak/main.tf` using Terraform `kubectl_manifest` (StatefulSet, Services) and `kubernetes_config_map` / `kubernetes_secret` resources.
+**Implementation**: All Keycloak resources are defined in `software/stack/modules/keycloak/main.tf` using Terraform `kubectl_manifest` (StatefulSet, Services) and `kubernetes_config_map` / `kubernetes_secret` resources.
 
 **Key configuration**:
 
