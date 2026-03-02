@@ -17,7 +17,7 @@ feature/* ──PR──► dev ──promote──► preview ──promote─�
 insider ─push──► Insider pre-release (vX.Y.Z-insider.SHA)
 ```
 
-Developers work on `feature/*` branches and merge to `dev` via pull request. The **Squad Promote** workflow (manual trigger) handles promotion through preview and main, including tagging and release creation.
+Developers work on `feature/*` branches and merge to `dev` via pull request. The **Promote** workflow (manual trigger) handles promotion through preview and main, including tagging and release creation.
 
 ---
 
@@ -25,20 +25,15 @@ Developers work on `feature/*` branches and merge to `dev` via pull request. The
 
 | Workflow | File | Trigger | Purpose |
 |----------|------|---------|---------|
-| [Squad CI](#squad-ci) | `squad-ci.yml` | PR/push to dev, preview, main | Terraform & PowerShell validation |
+| [CI](#ci) | `squad-ci.yml` | PR/push to dev, preview, main | Terraform & PowerShell validation |
 | [PR Checks](#pr-checks) | `pr-checks.yml` | PR to main | Format, syntax, secrets scan |
 | [CodeQL](#codeql) | `codeql.yml` | PR/push to main, weekly schedule | Security analysis |
-| [Squad Preview Validation](#squad-preview-validation) | `squad-preview.yml` | Push to preview | Validate preview branch readiness |
-| [Squad Main Guard](#squad-main-guard) | `squad-main-guard.yml` | PR/push to main, preview, insider | Block forbidden files on protected branches |
-| [Squad Promote](#squad-promote) | `squad-promote.yml` | Manual dispatch | Promote dev → preview → main with release |
-| [Squad Release](#squad-release) | `squad-release.yml` | Manual dispatch | Manual release fallback |
-| [Squad Insider Release](#squad-insider-release) | `squad-insider-release.yml` | Push to insider | Create insider pre-release |
-| [Squad Docs](#squad-docs) | `squad-docs.yml` | PR (spell check), push to main (deploy) | Spell check + GitHub Pages deploy |
-| [Squad Heartbeat](#squad-heartbeat) | `squad-heartbeat.yml` | Schedule (30 min), issues, PRs | Auto-triage and monitor squad work |
-| [Squad Triage](#squad-triage) | `squad-triage.yml` | Issue labeled "squad" | Route issues to squad members |
-| [Squad Issue Assign](#squad-issue-assign) | `squad-issue-assign.yml` | Issue labeled "squad:*" | Assign work to squad members |
-| [Squad Label Enforce](#squad-label-enforce) | `squad-label-enforce.yml` | Issue labeled | Enforce mutually exclusive labels |
-| [Sync Squad Labels](#sync-squad-labels) | `sync-squad-labels.yml` | team.md changes, manual | Sync GitHub labels from team roster |
+| [Preview Validation](#preview-validation) | `squad-preview.yml` | Push to preview | Validate preview branch readiness |
+| [Main Guard](#main-guard) | `squad-main-guard.yml` | PR/push to main, preview, insider | Block forbidden files on protected branches |
+| [Promote](#promote) | `squad-promote.yml` | Manual dispatch | Promote dev → preview → main with release |
+| [Release](#release) | `squad-release.yml` | Manual dispatch | Manual release fallback |
+| [Insider Release](#insider-release) | `squad-insider-release.yml` | Push to insider | Create insider pre-release |
+| [Docs](#docs-pipeline) | `squad-docs.yml` | PR (spell check), push to main (deploy) | Spell check + GitHub Pages deploy |
 
 ---
 
@@ -53,7 +48,7 @@ Developers work on `feature/*` branches and merge to `dev` via pull request. The
                         │      ▼                                       │
                         │  Open PR → dev                               │
                         │      │                                       │
-                        │      ├── squad-ci (terraform fmt, PS syntax) │
+                        │      ├── CI (terraform fmt, PS syntax)       │
                         │      │                                       │
                         │      ▼                                       │
                         │  Merge to dev                                │
@@ -61,7 +56,7 @@ Developers work on `feature/*` branches and merge to `dev` via pull request. The
                                │
                                ▼
                 ┌──────────────────────────────┐
-                │  Squad Promote (manual)       │
+                │  Promote (manual)             │
                 │                               │
                 │  Job 1: dev → preview          │
                 │    • merge dev into preview    │
@@ -87,7 +82,7 @@ Developers work on `feature/*` branches and merge to `dev` via pull request. The
 
 ## Validation Pipelines
 
-### Squad CI
+### CI
 
 **File:** `squad-ci.yml`
 **Triggers:** Pull requests and pushes to `dev`, `preview`, `main`, `insider`
@@ -96,7 +91,7 @@ Runs on every PR and push to protected branches. This is the primary gate for co
 
 | Job | What it checks |
 |-----|----------------|
-| `terraform-format` | `terraform fmt -check` on `infra/` and `platform/` |
+| `terraform-format` | `terraform fmt -check` on `infra/` and `software/` |
 | `powershell-syntax` | PSParser tokenization of all `scripts/*.ps1` files |
 
 ### PR Checks
@@ -108,8 +103,8 @@ Additional checks that run only on PRs targeting main.
 
 | Job | What it checks |
 |-----|----------------|
-| `terraform-format` | Same as Squad CI |
-| `powershell-syntax` | Same as Squad CI |
+| `terraform-format` | Same as CI |
+| `powershell-syntax` | Same as CI |
 | `secrets-scan` | Regex scan for API keys, tokens, connection strings, private keys |
 
 The secrets scan uses ripgrep with patterns for common secret types and fails the build if unacknowledged secrets are detected.
@@ -121,32 +116,32 @@ The secrets scan uses ripgrep with patterns for common secret types and fails th
 
 GitHub's code scanning for security vulnerabilities. Results are written to Security tab.
 
-### Squad Preview Validation
+### Preview Validation
 
 **File:** `squad-preview.yml`
 **Triggers:** Push to `preview`
 
 Validates the preview branch after promotion. Checks formatting, PowerShell syntax, and verifies no forbidden files leaked through.
 
-### Squad Main Guard
+### Main Guard
 
 **File:** `squad-main-guard.yml`
 **Triggers:** Pull requests and pushes to `main`, `preview`, `insider`
 
 Blocks commits that contain files from internal team directories:
 
-- `.ai-team/`, `.squad/` — team state files
-- `.ai-team-templates/`, `.squad-templates/` — internal templates
+- `.ai-team/` — AI agent state files
+- `.ai-team-templates/` — internal templates
 - `team-docs/` — internal team documentation
 - `docs/proposals/` — design proposals
 
-File deletions are allowed (cleaning up is fine). The Squad Promote workflow handles stripping these paths during the dev → preview merge.
+File deletions are allowed (cleaning up is fine). The Promote workflow handles stripping these paths during the dev → preview merge.
 
 ---
 
 ## Release Pipelines
 
-### Squad Promote
+### Promote
 
 **File:** `squad-promote.yml`
 **Triggers:** Manual dispatch (`workflow_dispatch`)
@@ -157,7 +152,7 @@ This is the primary release mechanism. It runs two sequential jobs:
 **Job 1 — dev-to-preview:**
 1. Ensure `preview` branch exists (creates from main if missing)
 2. Merge `dev` into `preview` with `--no-ff`
-3. Strip forbidden paths (`.squad/`, `team-docs/`, etc.) from the merge
+3. Strip forbidden paths from the merge
 4. Push preview
 
 **Job 2 — preview-to-main (release):**
@@ -172,7 +167,7 @@ This is the primary release mechanism. It runs two sequential jobs:
 
 Use `dry_run: true` to preview what would happen without making changes.
 
-### Squad Release
+### Release
 
 **File:** `squad-release.yml`
 **Triggers:** Manual dispatch (`workflow_dispatch`)
@@ -185,7 +180,7 @@ Manual fallback if the promote workflow's release step fails partway through. Op
 3. Stamp CHANGELOG
 4. Create annotated tag and GitHub Release
 
-### Squad Insider Release
+### Insider Release
 
 **File:** `squad-insider-release.yml`
 **Triggers:** Push to `insider`
@@ -194,72 +189,7 @@ Creates pre-release tags for early testing. Tags follow the pattern `vX.Y.Z-insi
 
 ---
 
-## Issue Management Pipelines
-
-These workflows automate the squad's issue triage and assignment process.
-
-### Squad Heartbeat
-
-**File:** `squad-heartbeat.yml`
-**Triggers:** Every 30 minutes (cron), issue/PR events, manual dispatch
-
-Periodic health check that monitors the issue board:
-- Finds untriaged issues (labeled "squad" but no member assignment)
-- Finds assigned but unstarted issues
-- Finds issues missing triage verdict or release target
-- Auto-triages using keyword-based routing
-- Assigns `@copilot` coding agent to matching issues
-
-### Squad Triage
-
-**File:** `squad-triage.yml`
-**Triggers:** Issue labeled with "squad"
-
-Initial triage when an issue enters the squad pipeline:
-- Reads team roster and routing rules from `.squad/team.md` and `.squad/routing.md`
-- Evaluates issue fit for `@copilot` coding agent based on capability keywords
-- Falls back to keyword-based domain routing (frontend, backend, testing, devops)
-- Defaults to team lead if no routing match
-- Applies `squad:{member}` label and `go:needs-research` verdict
-
-### Squad Issue Assign
-
-**File:** `squad-issue-assign.yml`
-**Triggers:** Issue labeled with any `squad:*` label
-
-Routes work after triage:
-- Extracts member name from label
-- Posts assignment acknowledgment comment
-- Special handling for `squad:copilot` — assigns the copilot-swe-agent bot
-
-### Squad Label Enforce
-
-**File:** `squad-label-enforce.yml`
-**Triggers:** Issue labeled
-
-Enforces mutual exclusivity within label namespaces:
-
-| Namespace | Labels | Rule |
-|-----------|--------|------|
-| `go:` | yes, no, needs-research | Only one allowed |
-| `release:` | v0.4.0–v1.0.0, backlog | Only one allowed |
-| `type:` | feature, bug, spike, docs, chore, epic | Only one allowed |
-| `priority:` | p0, p1, p2 | Only one allowed |
-
-Special behavior:
-- `go:yes` without a release target auto-adds `release:backlog`
-- `go:no` removes all `release:*` labels
-
-### Sync Squad Labels
-
-**File:** `sync-squad-labels.yml`
-**Triggers:** Changes to `.squad/team.md`, manual dispatch
-
-Syncs GitHub labels from the team roster file. Creates `squad:{member}` labels for each team member, along with static labels for go/release/type/priority namespaces.
-
----
-
-## Squad Docs
+## Docs Pipeline
 
 **File:** `squad-docs.yml`
 **Triggers:** PRs (spell check on `*.md` changes), push to `main` (deploy), manual dispatch from `main`
@@ -279,17 +209,17 @@ Runs two jobs:
 
 ```bash
 # Trigger the promote workflow (promotes dev → preview → main, tags, and releases)
-gh workflow run "Squad Promote"
+gh workflow run "squad-promote.yml"
 
 # Or do a dry run first
-gh workflow run "Squad Promote" -f dry_run=true
+gh workflow run "squad-promote.yml" -f dry_run=true
 ```
 
 ### Create a manual release (fallback)
 
 ```bash
-# Only use if Squad Promote failed partway through
-gh workflow run "Squad Release" -f version=v0.2.0
+# Only use if promote failed partway through
+gh workflow run "squad-release.yml" -f version=v0.2.0
 ```
 
 ### Create an insider pre-release
@@ -303,7 +233,7 @@ git push origin dev:insider
 
 ```bash
 # List recent runs for a workflow
-gh run list --workflow="Squad Promote" --limit 5
+gh run list --workflow="squad-promote.yml" --limit 5
 
 # View details of a specific run
 gh run view <run-id>

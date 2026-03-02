@@ -108,12 +108,14 @@ resource "null_resource" "istio_gateway_public" {
   }
 }
 
-# Base Gateway with HTTP listener only — stacks add HTTPS listeners
+# Base Gateway with HTTP listener only — stacks add HTTPS listeners via server-side apply.
+# Uses a stable trigger so it only runs on first create (not every apply),
+# preventing it from overwriting HTTPS listeners added by stack layers.
 resource "null_resource" "gateway" {
   count = var.enable_gateway ? 1 : 0
 
   triggers = {
-    always_run = timestamp()
+    gateway_name = "istio"
   }
 
   provisioner "local-exec" {

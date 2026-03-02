@@ -1,9 +1,15 @@
+# ADR Short Template
+
+Copy this file to `NNNN-title-with-dashes.md` and fill in the sections below. Add the following YAML frontmatter:
+
+```yaml
 ---
-status: {proposed | rejected | accepted | deprecated | superseded by [ADR-NNNN](NNNN-example.md)}
-contact: {person proposing the ADR}
-date: {YYYY-MM-DD when the decision was last updated}
-deciders: {list everyone involved in the decision}
+status: proposed
+contact: (person proposing the ADR)
+date: YYYY-MM-DD
+deciders: (list everyone involved in the decision)
 ---
+```
 
 # {short title of solved problem and solution}
 

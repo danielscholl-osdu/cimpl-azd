@@ -4,7 +4,7 @@
 
 ### Safeguards Blocking Deployments
 
-The two-phase behavioral gate in post-provision handles Gatekeeper reconciliation automatically. If it times out, re-run `azd provision` to retry the gate and platform deployment.
+The post-provision hook handles Gatekeeper reconciliation automatically. If it times out, re-run `azd provision` to retry the gate and foundation deployment.
 
 ### OverconstrainedZonalAllocationRequest
 
@@ -60,11 +60,14 @@ az policy exemption list --resource-group <rg-name> --query "[?contains(name, 'c
 kubectl get nodes
 kubectl get pods -A | grep -v Running
 
+# Check foundation components
+kubectl get pods -n foundation
+
 # Check component status
-kubectl get elasticsearch -n elasticsearch
-kubectl get cluster -n postgresql
-kubectl get pods -n rabbitmq
-kubectl get pods -n platform -l 'minio.service/variant=api'
+kubectl get elasticsearch -n platform
+kubectl get clusters.postgresql.cnpg.io -n platform
+kubectl get pods -n platform -l app=rabbitmq
+kubectl get pods -n platform -l app=minio
 
 # View safeguards violations
 kubectl get constraints -o wide
@@ -75,9 +78,9 @@ kubectl get gateway -A
 kubectl get httproute -A
 
 # Get Elasticsearch password
-kubectl get secret elasticsearch-es-elastic-user -n elasticsearch \
+kubectl get secret elasticsearch-es-elastic-user -n platform \
   -o jsonpath='{.data.elastic}' | base64 -d
 
-# Manual platform deployment
-cd platform && terraform apply
+# Manual stack deployment
+cd software/stack && terraform apply
 ```

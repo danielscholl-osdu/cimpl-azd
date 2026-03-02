@@ -6,6 +6,8 @@ resource "helm_release" "cnpg_operator" {
   version          = "0.27.1"
   namespace        = var.namespace
   create_namespace = false
+  timeout          = 600
+  atomic           = true
 
   set = [
     {
