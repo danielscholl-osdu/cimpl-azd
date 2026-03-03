@@ -34,13 +34,13 @@ Chosen option: "Selective sidecar injection now, with ambient mode as future asp
 
 All platform middleware and OSDU services share two namespaces (see ADR-0017):
 
-- **`platform`** — Istio sidecar injection **disabled**. Contains Elasticsearch, PostgreSQL, Redis, RabbitMQ, MinIO, Keycloak, and Airflow. RabbitMQ and several operators require capabilities that conflict with Istio's `istio-init` container on AKS Automatic, so injection is off for the entire namespace. STRICT mTLS is enforced via `PeerAuthentication` resources for individual workloads where sidecar injection is not needed because they use application-layer TLS (ECK self-signed TLS for Elasticsearch) or network-level isolation.
-- **`osdu`** — Istio sidecar injection **enabled** (`istio-injection: enabled`). OSDU services (Partition, Entitlements, and future services) run with Istio sidecars and STRICT mTLS via `PeerAuthentication`.
+- **`platform`**: Istio sidecar injection **disabled**. Contains Elasticsearch, PostgreSQL, Redis, RabbitMQ, MinIO, Keycloak, and Airflow. RabbitMQ and several operators require capabilities that conflict with Istio's `istio-init` container on AKS Automatic, so injection is off for the entire namespace. STRICT mTLS is enforced via `PeerAuthentication` resources for individual workloads where sidecar injection is not needed because they use application-layer TLS (ECK self-signed TLS for Elasticsearch) or network-level isolation.
+- **`osdu`**: Istio sidecar injection **enabled** (`istio-injection: enabled`). OSDU services (Partition, Entitlements, and future services) run with Istio sidecars and STRICT mTLS via `PeerAuthentication`.
 
 ### Consequences
 
 - Good, because OSDU service namespace has full STRICT mTLS via PeerAuthentication and sidecar injection
 - Good, because Istio ingress gateway works without sidecar injection (uses Gateway API)
-- Good, because forward-compatible — when ambient mode is available, the platform namespace can gain mesh coverage without workload changes
+- Good, because forward-compatible. When ambient mode is available, the platform namespace can gain mesh coverage without workload changes
 - Bad, because the `platform` namespace has no mesh-layer mTLS (relies on application-layer TLS where available)
-- Bad, because namespace-level injection label (`istio-injection: enabled`) is coarse — all-or-nothing per namespace
+- Bad, because namespace-level injection label (`istio-injection: enabled`) is coarse, providing all-or-nothing control per namespace

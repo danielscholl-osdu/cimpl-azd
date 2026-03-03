@@ -19,14 +19,14 @@ This mirrors the same problem encountered with RabbitMQ (ADR-0003): Bitnami depr
 - Bitnami chart templates assume Bitnami image conventions (`/opt/bitnami/`, UID 1001, Bitnami env vars)
 - The official Keycloak image uses different paths (`/opt/keycloak/`), UID 1000/GID 0, and native `KC_*` env vars
 - Overriding the Bitnami chart to work with the official image requires customizing nearly every field, defeating the purpose of a Helm chart
-- AKS Automatic Deployment Safeguards require seccomp profiles, probes, and resource requests on every container — easier to enforce with full manifest control
-- Keycloak is a single StatefulSet + 2 Services + 1 ConfigMap — low complexity, manageable without a chart
+- AKS Automatic Deployment Safeguards require seccomp profiles, probes, and resource requests on every container. Easier to enforce with full manifest control
+- Keycloak is a single StatefulSet + 2 Services + 1 ConfigMap. Low complexity, manageable without a chart
 
 ## Considered Options
 
-- **Bitnami chart with official image** (ADR-0012 approach, superseded) — too many overrides needed
-- **Raw Kubernetes manifests** — StatefulSet, Services, ConfigMap, Secrets managed directly in Terraform
-- **Keycloak Operator** — full operator pattern, higher complexity than needed for single instance
+- **Bitnami chart with official image** (ADR-0012 approach, superseded): too many overrides needed
+- **Raw Kubernetes manifests**: StatefulSet, Services, ConfigMap, Secrets managed directly in Terraform
+- **Keycloak Operator**: full operator pattern, higher complexity than needed for single instance
 
 ## Decision Outcome
 
@@ -37,9 +37,9 @@ Chosen option: "Raw Kubernetes manifests", because Keycloak's deployment footpri
 **Key configuration**:
 
 - Image: `quay.io/keycloak/keycloak:26.5.4` (pinned tag)
-- `args: [start, --import-realm]` — native Keycloak CLI args
-- `runAsUser: 1000`, `runAsGroup: 0` — official image UID/GID
-- `readOnlyRootFilesystem: false` — official image requires writable `/opt/keycloak/data/`
+- `args: [start, --import-realm]`: native Keycloak CLI args
+- `runAsUser: 1000`, `runAsGroup: 0`: official image UID/GID
+- `readOnlyRootFilesystem: false`: official image requires writable `/opt/keycloak/data/`
 - Health endpoints on management port 9000 (`KC_HTTP_MANAGEMENT_PORT`)
 - PostgreSQL backend (`KC_DB=postgres`, JDBC URL to CNPG cluster)
 - OSDU realm auto-imported via ConfigMap mounted at `/opt/keycloak/data/import`
@@ -50,8 +50,8 @@ Chosen option: "Raw Kubernetes manifests", because Keycloak's deployment footpri
 
 ### Consequences
 
-- Good, because full control over every field — AKS safeguards compliance is straightforward
-- Good, because no Bitnami dependency — neither chart nor images
+- Good, because full control over every field. AKS safeguards compliance is straightforward
+- Good, because no Bitnami dependency, neither chart nor images
 - Good, because realm import with `datafier` client and service account email is declared in Terraform (reproducible)
 - Good, because upgrades are a single image tag change with clear diff
 - Bad, because more YAML to maintain compared to a working Helm chart (but less than fighting a broken one)

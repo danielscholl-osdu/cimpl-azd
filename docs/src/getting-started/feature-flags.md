@@ -1,6 +1,6 @@
 # Feature Flags
 
-cimpl-azd uses an **opt-out model** — all middleware and core OSDU services are enabled by default. Set `TF_VAR_enable_<component>=false` to disable any component. This keeps the environment file clean for the default deployment.
+cimpl-azd uses an **opt-out model**: all middleware and core OSDU services are enabled by default. Set `TF_VAR_enable_<component>=false` to disable any component. This keeps the environment file clean for the default deployment.
 
 ```bash
 # Example: disable a component
@@ -50,7 +50,7 @@ All middleware defaults to **enabled**.
 
 ---
 
-## OSDU Service Flags — Core
+## OSDU Service Flags: Core
 
 Core services are all **enabled by default**. They form the minimum viable OSDU platform.
 
@@ -73,7 +73,7 @@ Core services are all **enabled by default**. They form the minimum viable OSDU 
 
 ---
 
-## OSDU Service Flags — Reference Systems
+## OSDU Service Flags: Reference Systems
 
 Reference services are all **disabled by default**.
 
@@ -85,7 +85,7 @@ Reference services are all **disabled by default**.
 
 ---
 
-## OSDU Service Flags — Domain & Orchestration
+## OSDU Service Flags: Domain & Orchestration
 
 Domain and orchestration services are all **disabled by default**.
 

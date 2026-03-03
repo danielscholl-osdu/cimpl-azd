@@ -31,16 +31,16 @@ Chosen option: "Raw Kubernetes manifests with official RabbitMQ image", because 
 
 ### Consequences
 
-- Good, because official `rabbitmq:4.1.0-management-alpine` image — no licensing issues, direct upstream support
-- Good, because full control over every field — AKS safeguards compliance is straightforward
-- Good, because no operator dependency — one less component to maintain and monitor
+- Good, because official `rabbitmq:4.1.0-management-alpine` image. No licensing issues, direct upstream support
+- Good, because full control over every field. AKS safeguards compliance is straightforward
+- Good, because no operator dependency. One less component to maintain and monitor
 - Good, because DNS-based peer discovery (`cluster_formation.peer_discovery_backend = dns`) is simple and reliable
 - Bad, because more YAML to maintain compared to a Helm chart (StatefulSet, Services, ConfigMap, StorageClass, Secret)
 - Bad, because upgrades require manual image tag changes (no `helm upgrade`)
 - Bad, because sets precedent that may lead to more raw manifests as other Bitnami charts hit the same issue
 
 **Key implementation details:**
-- `enableServiceLinks: false` — prevents Kubernetes-injected `RABBITMQ_*` env vars from colliding with RabbitMQ's own environment variables
-- `RABBITMQ_USE_LONGNAME` (singular, not plural) — required for DNS-based clustering with FQDNs
+- `enableServiceLinks: false`: prevents Kubernetes-injected `RABBITMQ_*` env vars from colliding with RabbitMQ's own environment variables
+- `RABBITMQ_USE_LONGNAME` (singular, not plural): required for DNS-based clustering with FQDNs
 - Erlang cookie written via init script (`echo "$RABBITMQ_ERLANG_COOKIE" > .erlang.cookie && chmod 600`) because the official image's entrypoint expects file-based cookie
 - Two services with differentiated selectors (`rabbitmq.service/variant: client` label) for UniqueServiceSelector compliance (see ADR-0010)

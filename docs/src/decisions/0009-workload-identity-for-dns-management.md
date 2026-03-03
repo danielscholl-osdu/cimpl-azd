@@ -14,7 +14,7 @@ ExternalDNS needs to create and manage DNS records in an Azure DNS zone that may
 ## Decision Drivers
 
 - DNS zone may be in a different subscription than the AKS cluster
-- AKS Automatic assigns multiple managed identities — IMDS-based identity is ambiguous
+- AKS Automatic assigns multiple managed identities, making IMDS-based identity ambiguous
 - No static credentials (service principal secrets) should be stored in Kubernetes
 - Must integrate with ExternalDNS's Azure provider configuration
 - Federated credentials provide a zero-secret authentication path
@@ -31,9 +31,9 @@ Chosen option: "Workload Identity with federated credentials", because it provid
 
 ### Consequences
 
-- Good, because zero stored secrets — federated credential exchange happens at token request time
-- Good, because cross-subscription capable — the managed identity can be granted DNS Zone Contributor on any subscription
-- Good, because explicit identity binding — ServiceAccount annotation specifies exactly which client ID to use
-- Good, because AKS Automatic compatible — does not rely on IMDS, which is ambiguous with multiple identities
+- Good, because zero stored secrets. Federated credential exchange happens at token request time
+- Good, because cross-subscription capable. The managed identity can be granted DNS Zone Contributor on any subscription
+- Good, because explicit identity binding. ServiceAccount annotation specifies exactly which client ID to use
+- Good, because AKS Automatic compatible. Does not rely on IMDS, which is ambiguous with multiple identities
 - Bad, because requires infrastructure setup outside the platform layer (managed identity, federated credential, role assignment)
 - Bad, because requires `type = "string"` on the Helm `set` for `azure.workload.identity/use: "true"` pod label to prevent Helm from interpreting it as a boolean

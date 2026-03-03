@@ -107,7 +107,7 @@ RabbitMQ cluster for async messaging between OSDU services.
 
 **Internal endpoint:** `rabbitmq.platform.svc.cluster.local:5672`
 
-No Helm chart is used — see [ADR-0003](../decisions/0003-raw-manifests-for-rabbitmq.md) for the rationale.
+No Helm chart is used. See [ADR-0003](../decisions/0003-raw-manifests-for-rabbitmq.md) for the rationale.
 
 ---
 
