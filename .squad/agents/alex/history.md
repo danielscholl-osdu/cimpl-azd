@@ -33,7 +33,7 @@
 
 ### Keycloak integration
 - Datafier secret: `OPENID_PROVIDER_CLIENT_ID`, `OPENID_PROVIDER_CLIENT_SECRET`, `OPENID_PROVIDER_URL`
-- Service account email `datafier@service.local` required in JWT for entitlements auth
+- Service account email `[email scrubbed]` required in JWT for entitlements auth
 - Keycloak at `keycloak.platform.svc.cluster.local:8080`
 
 ### PostgreSQL integration
