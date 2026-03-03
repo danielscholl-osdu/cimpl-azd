@@ -116,13 +116,13 @@ azd up
 
 ### What Happens During `azd up`
 
-**Phase 1 — Pre-Provision** (`scripts/pre-provision.ps1`):
+**Phase 1: Pre-Provision** (`scripts/pre-provision.ps1`):
 
 - Validates all required tools are installed
 - Auto-generates credential variables if not set (PostgreSQL password, Redis password, etc.)
 - Generates an ingress prefix if `CIMPL_INGRESS_PREFIX` is not set
 
-**Phase 2 — Provision** (`infra/`):
+**Phase 2: Provision** (`infra/`):
 
 - Creates the Azure Resource Group (`rg-cimpl-<env>`)
 - Deploys AKS Automatic cluster with Istio service mesh
@@ -130,7 +130,7 @@ azd up
 - Sets up Azure RBAC and policy exemptions
 - **Duration:** ~10-15 minutes
 
-**Phase 3 — Post-Provision** (`scripts/post-provision.ps1`):
+**Phase 3: Post-Provision** (`scripts/post-provision.ps1`):
 
 - Configures kubeconfig for kubectl access
 - Configures AKS deployment safeguards (Warning mode)
@@ -145,7 +145,7 @@ azd up
     - Shared StorageClasses (ES, PG, Redis, RabbitMQ)
 - **Duration:** ~5-10 minutes
 
-**Phase 4 — Pre-Deploy** (`scripts/pre-deploy.ps1`):
+**Phase 4: Pre-Deploy** (`scripts/pre-deploy.ps1`):
 
 - Verifies cluster access
 - Runs `terraform apply` for `software/stack/`
@@ -294,6 +294,6 @@ azd down --force --purge
 
 ## What's Next
 
-- **[Troubleshooting](../operations/troubleshooting.md)** — common deployment issues and how to resolve them
-- **[Pipelines](../operations/pipelines.md)** — understand the CI/CD release flow
-- **[Feature Flags](../getting-started/feature-flags.md)** — enable additional OSDU services
+- **[Troubleshooting](../operations/troubleshooting.md)**: common deployment issues and how to resolve them
+- **[Pipelines](../operations/pipelines.md)**: the CI/CD release flow
+- **[Feature Flags](../getting-started/feature-flags.md)**: enable additional OSDU services

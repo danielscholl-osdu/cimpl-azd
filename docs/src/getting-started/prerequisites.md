@@ -24,9 +24,9 @@ You need the following Azure permissions:
 - **DNS Zone**: DNS Zone Contributor (if using ExternalDNS with a cross-subscription zone)
 
 !!! warning "Common failure modes"
-    - **Wrong subscription selected** — `az account show` returns a different subscription than intended. Fix with `az account set --subscription`.
-    - **Missing AKS RBAC Cluster Admin** — `kubectl` commands fail with 403. Grant the role on the AKS resource.
-    - **DNS Zone Contributor not granted** — ExternalDNS cannot create DNS records in a cross-subscription zone. Grant the role on the DNS zone resource.
+    - **Wrong subscription selected**: `az account show` returns a different subscription than intended. Fix with `az account set --subscription`.
+    - **Missing AKS RBAC Cluster Admin**: `kubectl` commands fail with 403. Grant the role on the AKS resource.
+    - **DNS Zone Contributor not granted**: ExternalDNS cannot create DNS records in a cross-subscription zone. Grant the role on the DNS zone resource.
 
 ## Verify Installation
 
@@ -42,4 +42,4 @@ kustomize version
 pwsh --version
 ```
 
-**Next step:** [Quick Start](quickstart.md) — deploy your first environment in ~30 minutes.
+**Next step:** [Quick Start](quickstart.md). Deploy your first environment in ~30 minutes.

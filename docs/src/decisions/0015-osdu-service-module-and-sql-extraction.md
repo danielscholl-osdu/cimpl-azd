@@ -18,13 +18,13 @@ Separately, `k8s_cnpg_databases.tf` (504 lines) embeds 340 lines of SQL DDL as a
 - 22 planned OSDU services would mean ~2,000 lines of duplicated Helm values
 - SQL DDL is sourced from ROSA and needs periodic comparison; inline embedding defeats standard diff workflows
 - Terraform `moved` blocks enable zero-downtime state migration without destroy/recreate
-- Module calls retain per-service `depends_on`, `extra_set`, and `preconditions` — no loss of control
+- Module calls retain per-service `depends_on`, `extra_set`, and `preconditions`. No loss of control
 
 ## Considered Options
 
-- **Reusable module with explicit calls** — `modules/osdu-service/` encapsulates common values; each service gets a named module call in `osdu.tf`
-- **`for_each` over a service map** — single module block iterating over a map of service configs
-- **Keep copy-paste pattern** — continue duplicating helm_release resources per service
+- **Reusable module with explicit calls**: `modules/osdu-service/` encapsulates common values; each service gets a named module call in `osdu.tf`
+- **`for_each` over a service map**: single module block iterating over a map of service configs
+- **Keep copy-paste pattern**: continue duplicating helm_release resources per service
 
 ## Decision Outcome
 

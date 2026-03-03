@@ -31,7 +31,7 @@ Resources are organized into namespaces with optional stack-id suffix for multi-
 | Namespace | Contents | Istio Injection |
 |-----------|----------|-----------------|
 | `foundation` | Cluster-wide operators (cert-manager, ECK, CNPG), Gateway CRDs, StorageClasses | N/A (operators) |
-| `platform` | Middleware instances — Elasticsearch, PostgreSQL, Redis, RabbitMQ, MinIO, Keycloak, Airflow | Enabled (STRICT mTLS, with pod-level opt-outs) |
+| `platform` | Middleware instances: Elasticsearch, PostgreSQL, Redis, RabbitMQ, MinIO, Keycloak, Airflow | Enabled (STRICT mTLS, with pod-level opt-outs) |
 | `osdu` | OSDU common resources + all OSDU services | Enabled (STRICT mTLS) |
 
 For named stacks (e.g., `STACK_NAME=blue`), namespaces become `platform-blue` and `osdu-blue`. The `foundation` namespace is shared across all stacks.
@@ -67,7 +67,7 @@ The platform node pool uses Karpenter (NAP) with dynamic SKU selection to avoid 
 
 ## Project Structure
 
-The repository layout mirrors the deployment layers — each directory maps to a Terraform state with its own lifecycle.
+The repository layout mirrors the deployment layers. Each directory maps to a Terraform state with its own lifecycle.
 
 ```
 cimpl-azd/
@@ -119,7 +119,7 @@ cimpl-azd/
 
 ## What's Next
 
-- **[Infrastructure Design](infrastructure.md)** — use this to understand AKS Automatic configuration, node pools, networking, and Azure RBAC setup
-- **[Platform Components](platform.md)** — use this to understand how middleware (Elasticsearch, PostgreSQL, Redis, etc.) is deployed and configured
-- **[Software Patterns](software.md)** — use this to understand Terraform module patterns, Helm + Kustomize postrender, and feature flags
-- **[Request & Event Flow](data-flow.md)** — use this to trace how traffic routes through the gateway, service mesh, and async messaging
+- **[Infrastructure Design](infrastructure.md)**: AKS Automatic configuration, node pools, networking, and Azure RBAC setup
+- **[Platform Components](platform.md)**: how middleware (Elasticsearch, PostgreSQL, Redis, etc.) is deployed and configured
+- **[Software Patterns](software.md)**: Terraform module patterns, Helm + Kustomize postrender, and feature flags
+- **[Request & Event Flow](data-flow.md)**: how traffic routes through the gateway, service mesh, and async messaging

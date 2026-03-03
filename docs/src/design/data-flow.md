@@ -1,6 +1,6 @@
 # Request & Event Flow
 
-This page documents how traffic flows through the cimpl-azd platform — from external requests entering the cluster to internal service-to-service communication and async event processing.
+This page documents how traffic flows through the cimpl-azd platform, from external requests entering the cluster to internal service-to-service communication and async event processing.
 
 ![Request Event Flow](../images/request-event-flow.png)
 
@@ -79,7 +79,7 @@ OSDU services in the `osdu` namespace reach middleware in the `platform` namespa
 | Keycloak | `keycloak.platform.svc.cluster.local` | 8080 |
 
 !!! note
-    Both the `platform` and `osdu` namespaces have Istio sidecar injection enabled with STRICT mTLS. Cross-namespace calls between them stay within the mesh. A few pods in the `platform` namespace (e.g., RabbitMQ) opt out of sidecar injection at the pod level due to `NET_ADMIN` requirements — calls to these pods use application-layer security (password auth).
+    Both the `platform` and `osdu` namespaces have Istio sidecar injection enabled with STRICT mTLS. Cross-namespace calls between them stay within the mesh. A few pods in the `platform` namespace (e.g., RabbitMQ) opt out of sidecar injection at the pod level due to `NET_ADMIN` requirements; calls to these pods use application-layer security (password auth).
 
 ---
 
@@ -149,9 +149,9 @@ Service → JDBC → postgresql-rw.platform:5432/<service_db>
 
 The OSM (Object Storage Model) pattern uses:
 
-- `id text` — unique record identifier
-- `pk bigint IDENTITY` — auto-incrementing primary key
-- `data jsonb NOT NULL` — JSON document storage
+- `id text`: unique record identifier
+- `pk bigint IDENTITY`: auto-incrementing primary key
+- `data jsonb NOT NULL`: JSON document storage
 - GIN index on `data` column for JSON path queries
 
 ### Elasticsearch (Search & Analytics)

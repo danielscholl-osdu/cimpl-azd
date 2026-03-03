@@ -9,7 +9,7 @@ deciders: cimpl-azd team
 
 ## Context and Problem Statement
 
-AKS Automatic enforces the `K8sAzureV1UniqueServiceSelector` Gatekeeper policy, which rejects Services whose label selectors are a subset of another Service's selectors in the same namespace. This is common in Kubernetes — headless Services for StatefulSet peer discovery and ClusterIP Services for client access often share the same `app` label selector. Components affected include Elasticsearch (4 services created by ECK), RabbitMQ (headless + client), and MinIO.
+AKS Automatic enforces the `K8sAzureV1UniqueServiceSelector` Gatekeeper policy, which rejects Services whose label selectors are a subset of another Service's selectors in the same namespace. This is common in Kubernetes: headless Services for StatefulSet peer discovery and ClusterIP Services for client access often share the same `app` label selector. Components affected include Elasticsearch (4 services created by ECK), RabbitMQ (headless + client), and MinIO.
 
 ## Decision Drivers
 
@@ -31,14 +31,14 @@ Chosen option: "Add differentiating labels to pod templates and service selector
 
 ### Consequences
 
-- Good, because no policy exemption needed — works within AKS Automatic's constraints
-- Good, because composable — same pattern applies to ES, RabbitMQ, MinIO, and future components
-- Good, because uses standard Kubernetes label selection — no custom admission webhooks or mutations
+- Good, because no policy exemption needed. Works within AKS Automatic's constraints
+- Good, because composable. Same pattern applies to ES, RabbitMQ, MinIO, and future components
+- Good, because uses standard Kubernetes label selection. No custom admission webhooks or mutations
 - Bad, because each component needs component-specific labels (e.g., `elasticsearch.service/http`, `rabbitmq.service/variant`) that must be kept in sync between pod templates and service selectors
 - Bad, because ECK's service selector override syntax is non-obvious (`spec.http.service.spec.selector`) and must be documented for future maintainers
 - Bad, because adding a new Elasticsearch nodeSet without the differentiating labels will silently break service routing
 
 **Implementation by component:**
-- **Elasticsearch**: ECK service selector overrides — `elasticsearch.service/http: "true"` and `elasticsearch.service/transport: "true"` labels on pods, referenced in `spec.http.service.spec.selector` and `spec.transport.service.spec.selector`
+- **Elasticsearch**: ECK service selector overrides. `elasticsearch.service/http: "true"` and `elasticsearch.service/transport: "true"` labels on pods, referenced in `spec.http.service.spec.selector` and `spec.transport.service.spec.selector`
 - **RabbitMQ**: `rabbitmq.service/variant: client` label on pods, used only in the ClusterIP service selector (headless service uses base `app.kubernetes.io/name` selector with `clusterIP: None`)
 - **MinIO**: Handled via Helm postrender patches where needed

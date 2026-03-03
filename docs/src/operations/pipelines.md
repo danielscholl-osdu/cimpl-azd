@@ -133,10 +133,10 @@ Validates the preview branch after promotion. Checks formatting, PowerShell synt
 
 Blocks commits that contain files from internal team directories:
 
-- `.ai-team/` — AI agent state files
-- `.ai-team-templates/` — internal templates
-- `team-docs/` — internal team documentation
-- `docs/proposals/` — design proposals
+- `.ai-team/`: AI agent state files
+- `.ai-team-templates/`: internal templates
+- `team-docs/`: internal team documentation
+- `docs/proposals/`: design proposals
 
 File deletions are allowed (cleaning up is fine). The Promote workflow handles stripping these paths during the dev → preview merge.
 
@@ -158,21 +158,21 @@ Three paths to a release:
 
 This is the primary release mechanism. It runs two sequential jobs:
 
-**Job 1 — dev-to-preview:**
+**Job 1: dev-to-preview:**
 1. Ensure `preview` branch exists (creates from main if missing)
 2. Merge `dev` into `preview` with `--no-ff`
 3. Strip forbidden paths from the merge
 4. Push preview
 
-**Job 2 — preview-to-main (release):**
-1. **Version calculation** — reads latest git tag (or defaults to `v0.0.0`), scans commit messages:
+**Job 2: preview-to-main (release):**
+1. **Version calculation**: reads latest git tag (or defaults to `v0.0.0`), scans commit messages:
    - `feat` commits → bump minor version
    - `BREAKING CHANGE` or `!:` commits → bump major version
    - Otherwise → bump patch version
-2. **Validation** — checks CHANGELOG has `[Unreleased]` or matching version section, no forbidden files, terraform format
-3. **Merge** — merge preview into main with `--no-ff`
-4. **CHANGELOG stamp** — replace `[Unreleased]` header with version and date, re-add empty `[Unreleased]` section
-5. **Tag and release** — create annotated git tag, push tag, create GitHub Release with changelog notes
+2. **Validation**: checks CHANGELOG has `[Unreleased]` or matching version section, no forbidden files, terraform format
+3. **Merge**: merge preview into main with `--no-ff`
+4. **CHANGELOG stamp**: replace `[Unreleased]` header with version and date, re-add empty `[Unreleased]` section
+5. **Tag and release**: create annotated git tag, push tag, create GitHub Release with changelog notes
 
 Use `dry_run: true` to preview what would happen without making changes.
 

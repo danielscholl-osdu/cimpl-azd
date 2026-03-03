@@ -8,11 +8,11 @@ For more information [see](https://adr.github.io/)
 
 New to this project? These five ADRs cover the foundational design decisions:
 
-1. **[ADR-0001](0001-use-aks-automatic-as-deployment-target.md)** — Why AKS Automatic is the deployment target
-2. **[ADR-0002](0002-helm-postrender-kustomize-for-safeguards.md)** — How Helm postrender + Kustomize achieves safeguards compliance
-3. **[ADR-0005](0005-two-phase-deployment-gate.md)** — Why deployments use a two-phase gate for Azure Policy convergence
-4. **[ADR-0017](0017-consolidated-namespace-architecture.md)** — How namespaces isolate foundation, platform, and service workloads
-5. **[ADR-0009](0009-workload-identity-for-dns-management.md)** — How Workload Identity enables cross-subscription DNS management
+1. **[ADR-0001](0001-use-aks-automatic-as-deployment-target.md)**: Why AKS Automatic is the deployment target
+2. **[ADR-0002](0002-helm-postrender-kustomize-for-safeguards.md)**: How Helm postrender + Kustomize achieves safeguards compliance
+3. **[ADR-0005](0005-two-phase-deployment-gate.md)**: Why deployments use a two-phase gate for Azure Policy convergence
+4. **[ADR-0017](0017-consolidated-namespace-architecture.md)**: How namespaces isolate foundation, platform, and service workloads
+5. **[ADR-0009](0009-workload-identity-for-dns-management.md)**: How Workload Identity enables cross-subscription DNS management
 
 ## How to Create an ADR
 

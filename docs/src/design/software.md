@@ -14,7 +14,7 @@ The deployment uses three separate Terraform states (see [ADR-0006](../decisions
 | Layer 2 | `software/foundation/` | Cluster-wide singletons: cert-manager, ECK operator, CNPG operator, ExternalDNS, Gateway CRDs, StorageClasses |
 | Layer 3 | `software/stack/` | Middleware instances + OSDU services |
 
-Layer 3 combines middleware and OSDU services in a single state because they share the same deployment lifecycle — OSDU services have explicit `depends_on` relationships with middleware modules. The foundation layer was extracted to hold cluster-wide singletons that are independent of any individual stack.
+Layer 3 combines middleware and OSDU services in a single state because they share the same deployment lifecycle. OSDU services have explicit `depends_on` relationships with middleware modules. The foundation layer was extracted to hold cluster-wide singletons that are independent of any individual stack.
 
 ### Reusable OSDU Service Module
 
@@ -114,10 +114,10 @@ All middleware and OSDU services are controlled by `enable_*` boolean variables 
 
 ### Design Principles
 
-- **Opt-out model** — Everything defaults to enabled. Set `TF_VAR_enable_<component>=false` to disable.
-- **Count guards** — Each module uses `count = var.enable_<component> ? 1 : 0`
-- **Dependency chains** — Disabling a dependency automatically skips dependent services
-- **Clean environment** — No need to set flags for the default deployment
+- **Opt-out model**: Everything defaults to enabled. Set `TF_VAR_enable_<component>=false` to disable.
+- **Count guards**: Each module uses `count = var.enable_<component> ? 1 : 0`
+- **Dependency chains**: Disabling a dependency automatically skips dependent services
+- **Clean environment**: No need to set flags for the default deployment
 
 ### Example
 
@@ -161,7 +161,7 @@ PostgreSQL databases are bootstrapped using a CNPG `initdb` script that creates 
 
 Each database has a service-specific schema with the standard OSM table pattern: `(id text, pk bigint IDENTITY, data jsonb NOT NULL)` + GIN index.
 
-A shared `osdu` user owns all OSDU databases — a simplification from ROSA's per-service user model.
+A shared `osdu` user owns all OSDU databases, a simplification from ROSA's per-service user model.
 
 ---
 

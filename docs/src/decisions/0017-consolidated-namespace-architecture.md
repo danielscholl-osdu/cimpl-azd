@@ -27,9 +27,9 @@ The original architecture used separate namespaces per component (`elasticsearch
 
 ## Considered Options
 
-- **Per-component namespaces** — `elasticsearch`, `postgresql`, `redis`, `rabbitmq`, `airflow`, `keycloak`, `osdu`
-- **Two consolidated namespaces** — `platform` (all middleware) + `osdu` (all OSDU services)
-- **Single namespace** — everything in one namespace
+- **Per-component namespaces**: `elasticsearch`, `postgresql`, `redis`, `rabbitmq`, `airflow`, `keycloak`, `osdu`
+- **Two consolidated namespaces**: `platform` (all middleware) + `osdu` (all OSDU services)
+- **Single namespace**: everything in one namespace
 
 ## Decision Outcome
 
@@ -72,5 +72,5 @@ Lightweight workloads (MinIO, Airflow task pods) run on the auto-provisioned def
 - Good, because only 2 namespaces to configure for Gatekeeper exclusions
 - Good, because Istio injection boundary matches the namespace boundary exactly
 - Good, because OSDU services discover middleware via simple FQDN locals
-- Neutral, because all middleware shares a failure domain — a bad deploy of one component can affect namespace-level resources (but Terraform guards this)
+- Neutral, because all middleware shares a failure domain. A bad deploy of one component can affect namespace-level resources (but Terraform guards this)
 - Bad, because namespace-level RBAC is coarser (a user with access to `platform` can see all middleware secrets)

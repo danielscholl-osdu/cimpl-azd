@@ -1,10 +1,10 @@
 # cimpl-azd
 
-**Azure Developer CLI deployment for CIMPL on AKS Automatic** — a transparent, fully automated platform for running [OSDU](https://osduforum.org/) / [CIMPL](https://community.opengroup.org/osdu/platform) services on Azure Kubernetes Service.
+**Azure Developer CLI deployment for CIMPL on AKS Automatic**: a transparent, fully automated platform for running [OSDU](https://osduforum.org/) / [CIMPL](https://community.opengroup.org/osdu/platform) services on Azure Kubernetes Service.
 
-**CIMPL** (Community Implementation) is the OSDU Forum's cloud-agnostic reference implementation, created as part of the [Venus initiative](https://community.opengroup.org/osdu/platform). Venus replaced the earlier Mercury model — where each cloud provider maintained a separate codebase — with a single, unified implementation that can be deployed on bare metal, Kubernetes, or any cloud platform. CIMPL is that unified codebase; **cimpl-azd** deploys it on Azure.
+**CIMPL** (Community Implementation) is the OSDU Forum's cloud-agnostic reference implementation, created as part of the [Venus initiative](https://community.opengroup.org/osdu/platform). Venus replaced the earlier Mercury model, where each cloud provider maintained a separate codebase, with a single, unified implementation that can be deployed on bare metal, Kubernetes, or any cloud platform. CIMPL is that unified codebase; **cimpl-azd** deploys it on Azure.
 
-cimpl-azd packages the entire CIMPL stack — infrastructure, middleware, and OSDU services — into a single `azd up` command. Every resource is defined in Terraform, every decision is documented in an ADR, and every component can be toggled with a feature flag.
+cimpl-azd packages the entire CIMPL stack (infrastructure, middleware, and OSDU services) into a single `azd up` command. Every resource is defined in Terraform, every decision is documented in an ADR, and every component can be toggled with a feature flag.
 
 ![Platform Overview](images/platform-overview.png)
 
@@ -18,13 +18,13 @@ cimpl-azd packages the entire CIMPL stack — infrastructure, middleware, and OS
 
     ---
 
-    100% open-source Terraform — no hidden scripts, no black-box modules. Every resource is auditable and every design decision is captured in [18 ADRs](decisions/index.md).
+    100% open-source Terraform with no hidden scripts, no black-box modules. Every resource is auditable and every design decision is captured in [18 ADRs](decisions/index.md).
 
 -   :material-robot-outline:{ .lg .middle } **Automated**
 
     ---
 
-    Single `azd up` deploys a complete OSDU platform — AKS cluster, foundation operators, middleware stack, and 20+ microservices — with a safeguards gate ensuring policy compliance.
+    Single `azd up` deploys a complete OSDU platform (AKS cluster, foundation operators, middleware stack, and 20+ microservices) with a safeguards gate ensuring policy compliance.
 
 -   :material-tune-variant:{ .lg .middle } **Configurable**
 
@@ -68,7 +68,7 @@ cimpl-azd packages the entire CIMPL stack — infrastructure, middleware, and OS
 
     ---
 
-    Evaluate the architectural patterns — three-layer deployment, Karpenter node management, AKS safeguards compliance, and Istio service mesh — for your own Azure workloads.
+    Evaluate the architectural patterns (three-layer deployment, Karpenter node management, AKS safeguards compliance, and Istio service mesh) for your own Azure workloads.
 
 </div>
 
@@ -81,13 +81,13 @@ cimpl-azd packages the entire CIMPL stack — infrastructure, middleware, and OS
 | **Three-layer deployment** | Separate Terraform states for infrastructure, foundation operators, and software stack |
 | **AKS Automatic** | Managed Kubernetes with auto-scaling, auto-upgrade, and built-in Istio service mesh |
 | **30+ feature flags** | Enable/disable any middleware or OSDU service independently |
-| **AKS Deployment Safeguards** | Gatekeeper policies enforced at admission — probes, resource limits, security context |
+| **AKS Deployment Safeguards** | Gatekeeper policies enforced at admission: probes, resource limits, security context |
 | **Kustomize postrender** | Automatic compliance patching for all Helm charts via shared postrender framework |
 | **Karpenter (NAP)** | Dynamic node provisioning for stateful workloads across availability zones |
 | **CloudNativePG** | 3-instance HA PostgreSQL with synchronous replication and per-service databases |
 | **Istio mTLS** | STRICT mutual TLS across both platform and OSDU namespaces |
 | **Gateway API** | Modern ingress routing with automatic TLS via cert-manager and Let's Encrypt |
-| **Multi-environment** | Each `azd env` creates isolated Azure resources — support parallel dev/test/staging |
+| **Multi-environment** | Each `azd env` creates isolated Azure resources, supporting parallel dev/test/staging |
 
 ---
 

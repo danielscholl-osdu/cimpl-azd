@@ -9,7 +9,7 @@ deciders: Daniel Scholl
 
 ## Context and Problem Statement
 
-The `software/stack/` Terraform root module grew from a handful of middleware components to 9 middleware modules and 20 OSDU service modules. Several files became overloaded: `main.tf` (257 lines mixing locals, platform resources, and 9 module calls), `osdu.tf` (538 lines with 20 service modules), `variables.tf` (392 lines, 40 variables), and `modules/osdu-common/main.tf` (679 lines with 36 Kubernetes resources). Additionally, the `charts/` directory name was misleading — only 4 of 9 modules actually used `helm_release`.
+The `software/stack/` Terraform root module grew from a handful of middleware components to 9 middleware modules and 20 OSDU service modules. Several files became overloaded: `main.tf` (257 lines mixing locals, platform resources, and 9 module calls), `osdu.tf` (538 lines with 20 service modules), `variables.tf` (392 lines, 40 variables), and `modules/osdu-common/main.tf` (679 lines with 36 Kubernetes resources). Additionally, the `charts/` directory name was misleading, as only 4 of 9 modules actually used `helm_release`.
 
 ## Decision Drivers
 
@@ -21,9 +21,9 @@ The `software/stack/` Terraform root module grew from a handful of middleware co
 
 ## Considered Options
 
-- **Thematic file split with OSDU taxonomy alignment** — rename `charts/` to `modules/`, split large files by concern, group OSDU services per the official OSDU platform taxonomy
-- **Keep current layout** — add comments and a README to explain the existing structure
-- **Module-per-service** — create a separate `.tf` file per OSDU service (20+ files)
+- **Thematic file split with OSDU taxonomy alignment**: rename `charts/` to `modules/`, split large files by concern, group OSDU services per the official OSDU platform taxonomy
+- **Keep current layout**: add comments and a README to explain the existing structure
+- **Module-per-service**: create a separate `.tf` file per OSDU service (20+ files)
 
 ## Decision Outcome
 
@@ -54,6 +54,6 @@ Services are grouped per the [OSDU platform taxonomy](https://community.opengrou
 - Good, because `modules/` accurately describes a directory containing Terraform modules of varying types
 - Good, because OSDU service grouping matches the official taxonomy, making it intuitive for OSDU developers
 - Good, because `variables-credentials.tf` isolates all `sensitive = true` variables, making security review easier
-- Good, because zero Terraform state changes — verified by `terraform plan`
+- Good, because zero Terraform state changes, verified by `terraform plan`
 - Neutral, because more files to navigate (17 root `.tf` files vs 7 before), mitigated by a `README.md` navigation table
 - Bad, because any documentation or tooling referencing old paths (`charts/`, `main.tf`, `osdu.tf`, `variables.tf`) must be updated
