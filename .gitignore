@@ -31,6 +31,10 @@ agent-registry.json
 # Claude Code
 .claude/
 
+# Squad runtime state
+.squad/.ralph-state.json
+.squad/sessions/
+
 # MkDocs
 docs/site/
 docs/.venv
