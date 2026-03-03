@@ -9,7 +9,7 @@ resource "random_password" "airflow_webserver_secret" {
   special = false
 }
 
-resource "kubernetes_secret" "airflow_secrets" {
+resource "kubernetes_secret_v1" "airflow_secrets" {
   metadata {
     name      = "airflow-secrets"
     namespace = var.namespace
@@ -233,5 +233,11 @@ resource "helm_release" "airflow" {
   YAML
   ]
 
-  depends_on = [kubernetes_secret.airflow_secrets]
+  depends_on = [kubernetes_secret_v1.airflow_secrets]
+}
+
+# State migration: renamed deprecated types to _v1 equivalents
+moved {
+  from = kubernetes_secret.airflow_secrets
+  to   = kubernetes_secret_v1.airflow_secrets
 }

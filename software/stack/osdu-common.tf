@@ -2,7 +2,7 @@
 
 module "osdu_common" {
   source = "./modules/osdu-common"
-  count  = var.enable_common ? 1 : 0
+  count  = local.deploy_common ? 1 : 0
 
   namespace                       = local.osdu_namespace
   platform_namespace              = local.platform_namespace
@@ -22,18 +22,18 @@ module "osdu_common" {
   rabbitmq_password               = var.rabbitmq_password
   elastic_password                = var.enable_elasticsearch && var.enable_elastic_bootstrap ? module.elastic[0].elastic_password : ""
   elastic_host                    = "elasticsearch-es-http.${local.platform_namespace}.svc.cluster.local"
-  enable_search                   = var.enable_search
-  enable_indexer                  = var.enable_indexer
-  enable_partition                = var.enable_partition
-  enable_entitlements             = var.enable_entitlements
-  enable_legal                    = var.enable_legal
-  enable_schema                   = var.enable_schema
-  enable_storage                  = var.enable_storage
-  enable_file                     = var.enable_file
-  enable_dataset                  = var.enable_dataset
-  enable_register                 = var.enable_register
-  enable_notification             = var.enable_notification
-  enable_policy                   = var.enable_policy
-  enable_workflow                 = var.enable_workflow
-  enable_wellbore                 = var.enable_wellbore
+  enable_search                   = local.deploy_search
+  enable_indexer                  = local.deploy_indexer
+  enable_partition                = local.deploy_partition
+  enable_entitlements             = local.deploy_entitlements
+  enable_legal                    = local.deploy_legal
+  enable_schema                   = local.deploy_schema
+  enable_storage                  = local.deploy_storage
+  enable_file                     = local.deploy_file
+  enable_dataset                  = local.deploy_dataset
+  enable_register                 = local.deploy_register
+  enable_notification             = local.deploy_notification
+  enable_policy                   = local.deploy_policy
+  enable_workflow                 = local.deploy_workflow
+  enable_wellbore                 = local.deploy_wellbore
 }

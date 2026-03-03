@@ -11,7 +11,7 @@ locals {
   keycloak_admin_password = var.keycloak_admin_password != "" ? var.keycloak_admin_password : random_password.keycloak_admin[0].result
 }
 
-resource "kubernetes_secret" "keycloak_admin" {
+resource "kubernetes_secret_v1" "keycloak_admin" {
   metadata {
     name      = "keycloak-admin-credentials"
     namespace = var.namespace
@@ -22,7 +22,7 @@ resource "kubernetes_secret" "keycloak_admin" {
   }
 }
 
-resource "kubernetes_secret" "keycloak_db_copy" {
+resource "kubernetes_secret_v1" "keycloak_db_copy" {
   metadata {
     name      = "keycloak-db-credentials-copy"
     namespace = var.namespace
@@ -34,7 +34,7 @@ resource "kubernetes_secret" "keycloak_db_copy" {
   }
 }
 
-resource "kubernetes_config_map" "keycloak_realm" {
+resource "kubernetes_config_map_v1" "keycloak_realm" {
   metadata {
     name      = "keycloak-realm"
     namespace = var.namespace
@@ -283,9 +283,9 @@ resource "kubectl_manifest" "keycloak_statefulset" {
   YAML
 
   depends_on = [
-    kubernetes_secret.keycloak_admin,
-    kubernetes_secret.keycloak_db_copy,
-    kubernetes_config_map.keycloak_realm,
+    kubernetes_secret_v1.keycloak_admin,
+    kubernetes_secret_v1.keycloak_db_copy,
+    kubernetes_config_map_v1.keycloak_realm,
     kubectl_manifest.keycloak_headless_service
   ]
 }
@@ -356,4 +356,20 @@ resource "null_resource" "keycloak_jwks_wait" {
   }
 
   depends_on = [kubectl_manifest.keycloak_statefulset]
+}
+
+# State migration: renamed deprecated types to _v1 equivalents
+moved {
+  from = kubernetes_secret.keycloak_admin
+  to   = kubernetes_secret_v1.keycloak_admin
+}
+
+moved {
+  from = kubernetes_secret.keycloak_db_copy
+  to   = kubernetes_secret_v1.keycloak_db_copy
+}
+
+moved {
+  from = kubernetes_config_map.keycloak_realm
+  to   = kubernetes_config_map_v1.keycloak_realm
 }

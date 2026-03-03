@@ -6,7 +6,7 @@
 # namespace (empty selectors collide), so we use a single kubectl_manifest
 # containing all aliases as separate documents.
 
-resource "kubernetes_service" "rabbitmq_alias" {
+resource "kubernetes_service_v1" "rabbitmq_alias" {
   metadata {
     name      = "rabbitmq"
     namespace = var.namespace
@@ -17,7 +17,13 @@ resource "kubernetes_service" "rabbitmq_alias" {
     external_name = "rabbitmq.${var.platform_namespace}.svc.cluster.local"
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
+}
+
+# State migration: renamed deprecated types to _v1 equivalents
+moved {
+  from = kubernetes_service.rabbitmq_alias
+  to   = kubernetes_service_v1.rabbitmq_alias
 }
 
 resource "kubectl_manifest" "osdu_peer_authentication" {
@@ -32,5 +38,5 @@ resource "kubectl_manifest" "osdu_peer_authentication" {
         mode: STRICT
   YAML
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }

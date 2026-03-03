@@ -94,7 +94,10 @@ cimpl-azd/
 │       ├── osdu-services-core.tf    # Core OSDU services (13 + Workflow)
 │       ├── osdu-services-reference.tf  # Reference systems (3)
 │       ├── osdu-services-domain.tf  # Domain services (3)
-│       ├── variables-flags.tf       # enable_* feature flags
+│       ├── variables-flags-platform.tf       # Platform middleware flags
+│       ├── variables-flags-osdu-core.tf     # OSDU core service flags + group switch
+│       ├── variables-flags-osdu-reference.tf # OSDU reference service flags + group switch
+│       ├── variables-flags-osdu-domain.tf   # OSDU domain service flags + group switch
 │       ├── variables-infra.tf       # Infrastructure variables
 │       ├── variables-credentials.tf # Sensitive credentials
 │       ├── variables-osdu.tf        # OSDU config

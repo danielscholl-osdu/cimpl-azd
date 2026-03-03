@@ -20,7 +20,7 @@ locals {
 }
 
 # Shared namespace for foundation components
-resource "kubernetes_namespace" "platform" {
+resource "kubernetes_namespace_v1" "platform" {
   metadata {
     name = "foundation"
   }
@@ -35,7 +35,7 @@ module "cert_manager" {
   source = "./charts/cert-manager"
   count  = var.enable_cert_manager ? 1 : 0
 
-  namespace                  = kubernetes_namespace.platform.metadata[0].name
+  namespace                  = kubernetes_namespace_v1.platform.metadata[0].name
   acme_email                 = var.acme_email
   use_letsencrypt_production = var.use_letsencrypt_production
 }
@@ -44,21 +44,21 @@ module "cnpg" {
   source = "./charts/cnpg"
   count  = var.enable_postgresql ? 1 : 0
 
-  namespace = kubernetes_namespace.platform.metadata[0].name
+  namespace = kubernetes_namespace_v1.platform.metadata[0].name
 }
 
 module "elastic" {
   source = "./charts/elastic"
   count  = var.enable_elasticsearch ? 1 : 0
 
-  namespace = kubernetes_namespace.platform.metadata[0].name
+  namespace = kubernetes_namespace_v1.platform.metadata[0].name
 }
 
 module "external_dns" {
   source = "./charts/external-dns"
   count  = var.enable_external_dns ? 1 : 0
 
-  namespace                = kubernetes_namespace.platform.metadata[0].name
+  namespace                = kubernetes_namespace_v1.platform.metadata[0].name
   cluster_name             = var.cluster_name
   dns_zone_name            = var.dns_zone_name
   dns_zone_resource_group  = var.dns_zone_resource_group
@@ -228,4 +228,10 @@ resource "kubectl_manifest" "rabbitmq_storage_class" {
     volumeBindingMode: WaitForFirstConsumer
     allowVolumeExpansion: true
   YAML
+}
+
+# State migration: renamed deprecated types to _v1 equivalents
+moved {
+  from = kubernetes_namespace.platform
+  to   = kubernetes_namespace_v1.platform
 }

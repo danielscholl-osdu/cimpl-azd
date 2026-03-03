@@ -115,14 +115,18 @@ All middleware and OSDU services are controlled by `enable_*` boolean variables 
 ### Design Principles
 
 - **Opt-out model**: Everything defaults to enabled. Set `TF_VAR_enable_<component>=false` to disable.
-- **Count guards**: Each module uses `count = var.enable_<component> ? 1 : 0`
-- **Dependency chains**: Disabling a dependency automatically skips dependent services
-- **Clean environment**: No need to set flags for the default deployment
+- **Two-level control**: Group flags (`enable_osdu_core_services`, `enable_osdu_reference_services`, `enable_osdu_domain_services`) disable entire capability blocks. Individual flags (`enable_partition`, `enable_search`, etc.) provide fine-grained opt-out within a group. See [ADR-0019](../decisions/0019-group-feature-flags-with-cascading-locals.md).
+- **Cascading locals**: `locals.tf` computes `local.deploy_*` for each service as `group_flag && individual_flag`. Resource files reference `local.deploy_*` instead of `var.enable_*` for OSDU services. Platform middleware flags remain direct variable references.
+- **Dependency cascade**: Reference and domain groups require core. Disabling core automatically disables downstream groups.
+- **Clean environment**: No need to set flags for the default deployment.
 
 ### Example
 
-```hcl
-# Disable Elasticsearch and all dependent services
+```bash
+# Deploy platform middleware only — no OSDU services
+azd env set TF_VAR_enable_osdu_core_services false
+
+# Or disable specific middleware and let dependency chains propagate
 azd env set TF_VAR_enable_elasticsearch false
 # Search and Indexer won't deploy since they depend on Elasticsearch
 ```

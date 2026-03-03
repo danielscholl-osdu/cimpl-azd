@@ -1,6 +1,6 @@
 # Redis cache cluster
 
-resource "kubernetes_secret" "redis_password" {
+resource "kubernetes_secret_v1" "redis_password" {
   metadata {
     name      = "redis-credentials"
     namespace = var.namespace
@@ -152,5 +152,11 @@ resource "helm_release" "redis" {
   YAML
   ]
 
-  depends_on = [kubernetes_secret.redis_password]
+  depends_on = [kubernetes_secret_v1.redis_password]
+}
+
+# State migration: renamed deprecated types to _v1 equivalents
+moved {
+  from = kubernetes_secret.redis_password
+  to   = kubernetes_secret_v1.redis_password
 }

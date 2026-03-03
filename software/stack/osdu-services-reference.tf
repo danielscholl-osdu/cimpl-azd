@@ -5,11 +5,11 @@ module "crs_conversion" {
   source = "./modules/osdu-service"
 
   service_name              = "crs-conversion"
-  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/crs-conversion-service/cimpl-helm"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/reference/crs-conversion-service/cimpl-helm"
   chart                     = "core-plus-crs-conversion-deploy"
   chart_version             = lookup(var.osdu_service_versions, "crs_conversion", var.osdu_chart_version)
-  enable                    = var.enable_crs_conversion
-  enable_common             = var.enable_common
+  enable                    = local.deploy_crs_conversion
+  enable_common             = local.deploy_common
   namespace                 = local.osdu_namespace
   osdu_domain               = local.osdu_domain
   cimpl_tenant              = var.cimpl_tenant
@@ -18,8 +18,8 @@ module "crs_conversion" {
   kustomize_path            = path.module
 
   preconditions = [
-    { condition = !var.enable_crs_conversion || var.enable_entitlements, error_message = "CRS Conversion requires Entitlements." },
-    { condition = !var.enable_crs_conversion || var.enable_partition, error_message = "CRS Conversion requires Partition." },
+    { condition = !local.deploy_crs_conversion || local.deploy_entitlements, error_message = "CRS Conversion requires Entitlements." },
+    { condition = !local.deploy_crs_conversion || local.deploy_partition, error_message = "CRS Conversion requires Partition." },
   ]
 
   depends_on = [module.osdu_common, module.entitlements]
@@ -29,11 +29,11 @@ module "crs_catalog" {
   source = "./modules/osdu-service"
 
   service_name              = "crs-catalog"
-  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/crs-catalog-service/cimpl-helm"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/reference/crs-catalog-service/cimpl-helm"
   chart                     = "core-plus-crs-catalog-deploy"
   chart_version             = lookup(var.osdu_service_versions, "crs_catalog", var.osdu_chart_version)
-  enable                    = var.enable_crs_catalog
-  enable_common             = var.enable_common
+  enable                    = local.deploy_crs_catalog
+  enable_common             = local.deploy_common
   namespace                 = local.osdu_namespace
   osdu_domain               = local.osdu_domain
   cimpl_tenant              = var.cimpl_tenant
@@ -42,8 +42,8 @@ module "crs_catalog" {
   kustomize_path            = path.module
 
   preconditions = [
-    { condition = !var.enable_crs_catalog || var.enable_entitlements, error_message = "CRS Catalog requires Entitlements." },
-    { condition = !var.enable_crs_catalog || var.enable_partition, error_message = "CRS Catalog requires Partition." },
+    { condition = !local.deploy_crs_catalog || local.deploy_entitlements, error_message = "CRS Catalog requires Entitlements." },
+    { condition = !local.deploy_crs_catalog || local.deploy_partition, error_message = "CRS Catalog requires Partition." },
   ]
 
   depends_on = [module.osdu_common, module.entitlements]
@@ -53,11 +53,11 @@ module "unit" {
   source = "./modules/osdu-service"
 
   service_name              = "unit"
-  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/unit/cimpl-helm"
+  repository                = "oci://community.opengroup.org:5555/osdu/platform/system/reference/unit-service/cimpl-helm"
   chart                     = "core-plus-unit-deploy"
   chart_version             = lookup(var.osdu_service_versions, "unit", var.osdu_chart_version)
-  enable                    = var.enable_unit
-  enable_common             = var.enable_common
+  enable                    = local.deploy_unit
+  enable_common             = local.deploy_common
   namespace                 = local.osdu_namespace
   osdu_domain               = local.osdu_domain
   cimpl_tenant              = var.cimpl_tenant
@@ -66,8 +66,8 @@ module "unit" {
   kustomize_path            = path.module
 
   preconditions = [
-    { condition = !var.enable_unit || var.enable_entitlements, error_message = "Unit requires Entitlements." },
-    { condition = !var.enable_unit || var.enable_partition, error_message = "Unit requires Partition." },
+    { condition = !local.deploy_unit || local.deploy_entitlements, error_message = "Unit requires Entitlements." },
+    { condition = !local.deploy_unit || local.deploy_partition, error_message = "Unit requires Partition." },
   ]
 
   depends_on = [module.osdu_common, module.entitlements]

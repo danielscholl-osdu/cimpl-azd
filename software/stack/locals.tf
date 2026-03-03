@@ -28,4 +28,37 @@ locals {
   osdu_domain          = var.ingress_prefix != "" && var.dns_zone_name != "" ? "${var.ingress_prefix}.${var.dns_zone_name}" : ""
 
   active_cluster_issuer = var.use_letsencrypt_production ? "letsencrypt-prod" : "letsencrypt-staging"
+
+  # ── OSDU service deploy flags ─────────────────────────────────────────
+  # Group cascade: reference and domain require core
+  _osdu_core      = var.enable_osdu_core_services
+  _osdu_reference = local._osdu_core && var.enable_osdu_reference_services
+  _osdu_domain    = local._osdu_core && var.enable_osdu_domain_services
+
+  # Core services (group + individual)
+  deploy_common       = local._osdu_core && var.enable_common
+  deploy_partition    = local._osdu_core && var.enable_partition
+  deploy_entitlements = local._osdu_core && var.enable_entitlements
+  deploy_legal        = local._osdu_core && var.enable_legal
+  deploy_schema       = local._osdu_core && var.enable_schema
+  deploy_storage      = local._osdu_core && var.enable_storage
+  deploy_search       = local._osdu_core && var.enable_search
+  deploy_indexer      = local._osdu_core && var.enable_indexer
+  deploy_file         = local._osdu_core && var.enable_file
+  deploy_notification = local._osdu_core && var.enable_notification
+  deploy_dataset      = local._osdu_core && var.enable_dataset
+  deploy_register     = local._osdu_core && var.enable_register
+  deploy_policy       = local._osdu_core && var.enable_policy
+  deploy_secret       = local._osdu_core && var.enable_secret
+  deploy_workflow     = local._osdu_core && var.enable_workflow
+
+  # Reference services (group + individual)
+  deploy_unit           = local._osdu_reference && var.enable_unit
+  deploy_crs_conversion = local._osdu_reference && var.enable_crs_conversion
+  deploy_crs_catalog    = local._osdu_reference && var.enable_crs_catalog
+
+  # Domain services (group + individual)
+  deploy_wellbore        = local._osdu_domain && var.enable_wellbore
+  deploy_wellbore_worker = local._osdu_domain && var.enable_wellbore_worker
+  deploy_eds_dms         = local._osdu_domain && var.enable_eds_dms
 }
