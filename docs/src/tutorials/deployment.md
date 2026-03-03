@@ -17,6 +17,15 @@ kustomize version
 pwsh --version      # PowerShell Core v7+
 ```
 
+!!! tip "Before you begin"
+    Confirm the following before starting Step 1:
+
+    - [ ] Authenticated to Azure (`az login` and `azd auth login`)
+    - [ ] Correct subscription selected (`az account show`)
+    - [ ] Environment created (`azd env new <name>`)
+    - [ ] Required variables set (contact email, DNS zone, ACME email)
+    - [ ] DNS zone exists and you have DNS Zone Contributor access
+
 ## Step 1: Authenticate
 
 ```bash
@@ -227,6 +236,29 @@ kubectl get httproute -A
 kubectl get certificates -n platform
 ```
 
+### API Smoke Test
+
+Verify the platform is responding through the gateway:
+
+```bash
+# Get the ingress prefix and DNS zone from your environment
+INGRESS_PREFIX=$(azd env get-value CIMPL_INGRESS_PREFIX)
+DNS_ZONE=$(azd env get-value TF_VAR_dns_zone_name)
+
+# Test the partition service health endpoint
+curl -s "https://${INGRESS_PREFIX}.${DNS_ZONE}/api/partition/v1/_ah/readiness_check"
+```
+
+!!! success "Deployment complete"
+    Your deployment is successful when all of the following are true:
+
+    - All foundation pods in `Running` state (`kubectl get pods -n foundation`)
+    - Elasticsearch shows `green` health, PostgreSQL shows `Cluster in healthy state`
+    - Redis, RabbitMQ, MinIO, and Keycloak pods are `Running`
+    - OSDU service pods are `Running` (core) or `Completed` (bootstrap)
+    - Gateway has an external IP assigned
+    - API smoke test returns a successful response
+
 ### Access Kibana
 
 1. Get the external IP from the Istio gateway
@@ -259,3 +291,9 @@ azd down --force --purge
 
 !!! warning
     `azd down` deletes the resource group and all resources within it. PVCs with `Retain` reclaim policy will be lost when the cluster is deleted.
+
+## What's Next
+
+- **[Troubleshooting](../operations/troubleshooting.md)** — common deployment issues and how to resolve them
+- **[Pipelines](../operations/pipelines.md)** — understand the CI/CD release flow
+- **[Feature Flags](../getting-started/feature-flags.md)** — enable additional OSDU services

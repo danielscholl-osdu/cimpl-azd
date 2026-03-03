@@ -2,6 +2,8 @@
 
 cimpl-azd deploys a complete OSDU platform on Azure Kubernetes Service (AKS) Automatic using a layered Terraform architecture. This page provides the high-level view; dedicated sub-pages cover each layer in detail.
 
+Use this page to understand how the repository is organized, how it maps to the deployment lifecycle, and why each layer exists.
+
 ## Deployment Layers
 
 ![Deployment Layers](../images/deployment-layers.png)
@@ -18,6 +20,9 @@ The deployment is split into three Terraform states, each with its own lifecycle
 
 !!! note "Conceptual vs Terraform layers"
     Conceptually the architecture has three tiers: **infrastructure**, **platform middleware**, and **OSDU services**. In practice, middleware and OSDU services share a single Terraform state (`software/stack/`) because OSDU services have explicit `depends_on` relationships with middleware modules. The foundation layer was extracted to hold cluster-wide singletons that are independent of any individual stack.
+
+!!! note "Evolution"
+    The original design used two Terraform states (see [ADR-0006](../decisions/0006-two-layer-terraform-state.md)); the foundation layer was extracted later to improve lifecycle isolation.
 
 ## Namespace Architecture
 
@@ -61,6 +66,8 @@ azd up
 The platform node pool uses Karpenter (NAP) with dynamic SKU selection to avoid `OverconstrainedZonalAllocationRequest` failures (see [ADR-0004](../decisions/0004-karpenter-for-stateful-workloads.md)).
 
 ## Project Structure
+
+The repository layout mirrors the deployment layers — each directory maps to a Terraform state with its own lifecycle.
 
 ```
 cimpl-azd/
@@ -112,7 +119,7 @@ cimpl-azd/
 
 ## What's Next
 
-- **[Infrastructure Design](infrastructure.md)** — AKS Automatic, node pools, networking, and Azure RBAC
-- **[Platform Components](platform.md)** — Middleware stack: Elasticsearch, PostgreSQL, Redis, and more
-- **[Software Patterns](software.md)** — Terraform modules, Helm + Kustomize, feature flags
-- **[Request & Event Flow](data-flow.md)** — Traffic routing, service mesh, and async messaging
+- **[Infrastructure Design](infrastructure.md)** — use this to understand AKS Automatic configuration, node pools, networking, and Azure RBAC setup
+- **[Platform Components](platform.md)** — use this to understand how middleware (Elasticsearch, PostgreSQL, Redis, etc.) is deployed and configured
+- **[Software Patterns](software.md)** — use this to understand Terraform module patterns, Helm + Kustomize postrender, and feature flags
+- **[Request & Event Flow](data-flow.md)** — use this to trace how traffic routes through the gateway, service mesh, and async messaging

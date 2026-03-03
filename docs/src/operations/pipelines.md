@@ -1,6 +1,6 @@
 # CI/CD Pipelines
 
-This document describes every GitHub Actions workflow in this repository, how they connect, and the end-to-end release flow.
+This page is for contributors and maintainers who need to understand the CI/CD pipeline structure, what blocks a merge, and how releases work.
 
 ---
 
@@ -94,6 +94,9 @@ Runs on every PR and push to protected branches. This is the primary gate for co
 | `terraform-format` | `terraform fmt -check` on `infra/` and `software/` |
 | `powershell-syntax` | PSParser tokenization of all `scripts/*.ps1` files |
 
+!!! info "What blocks a merge"
+    **CI** and **PR Checks** are required status checks that block merge. CodeQL findings appear in the Security tab but do not block PRs.
+
 ### PR Checks
 
 **File:** `pr-checks.yml`
@@ -140,6 +143,12 @@ File deletions are allowed (cleaning up is fine). The Promote workflow handles s
 ---
 
 ## Release Pipelines
+
+Three paths to a release:
+
+- **Normal:** Run the [Promote](#promote) workflow to move `dev → preview → main` with automatic versioning and tagging.
+- **Fallback:** Run the [Release](#release) workflow manually if the Promote workflow fails partway through.
+- **Insider:** Push to the `insider` branch for a pre-release tagged `vX.Y.Z-insider.SHA`.
 
 ### Promote
 
@@ -193,6 +202,8 @@ Creates pre-release tags for early testing. Tags follow the pattern `vX.Y.Z-insi
 
 **File:** `squad-docs.yml`
 **Triggers:** PRs (spell check on `*.md` changes), push to `main` (deploy), manual dispatch from `main`
+
+Published to GitHub Pages at the repository's Pages URL on every push to `main`.
 
 Runs two jobs:
 

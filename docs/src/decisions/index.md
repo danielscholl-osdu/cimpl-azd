@@ -4,6 +4,16 @@ An Architectural Decision (AD) is a justified software design choice that addres
 
 For more information [see](https://adr.github.io/)
 
+## Start Here
+
+New to this project? These five ADRs cover the foundational design decisions:
+
+1. **[ADR-0001](0001-use-aks-automatic-as-deployment-target.md)** — Why AKS Automatic is the deployment target
+2. **[ADR-0002](0002-helm-postrender-kustomize-for-safeguards.md)** — How Helm postrender + Kustomize achieves safeguards compliance
+3. **[ADR-0005](0005-two-phase-deployment-gate.md)** — Why deployments use a two-phase gate for Azure Policy convergence
+4. **[ADR-0017](0017-consolidated-namespace-architecture.md)** — How namespaces isolate foundation, platform, and service workloads
+5. **[ADR-0009](0009-workload-identity-for-dns-management.md)** — How Workload Identity enables cross-subscription DNS management
+
 ## How to Create an ADR
 
 1. Copy `adr-template.md` to `NNNN-title-with-dashes.md`, where NNNN indicates the next number in sequence.
@@ -40,23 +50,43 @@ Create ADRs for:
 
 ## ADR Index
 
+!!! info "Superseded ADRs"
+    Superseded ADRs are kept for historical context. The replacement ADR is linked in the Status column.
+
+### Deployment Architecture
+
 | ADR | Title | Status |
 |-----|-------|--------|
 | [0001](0001-use-aks-automatic-as-deployment-target.md) | Use AKS Automatic as deployment target | Accepted |
-| [0002](0002-helm-postrender-kustomize-for-safeguards.md) | Helm postrender with kustomize for safeguards compliance | Accepted |
-| [0003](0003-raw-manifests-for-rabbitmq.md) | Raw Kubernetes manifests for RabbitMQ | Accepted |
-| [0004](0004-karpenter-for-stateful-workloads.md) | Karpenter NodePools for stateful workload scheduling | Accepted |
 | [0005](0005-two-phase-deployment-gate.md) | Two-phase deployment gate for Azure Policy convergence | Accepted |
 | [0006](0006-two-layer-terraform-state.md) | Two-layer Terraform state for cluster and platform | Accepted |
+| [0017](0017-consolidated-namespace-architecture.md) | Consolidated namespace architecture | Accepted |
+| [0018](0018-stack-file-layout-reorganization.md) | Stack file layout reorganization | Accepted |
+
+### Runtime & Security
+
+| ADR | Title | Status |
+|-----|-------|--------|
 | [0007](0007-eck-self-signed-tls-for-elasticsearch.md) | ECK self-signed TLS for Elasticsearch | Accepted |
 | [0008](0008-selective-istio-sidecar-injection.md) | Selective Istio sidecar injection due to AKS constraints | Accepted |
 | [0009](0009-workload-identity-for-dns-management.md) | Workload Identity for cross-subscription DNS management | Accepted |
 | [0010](0010-unique-service-selector-label-pattern.md) | UniqueServiceSelector compliance via label differentiation | Accepted |
+
+### Platform Components
+
+| ADR | Title | Status |
+|-----|-------|--------|
+| [0002](0002-helm-postrender-kustomize-for-safeguards.md) | Helm postrender with kustomize for safeguards compliance | Accepted |
+| [0003](0003-raw-manifests-for-rabbitmq.md) | Raw Kubernetes manifests for RabbitMQ | Accepted |
+| [0004](0004-karpenter-for-stateful-workloads.md) | Karpenter NodePools for stateful workload scheduling | Accepted |
 | [0011](0011-airflow-kubernetes-executor-with-nap.md) | KubernetesExecutor for Airflow with NAP task pod scaling | Accepted |
-| [0012](0012-bitnami-chart-with-official-keycloak-image.md) | Bitnami Helm chart with official Keycloak image | Superseded by 0016 |
+| [0012](0012-bitnami-chart-with-official-keycloak-image.md) | Bitnami Helm chart with official Keycloak image | Superseded by [0016](0016-raw-manifests-for-keycloak.md) |
+| [0016](0016-raw-manifests-for-keycloak.md) | Raw Kubernetes manifests for Keycloak | Accepted |
+
+### Service Patterns
+
+| ADR | Title | Status |
+|-----|-------|--------|
 | [0013](0013-chart-default-images-over-explicit-overrides.md) | Use CIMPL chart default images over explicit overrides | Accepted |
 | [0014](0014-rosa-alignment-and-deliberate-differences.md) | ROSA alignment with deliberate AKS differences | Accepted |
 | [0015](0015-osdu-service-module-and-sql-extraction.md) | Reusable OSDU service module and SQL template extraction | Accepted |
-| [0016](0016-raw-manifests-for-keycloak.md) | Raw Kubernetes manifests for Keycloak | Accepted |
-| [0017](0017-consolidated-namespace-architecture.md) | Consolidated namespace architecture | Accepted |
-| [0018](0018-stack-file-layout-reorganization.md) | Stack file layout reorganization | Accepted |
