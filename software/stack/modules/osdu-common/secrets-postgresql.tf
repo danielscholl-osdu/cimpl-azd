@@ -1,6 +1,6 @@
 # Per-service PostgreSQL connection secrets
 
-resource "kubernetes_secret" "partition_postgres" {
+resource "kubernetes_secret_v1" "partition_postgres" {
   count = var.enable_partition ? 1 : 0
 
   metadata {
@@ -15,10 +15,10 @@ resource "kubernetes_secret" "partition_postgres" {
     PARTITION_POSTGRES_DB_NAME = "partition"
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "entitlements_postgres" {
+resource "kubernetes_secret_v1" "entitlements_postgres" {
   count = var.enable_entitlements ? 1 : 0
 
   metadata {
@@ -36,10 +36,10 @@ resource "kubernetes_secret" "entitlements_postgres" {
     SPRING_DATASOURCE_PASSWORD = var.postgresql_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "legal_postgres" {
+resource "kubernetes_secret_v1" "legal_postgres" {
   count = var.enable_legal ? 1 : 0
 
   metadata {
@@ -56,10 +56,10 @@ resource "kubernetes_secret" "legal_postgres" {
     POSTGRES_DB_PASSWORD_SYSTEM    = var.postgresql_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "schema_postgres" {
+resource "kubernetes_secret_v1" "schema_postgres" {
   count = var.enable_schema ? 1 : 0
 
   metadata {
@@ -76,10 +76,10 @@ resource "kubernetes_secret" "schema_postgres" {
     POSTGRES_DB_PASSWORD_SYSTEM    = var.postgresql_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "storage_postgres" {
+resource "kubernetes_secret_v1" "storage_postgres" {
   count = var.enable_storage ? 1 : 0
 
   metadata {
@@ -96,10 +96,10 @@ resource "kubernetes_secret" "storage_postgres" {
     POSTGRES_DB_PASSWORD_SYSTEM    = var.postgresql_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "file_postgres" {
+resource "kubernetes_secret_v1" "file_postgres" {
   count = var.enable_file ? 1 : 0
 
   metadata {
@@ -116,10 +116,10 @@ resource "kubernetes_secret" "file_postgres" {
     POSTGRES_DB_PASSWORD_SYSTEM    = var.postgresql_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "dataset_postgres" {
+resource "kubernetes_secret_v1" "dataset_postgres" {
   count = var.enable_dataset ? 1 : 0
 
   metadata {
@@ -136,10 +136,10 @@ resource "kubernetes_secret" "dataset_postgres" {
     POSTGRES_DB_PASSWORD_SYSTEM    = var.postgresql_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "register_postgres" {
+resource "kubernetes_secret_v1" "register_postgres" {
   count = var.enable_register ? 1 : 0
 
   metadata {
@@ -156,10 +156,10 @@ resource "kubernetes_secret" "register_postgres" {
     POSTGRES_DB_PASSWORD_SYSTEM    = var.postgresql_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "workflow_postgres" {
+resource "kubernetes_secret_v1" "workflow_postgres" {
   count = var.enable_workflow ? 1 : 0
 
   metadata {
@@ -176,10 +176,10 @@ resource "kubernetes_secret" "workflow_postgres" {
     POSTGRES_DB_PASSWORD_SYSTEM    = var.postgresql_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "wellbore_postgres" {
+resource "kubernetes_secret_v1" "wellbore_postgres" {
   count = var.enable_wellbore ? 1 : 0
 
   metadata {
@@ -194,5 +194,56 @@ resource "kubernetes_secret" "wellbore_postgres" {
     WELLBORE_POSTGRES_DB_NAME = "well_delivery"
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
+}
+
+# State migration: renamed deprecated types to _v1 equivalents
+moved {
+  from = kubernetes_secret.partition_postgres
+  to   = kubernetes_secret_v1.partition_postgres
+}
+
+moved {
+  from = kubernetes_secret.entitlements_postgres
+  to   = kubernetes_secret_v1.entitlements_postgres
+}
+
+moved {
+  from = kubernetes_secret.legal_postgres
+  to   = kubernetes_secret_v1.legal_postgres
+}
+
+moved {
+  from = kubernetes_secret.schema_postgres
+  to   = kubernetes_secret_v1.schema_postgres
+}
+
+moved {
+  from = kubernetes_secret.storage_postgres
+  to   = kubernetes_secret_v1.storage_postgres
+}
+
+moved {
+  from = kubernetes_secret.file_postgres
+  to   = kubernetes_secret_v1.file_postgres
+}
+
+moved {
+  from = kubernetes_secret.dataset_postgres
+  to   = kubernetes_secret_v1.dataset_postgres
+}
+
+moved {
+  from = kubernetes_secret.register_postgres
+  to   = kubernetes_secret_v1.register_postgres
+}
+
+moved {
+  from = kubernetes_secret.workflow_postgres
+  to   = kubernetes_secret_v1.workflow_postgres
+}
+
+moved {
+  from = kubernetes_secret.wellbore_postgres
+  to   = kubernetes_secret_v1.wellbore_postgres
 }

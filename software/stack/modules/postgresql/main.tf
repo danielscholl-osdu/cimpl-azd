@@ -1,6 +1,6 @@
 # CNPG PostgreSQL Cluster, credential secrets, and database bootstrap
 
-resource "kubernetes_secret" "postgresql_superuser" {
+resource "kubernetes_secret_v1" "postgresql_superuser" {
   metadata {
     name      = "postgresql-superuser-credentials"
     namespace = var.namespace
@@ -12,7 +12,7 @@ resource "kubernetes_secret" "postgresql_superuser" {
   }
 }
 
-resource "kubernetes_secret" "postgresql_user" {
+resource "kubernetes_secret_v1" "postgresql_user" {
   metadata {
     name      = "postgresql-user-credentials"
     namespace = var.namespace
@@ -90,14 +90,14 @@ resource "kubectl_manifest" "postgresql_cluster" {
   YAML
 
   depends_on = [
-    kubernetes_secret.postgresql_superuser,
-    kubernetes_secret.postgresql_user
+    kubernetes_secret_v1.postgresql_superuser,
+    kubernetes_secret_v1.postgresql_user
   ]
 }
 
 # Database credential secrets
 
-resource "kubernetes_secret" "keycloak_db" {
+resource "kubernetes_secret_v1" "keycloak_db" {
   metadata {
     name      = "keycloak-db-credentials"
     namespace = var.namespace
@@ -109,7 +109,7 @@ resource "kubernetes_secret" "keycloak_db" {
   }
 }
 
-resource "kubernetes_secret" "airflow_db" {
+resource "kubernetes_secret_v1" "airflow_db" {
   metadata {
     name      = "airflow-db-credentials"
     namespace = var.namespace
@@ -252,8 +252,29 @@ resource "kubectl_manifest" "cnpg_database_bootstrap" {
 
   depends_on = [
     kubectl_manifest.postgresql_cluster,
-    kubernetes_secret.postgresql_superuser,
-    kubernetes_secret.keycloak_db,
-    kubernetes_secret.airflow_db
+    kubernetes_secret_v1.postgresql_superuser,
+    kubernetes_secret_v1.keycloak_db,
+    kubernetes_secret_v1.airflow_db
   ]
+}
+
+# State migration: renamed deprecated types to _v1 equivalents
+moved {
+  from = kubernetes_secret.postgresql_superuser
+  to   = kubernetes_secret_v1.postgresql_superuser
+}
+
+moved {
+  from = kubernetes_secret.postgresql_user
+  to   = kubernetes_secret_v1.postgresql_user
+}
+
+moved {
+  from = kubernetes_secret.keycloak_db
+  to   = kubernetes_secret_v1.keycloak_db
+}
+
+moved {
+  from = kubernetes_secret.airflow_db
+  to   = kubernetes_secret_v1.airflow_db
 }

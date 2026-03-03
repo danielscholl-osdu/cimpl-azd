@@ -1,7 +1,7 @@
 # RabbitMQ messaging broker
 # Note: Istio sidecar disabled for RabbitMQ (requires NET_ADMIN/NET_RAW, blocked by AKS Automatic)
 
-resource "kubernetes_secret" "rabbitmq_credentials" {
+resource "kubernetes_secret_v1" "rabbitmq_credentials" {
   metadata {
     name      = "rabbitmq-credentials"
     namespace = var.namespace
@@ -425,9 +425,15 @@ resource "kubectl_manifest" "rabbitmq_statefulset" {
   YAML
 
   depends_on = [
-    kubernetes_secret.rabbitmq_credentials,
+    kubernetes_secret_v1.rabbitmq_credentials,
     kubectl_manifest.rabbitmq_config,
     kubectl_manifest.rabbitmq_headless_service,
     kubectl_manifest.rabbitmq_client_service
   ]
+}
+
+# State migration: renamed deprecated types to _v1 equivalents
+moved {
+  from = kubernetes_secret.rabbitmq_credentials
+  to   = kubernetes_secret_v1.rabbitmq_credentials
 }

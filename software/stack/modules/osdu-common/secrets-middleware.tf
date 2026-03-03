@@ -2,7 +2,7 @@
 
 # ─── Redis secrets ───────────────────────────────────────────────────────────
 
-resource "kubernetes_secret" "entitlements_redis" {
+resource "kubernetes_secret_v1" "entitlements_redis" {
   count = var.enable_entitlements ? 1 : 0
 
   metadata {
@@ -14,10 +14,10 @@ resource "kubernetes_secret" "entitlements_redis" {
     REDIS_PASSWORD = var.redis_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "storage_redis" {
+resource "kubernetes_secret_v1" "storage_redis" {
   count = var.enable_storage ? 1 : 0
 
   metadata {
@@ -29,10 +29,10 @@ resource "kubernetes_secret" "storage_redis" {
     REDIS_PASSWORD = var.redis_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "notification_redis" {
+resource "kubernetes_secret_v1" "notification_redis" {
   count = var.enable_notification ? 1 : 0
 
   metadata {
@@ -44,10 +44,10 @@ resource "kubernetes_secret" "notification_redis" {
     REDIS_PASSWORD = var.redis_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "search_redis" {
+resource "kubernetes_secret_v1" "search_redis" {
   count = var.enable_search ? 1 : 0
 
   metadata {
@@ -59,10 +59,10 @@ resource "kubernetes_secret" "search_redis" {
     REDIS_PASSWORD = var.redis_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "indexer_redis" {
+resource "kubernetes_secret_v1" "indexer_redis" {
   count = var.enable_indexer ? 1 : 0
 
   metadata {
@@ -74,10 +74,10 @@ resource "kubernetes_secret" "indexer_redis" {
     REDIS_PASSWORD = var.redis_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "dataset_redis" {
+resource "kubernetes_secret_v1" "dataset_redis" {
   count = var.enable_dataset ? 1 : 0
 
   metadata {
@@ -89,12 +89,12 @@ resource "kubernetes_secret" "dataset_redis" {
     REDIS_PASSWORD = var.redis_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
 # ─── MinIO secrets ───────────────────────────────────────────────────────────
 
-resource "kubernetes_secret" "legal_minio" {
+resource "kubernetes_secret_v1" "legal_minio" {
   count = var.enable_legal ? 1 : 0
 
   metadata {
@@ -108,10 +108,10 @@ resource "kubernetes_secret" "legal_minio" {
     AWS_REGION       = "us-east-1"
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "schema_minio" {
+resource "kubernetes_secret_v1" "schema_minio" {
   count = var.enable_schema ? 1 : 0
 
   metadata {
@@ -125,10 +125,10 @@ resource "kubernetes_secret" "schema_minio" {
     AWS_REGION       = "us-east-1"
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "policy_minio" {
+resource "kubernetes_secret_v1" "policy_minio" {
   count = var.enable_policy ? 1 : 0
 
   metadata {
@@ -142,10 +142,10 @@ resource "kubernetes_secret" "policy_minio" {
     AWS_REGION       = "us-east-1"
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "minio_bootstrap" {
+resource "kubernetes_secret_v1" "minio_bootstrap" {
   count = var.enable_policy ? 1 : 0
 
   metadata {
@@ -161,10 +161,10 @@ resource "kubernetes_secret" "minio_bootstrap" {
     AWS_REGION       = "us-east-1"
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "storage_minio" {
+resource "kubernetes_secret_v1" "storage_minio" {
   count = var.enable_storage ? 1 : 0
 
   metadata {
@@ -178,10 +178,10 @@ resource "kubernetes_secret" "storage_minio" {
     AWS_REGION       = "us-east-1"
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "file_minio" {
+resource "kubernetes_secret_v1" "file_minio" {
   count = var.enable_file ? 1 : 0
 
   metadata {
@@ -195,13 +195,31 @@ resource "kubernetes_secret" "file_minio" {
     AWS_REGION       = "us-east-1"
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-# ─── RabbitMQ secret (shared by legal, schema, register, notification) ───────
+# ─── Airflow secret (workflow service → Airflow REST API) ────────────────────
 
-resource "kubernetes_secret" "rabbitmq" {
-  count = (var.enable_legal || var.enable_schema || var.enable_register || var.enable_notification) ? 1 : 0
+resource "kubernetes_secret_v1" "workflow_airflow" {
+  count = var.enable_workflow ? 1 : 0
+
+  metadata {
+    name      = "workflow-airflow-secret"
+    namespace = var.namespace
+  }
+
+  data = {
+    AIRFLOW_USERNAME = "admin"
+    AIRFLOW_PASSWORD = "admin"
+  }
+
+  depends_on = [kubernetes_namespace_v1.osdu]
+}
+
+# ─── RabbitMQ secret (shared by legal, schema, register, notification, workflow) ─
+
+resource "kubernetes_secret_v1" "rabbitmq" {
+  count = (var.enable_legal || var.enable_schema || var.enable_register || var.enable_notification || var.enable_workflow) ? 1 : 0
 
   metadata {
     name      = "rabbitmq-secret"
@@ -213,12 +231,12 @@ resource "kubernetes_secret" "rabbitmq" {
     RABBITMQ_ADMIN_PASSWORD = var.rabbitmq_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
 # ─── Elasticsearch secrets ───────────────────────────────────────────────────
 
-resource "kubernetes_secret" "indexer_elastic" {
+resource "kubernetes_secret_v1" "indexer_elastic" {
   count = var.enable_indexer ? 1 : 0
 
   metadata {
@@ -233,10 +251,10 @@ resource "kubernetes_secret" "indexer_elastic" {
     ELASTIC_PASS_SYSTEM = var.elastic_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
 }
 
-resource "kubernetes_secret" "search_elastic" {
+resource "kubernetes_secret_v1" "search_elastic" {
   count = var.enable_search ? 1 : 0
 
   metadata {
@@ -251,5 +269,81 @@ resource "kubernetes_secret" "search_elastic" {
     ELASTIC_PASS_SYSTEM = var.elastic_password
   }
 
-  depends_on = [kubernetes_namespace.osdu]
+  depends_on = [kubernetes_namespace_v1.osdu]
+}
+
+# State migration: renamed deprecated types to _v1 equivalents
+moved {
+  from = kubernetes_secret.entitlements_redis
+  to   = kubernetes_secret_v1.entitlements_redis
+}
+
+moved {
+  from = kubernetes_secret.storage_redis
+  to   = kubernetes_secret_v1.storage_redis
+}
+
+moved {
+  from = kubernetes_secret.notification_redis
+  to   = kubernetes_secret_v1.notification_redis
+}
+
+moved {
+  from = kubernetes_secret.search_redis
+  to   = kubernetes_secret_v1.search_redis
+}
+
+moved {
+  from = kubernetes_secret.indexer_redis
+  to   = kubernetes_secret_v1.indexer_redis
+}
+
+moved {
+  from = kubernetes_secret.dataset_redis
+  to   = kubernetes_secret_v1.dataset_redis
+}
+
+moved {
+  from = kubernetes_secret.legal_minio
+  to   = kubernetes_secret_v1.legal_minio
+}
+
+moved {
+  from = kubernetes_secret.schema_minio
+  to   = kubernetes_secret_v1.schema_minio
+}
+
+moved {
+  from = kubernetes_secret.policy_minio
+  to   = kubernetes_secret_v1.policy_minio
+}
+
+moved {
+  from = kubernetes_secret.minio_bootstrap
+  to   = kubernetes_secret_v1.minio_bootstrap
+}
+
+moved {
+  from = kubernetes_secret.storage_minio
+  to   = kubernetes_secret_v1.storage_minio
+}
+
+moved {
+  from = kubernetes_secret.file_minio
+  to   = kubernetes_secret_v1.file_minio
+}
+
+moved {
+  from = kubernetes_secret.rabbitmq
+  to   = kubernetes_secret_v1.rabbitmq
+}
+
+moved {
+  from = kubernetes_secret.indexer_elastic
+  to   = kubernetes_secret_v1.indexer_elastic
+}
+
+moved {
+  from = kubernetes_secret.search_elastic
+  to   = kubernetes_secret_v1.search_elastic
 }

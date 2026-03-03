@@ -12,5 +12,5 @@ output "cluster_issuer_staging_name" {
 
 output "platform_namespace" {
   description = "Foundation namespace name"
-  value       = kubernetes_namespace.platform.metadata[0].name
+  value       = kubernetes_namespace_v1.platform.metadata[0].name
 }

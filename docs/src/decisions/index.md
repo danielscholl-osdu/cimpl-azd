@@ -62,6 +62,7 @@ Create ADRs for:
 | [0006](0006-two-layer-terraform-state.md) | Two-layer Terraform state for cluster and platform | Accepted |
 | [0017](0017-consolidated-namespace-architecture.md) | Consolidated namespace architecture | Accepted |
 | [0018](0018-stack-file-layout-reorganization.md) | Stack file layout reorganization | Accepted |
+| [0019](0019-group-feature-flags-with-cascading-locals.md) | Group feature flags with cascading locals | Accepted |
 
 ### Runtime & Security
 

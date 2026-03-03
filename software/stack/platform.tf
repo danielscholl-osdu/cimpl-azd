@@ -1,5 +1,5 @@
 # Platform namespace for middleware
-resource "kubernetes_namespace" "platform" {
+resource "kubernetes_namespace_v1" "platform" {
   metadata {
     name = local.platform_namespace
     labels = {
@@ -21,7 +21,7 @@ resource "kubectl_manifest" "platform_peer_authentication" {
         mode: STRICT
   YAML
 
-  depends_on = [kubernetes_namespace.platform]
+  depends_on = [kubernetes_namespace_v1.platform]
 }
 
 # Shared Karpenter NodePool for all stacks (idempotent via server_side_apply)
@@ -95,4 +95,10 @@ resource "kubectl_manifest" "karpenter_aksnodeclass" {
   YAML
 
   wait = true
+}
+
+# State migration: renamed deprecated types to _v1 equivalents
+moved {
+  from = kubernetes_namespace.platform
+  to   = kubernetes_namespace_v1.platform
 }

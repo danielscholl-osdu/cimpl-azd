@@ -164,7 +164,7 @@ resource "kubectl_manifest" "kibana" {
 
 # Bootstrap resources
 
-resource "kubernetes_service_account" "elastic_bootstrap" {
+resource "kubernetes_service_account_v1" "elastic_bootstrap" {
   count = var.enable_bootstrap ? 1 : 0
 
   metadata {
@@ -180,7 +180,7 @@ resource "time_sleep" "wait_for_eck_reconciliation" {
   create_duration = "60s"
 }
 
-data "kubernetes_secret" "elasticsearch_password" {
+data "kubernetes_secret_v1" "elasticsearch_password" {
   count = var.enable_bootstrap ? 1 : 0
 
   metadata {
@@ -191,7 +191,7 @@ data "kubernetes_secret" "elasticsearch_password" {
   depends_on = [time_sleep.wait_for_eck_reconciliation]
 }
 
-resource "kubernetes_secret" "elastic_bootstrap_secret" {
+resource "kubernetes_secret_v1" "elastic_bootstrap_secret" {
   count = var.enable_bootstrap ? 1 : 0
 
   metadata {
@@ -203,11 +203,11 @@ resource "kubernetes_secret" "elastic_bootstrap_secret" {
     ELASTIC_HOST_SYSTEM = "elasticsearch-es-http.${var.namespace}.svc"
     ELASTIC_PORT_SYSTEM = "9200"
     ELASTIC_USER_SYSTEM = "elastic"
-    ELASTIC_PASS_SYSTEM = data.kubernetes_secret.elasticsearch_password[0].data["elastic"]
+    ELASTIC_PASS_SYSTEM = data.kubernetes_secret_v1.elasticsearch_password[0].data["elastic"]
   }
 }
 
-resource "kubernetes_secret" "indexer_elastic_secret" {
+resource "kubernetes_secret_v1" "indexer_elastic_secret" {
   count = var.enable_bootstrap ? 1 : 0
 
   metadata {
@@ -217,11 +217,11 @@ resource "kubernetes_secret" "indexer_elastic_secret" {
 
   data = {
     ELASTIC_USER_SYSTEM = "elastic"
-    ELASTIC_PASS_SYSTEM = data.kubernetes_secret.elasticsearch_password[0].data["elastic"]
+    ELASTIC_PASS_SYSTEM = data.kubernetes_secret_v1.elasticsearch_password[0].data["elastic"]
   }
 }
 
-resource "kubernetes_secret" "search_elastic_secret" {
+resource "kubernetes_secret_v1" "search_elastic_secret" {
   count = var.enable_bootstrap ? 1 : 0
 
   metadata {
@@ -231,7 +231,7 @@ resource "kubernetes_secret" "search_elastic_secret" {
 
   data = {
     ELASTIC_USER_SYSTEM = "elastic"
-    ELASTIC_PASS_SYSTEM = data.kubernetes_secret.elasticsearch_password[0].data["elastic"]
+    ELASTIC_PASS_SYSTEM = data.kubernetes_secret_v1.elasticsearch_password[0].data["elastic"]
   }
 }
 
@@ -275,9 +275,30 @@ resource "helm_release" "elastic_bootstrap" {
 
   depends_on = [
     kubectl_manifest.elasticsearch,
-    kubernetes_service_account.elastic_bootstrap,
-    kubernetes_secret.elastic_bootstrap_secret,
-    kubernetes_secret.indexer_elastic_secret,
-    kubernetes_secret.search_elastic_secret
+    kubernetes_service_account_v1.elastic_bootstrap,
+    kubernetes_secret_v1.elastic_bootstrap_secret,
+    kubernetes_secret_v1.indexer_elastic_secret,
+    kubernetes_secret_v1.search_elastic_secret
   ]
+}
+
+# State migration: renamed deprecated types to _v1 equivalents
+moved {
+  from = kubernetes_service_account.elastic_bootstrap
+  to   = kubernetes_service_account_v1.elastic_bootstrap
+}
+
+moved {
+  from = kubernetes_secret.elastic_bootstrap_secret
+  to   = kubernetes_secret_v1.elastic_bootstrap_secret
+}
+
+moved {
+  from = kubernetes_secret.indexer_elastic_secret
+  to   = kubernetes_secret_v1.indexer_elastic_secret
+}
+
+moved {
+  from = kubernetes_secret.search_elastic_secret
+  to   = kubernetes_secret_v1.search_elastic_secret
 }

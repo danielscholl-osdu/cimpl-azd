@@ -9,6 +9,42 @@ azd env set TF_VAR_enable_elasticsearch false
 
 ---
 
+## Deployment Scope
+
+The deployment uses three Terraform layers. `azd provision` deploys Layers 1 and 2. `azd deploy` deploys Layer 3.
+
+| Layer | What it deploys | Controlled by |
+|-------|----------------|---------------|
+| **1. Infrastructure** (`infra/`) | AKS cluster, system node pool, RBAC | Infrastructure variables |
+| **2. Foundation** (`software/foundation/`) | cert-manager, ECK operator, CNPG operator, ExternalDNS, Gateway CRDs | Foundation variables |
+| **3. Software Stack** (`software/stack/`) | Platform middleware + OSDU services | Feature flags (this page) |
+
+Within Layer 3, feature flags control two levels of the stack:
+
+- **Platform middleware** (Elasticsearch, PostgreSQL, Redis, etc.) — deployed into the `platform` namespace
+- **OSDU services** (Partition, Entitlements, Legal, etc.) — deployed into the `osdu` namespace
+
+---
+
+## Group Flags (Coarse Control)
+
+Group flags let you disable entire capability blocks without toggling individual services. They encode the OSDU dependency chain: reference and domain services require core, so disabling core automatically disables everything downstream (see [ADR-0019](../decisions/0019-group-feature-flags-with-cascading-locals.md)).
+
+| Flag | Default | Effect |
+|------|---------|--------|
+| `enable_osdu_core_services` | `true` | Master switch for all core services (partition through workflow) |
+| `enable_osdu_reference_services` | `true` | Master switch for reference services; cascades through core |
+| `enable_osdu_domain_services` | `false` | Master switch for domain services; cascades through core |
+
+**Cascade rules:**
+
+- Disabling core disables reference and domain regardless of their flags
+- Disabling reference does not affect core or domain
+- Disabling domain does not affect core or reference
+- Individual service flags (below) are ANDed with their group flag
+
+---
+
 ## Infrastructure Flags
 
 These variables control the AKS cluster and node pool configuration (Layer 1: `infra/`). Foundation and stack flags are in `software/foundation/` and `software/stack/` respectively.
@@ -52,7 +88,7 @@ All middleware defaults to **enabled**.
 
 ## OSDU Service Flags: Core
 
-Core services are all **enabled by default**. They form the minimum viable OSDU platform.
+Core services are all **enabled by default**. They form the minimum viable OSDU platform. Set `enable_osdu_core_services=false` to disable all of them at once.
 
 | Flag | Default | Dependencies |
 |------|---------|-------------|
@@ -70,31 +106,31 @@ Core services are all **enabled by default**. They form the minimum viable OSDU 
 | `enable_register` | `true` | Entitlements, Partition, PostgreSQL |
 | `enable_policy` | `true` | Entitlements, Partition |
 | `enable_secret` | `true` | Entitlements, Partition |
+| `enable_workflow` | `true` | Entitlements, Partition, Storage, PostgreSQL, Airflow |
 
 ---
 
 ## OSDU Service Flags: Reference Systems
 
-Reference services are all **disabled by default**.
+Reference services are all **enabled by default** (but require core). Set `enable_osdu_reference_services=false` to disable all of them at once.
 
 | Flag | Default | Dependencies |
 |------|---------|-------------|
-| `enable_crs_conversion` | `false` | Entitlements, Partition |
-| `enable_crs_catalog` | `false` | Entitlements, Partition |
-| `enable_unit` | `false` | Entitlements, Partition |
+| `enable_crs_conversion` | `true` | Entitlements, Partition |
+| `enable_crs_catalog` | `true` | Entitlements, Partition |
+| `enable_unit` | `true` | Entitlements, Partition |
 
 ---
 
-## OSDU Service Flags: Domain & Orchestration
+## OSDU Service Flags: Domain Services
 
-Domain and orchestration services are all **disabled by default**.
+Domain services are all **disabled by default**. Set `enable_osdu_domain_services=true` to enable the group, then individual flags to select services.
 
 | Flag | Default | Dependencies |
 |------|---------|-------------|
 | `enable_wellbore` | `false` | Entitlements, Partition, Storage, PostgreSQL |
 | `enable_wellbore_worker` | `false` | Entitlements, Partition, Wellbore |
 | `enable_eds_dms` | `false` | Entitlements, Partition, Storage |
-| `enable_workflow` | `false` | Entitlements, Partition, Storage, PostgreSQL, Airflow |
 
 ---
 
@@ -158,37 +194,40 @@ All credential variables are marked `sensitive` in Terraform. Most are auto-gene
 
 ## Usage Examples
 
-### Minimal Deployment (Core Only)
+### Platform Only (No OSDU Services)
 
 ```bash
-azd env new dev
-azd env set AZURE_CONTACT_EMAIL "you@example.com"
-azd env set TF_VAR_acme_email "you@example.com"
-azd env set TF_VAR_dns_zone_name "yourdomain.com"
-azd env set TF_VAR_dns_zone_resource_group "dns-rg"
-azd env set TF_VAR_dns_zone_subscription_id "sub-id"
+azd env set TF_VAR_enable_osdu_core_services false
+azd up
+# All middleware deploys; no OSDU services (reference + domain also off)
+```
+
+### Core + Reference Only (No Domain)
+
+```bash
+# This is the default — domain services are off by default
 azd up
 ```
 
-### Enable Domain Services
+### Full Deployment (All Service Groups)
 
 ```bash
+azd env set TF_VAR_enable_osdu_domain_services true
 azd env set TF_VAR_enable_wellbore true
-azd env set TF_VAR_enable_wellbore_worker true
-azd env set TF_VAR_enable_crs_conversion true
+azd env set TF_VAR_enable_eds_dms true
 azd up
 ```
 
-### Middleware-Only (No OSDU Services)
+### Core Services with Specific Opt-Outs
 
 ```bash
-azd env set TF_VAR_enable_common false
-azd env set TF_VAR_enable_partition false
-# All OSDU services will be skipped since they depend on Partition
+# Deploy everything except search and indexer
+azd env set TF_VAR_enable_search false
+azd env set TF_VAR_enable_indexer false
 azd up
 ```
 
-### Reduced Footprint (Skip Heavy Components)
+### Reduced Footprint (Skip Heavy Middleware)
 
 ```bash
 azd env set TF_VAR_enable_elasticsearch false
