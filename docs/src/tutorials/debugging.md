@@ -29,11 +29,11 @@ kubectl logs <pod-name> -n <namespace> -c <container-name>
 
 | Status | Likely Cause | Debug Command |
 |--------|-------------|---------------|
-| `Pending` | No schedulable node (resources, taints, affinity) | `kubectl describe pod` — check Events |
+| `Pending` | No schedulable node (resources, taints, affinity) | `kubectl describe pod`, check Events |
 | `CrashLoopBackOff` | Application crash on startup | `kubectl logs --previous` |
-| `ImagePullBackOff` | Wrong image tag or registry auth | `kubectl describe pod` — check image name |
+| `ImagePullBackOff` | Wrong image tag or registry auth | `kubectl describe pod`, check image name |
 | `Init:Error` | Init container failed | `kubectl logs -c <init-container>` |
-| `Terminating` (stuck) | Finalizers or PVC issues | `kubectl get pod -o yaml` — check finalizers |
+| `Terminating` (stuck) | Finalizers or PVC issues | `kubectl get pod -o yaml`, check finalizers |
 
 ---
 
@@ -73,7 +73,7 @@ kubectl exec -n platform elasticsearch-es-default-0 -- \
 
 ### Common ES Issues
 
-- **Yellow status**: One or more replica shards unassigned. Check node count — need 3 nodes for green with 1 replica.
+- **Yellow status**: One or more replica shards unassigned. Check node count; need 3 nodes for green with 1 replica.
 - **Red status**: Primary shards unassigned. Check disk space and node health.
 - **Bootstrap job failed**: Check `kubectl logs -n platform -l job-name=elastic-bootstrap`.
 
@@ -179,7 +179,7 @@ kubectl port-forward -n platform svc/rabbitmq-management 15672:15672 &
 
 - **Split brain**: If pods restart across zones, cluster may partition. Check `rabbitmqctl cluster_status` for partitioned nodes.
 - **Queues not draining**: Consumer service may be down. Check OSDU service pods.
-- **No Istio sidecar**: RabbitMQ pods have `sidecar.istio.io/inject: "false"` — this is expected. RabbitMQ requires `NET_ADMIN` capabilities blocked by AKS Automatic.
+- **No Istio sidecar**: RabbitMQ pods have `sidecar.istio.io/inject: "false"`. This is expected. RabbitMQ requires `NET_ADMIN` capabilities blocked by AKS Automatic.
 
 ---
 
@@ -264,7 +264,7 @@ kubectl exec -n osdu <pod-name> -c <service-name> -- \
 # Check bootstrap pod logs
 kubectl logs -n osdu -l app=partition,type=bootstrap --tail=100
 
-# Bootstrap pods call the service API — check if the target service is healthy first
+# Bootstrap pods call the service API. Check if the target service is healthy first
 kubectl get pods -n osdu -l app=partition,type=core
 ```
 
@@ -272,7 +272,7 @@ kubectl get pods -n osdu -l app=partition,type=core
 
 - **Slow startup**: Java services take 2-5 minutes. Check `initialDelaySeconds` in probe configuration.
 - **Database connection refused**: Verify PostgreSQL is healthy and the service's postgres secret exists in the `osdu` namespace.
-- **401 Unauthorized**: Token validation failing — check Keycloak JWKS endpoint and Istio mTLS configuration.
+- **401 Unauthorized**: Token validation failing. Check Keycloak JWKS endpoint and Istio mTLS configuration.
 - **Partition service returns empty**: Bootstrap may not have run. Check bootstrap pod logs.
 
 ---

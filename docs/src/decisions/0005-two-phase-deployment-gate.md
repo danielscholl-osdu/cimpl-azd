@@ -9,7 +9,7 @@ deciders: cimpl-azd team
 
 ## Context and Problem Statement
 
-Fresh AKS clusters have an eventual consistency window where Azure Policy assignments have not yet propagated to the in-cluster Gatekeeper constraints. Deploying platform workloads during this window causes intermittent failures — pods are rejected by Gatekeeper policies that haven't received their namespace exclusions or policy exemptions yet. This is especially critical for CNPG operator Jobs (initdb, join) which cannot have health probes and rely on an Azure Policy Exemption that takes up to 20 minutes to propagate.
+Fresh AKS clusters have an eventual consistency window where Azure Policy assignments have not yet propagated to the in-cluster Gatekeeper constraints. Deploying platform workloads during this window causes intermittent failures: pods are rejected by Gatekeeper policies that haven't received their namespace exclusions or policy exemptions yet. This is especially critical for CNPG operator Jobs (initdb, join) which cannot have health probes and rely on an Azure Policy Exemption that takes up to 20 minutes to propagate.
 
 ## Decision Drivers
 
@@ -32,8 +32,8 @@ Chosen option: "Behavioral gate via server-side dry-run", because it tests actua
 
 ### Consequences
 
-- Good, because tests real admission behavior — a dry-run Job without probes succeeds only when the exemption has propagated
-- Good, because deterministic — no timing assumptions, works regardless of Azure Policy sync speed
+- Good, because tests real admission behavior. A dry-run Job without probes succeeds only when the exemption has propagated
+- Good, because deterministic. No timing assumptions, works regardless of Azure Policy sync speed
 - Good, because fails fast on non-policy errors (RBAC, network) with clear error messages
 - Good, because integrates cleanly with azd hooks (`scripts/ensure-safeguards.ps1` as Phase 1, `scripts/deploy-platform.ps1` as Phase 2)
 - Bad, because adds up to 20 minutes to fresh cluster deployments (waiting for policy propagation)

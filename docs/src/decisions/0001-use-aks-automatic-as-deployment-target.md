@@ -30,7 +30,7 @@ The CIMPL platform needs a Kubernetes runtime on Azure that balances operational
 
 ## Decision Outcome
 
-Chosen option: "AKS Automatic", because it provides the best balance of operational simplicity, built-in security, and managed Istio — all critical for a small team deploying a complex platform stack.
+Chosen option: "AKS Automatic", because it provides the best balance of operational simplicity, built-in security, and managed Istio, all critical for a small team deploying a complex platform stack.
 
 ### Consequences
 
@@ -38,15 +38,15 @@ Chosen option: "AKS Automatic", because it provides the best balance of operatio
 - Good, because Deployment Safeguards enforce security baseline (probes, resource limits, seccomp profiles) without manual policy authoring
 - Good, because managed Istio (`asm-1-28`) provides service mesh without installation or lifecycle management
 - Good, because Karpenter-based Node Auto-Provisioning (NAP) dynamically selects VM SKUs per zone, eliminating `OverconstrainedZonalAllocationRequest` failures
-- Bad, because strict Deployment Safeguards require workarounds for every Helm chart that doesn't expose probe/resource/seccomp configuration — this is the single largest source of platform complexity
+- Bad, because strict Deployment Safeguards require workarounds for every Helm chart that doesn't expose probe/resource/seccomp configuration. This is the single largest source of platform complexity
 - Bad, because `NET_ADMIN` and `NET_RAW` capabilities are blocked, preventing Istio sidecar injection in some namespaces (e.g., RabbitMQ)
 - Bad, because AKS Automatic overrides the system pool VM SKU (e.g., `Standard_D4s_v5` → `Standard_D4lds_v5`), causing Terraform drift if not matched
 - Bad, because Azure Policy eventual consistency means fresh clusters need a deployment gate before platform workloads can be applied (see ADR-0005)
 
 ## Validation
 
-- `kubectl get constrainttemplates` — verify Gatekeeper policies are active
-- `az aks show --query "sku.name"` — confirm cluster is "Automatic"
+- `kubectl get constrainttemplates`: verify Gatekeeper policies are active
+- `az aks show --query "sku.name"`: confirm cluster is "Automatic"
 - All pods running with `readinessProbe`, `livenessProbe`, resource `requests`/`limits`, and `seccompProfile: RuntimeDefault`
 
 ## Pros and Cons of the Options
@@ -70,7 +70,7 @@ Traditional AKS with user-managed Gatekeeper policies and optional Istio add-on.
 - Good, because full control over which policies are enforced
 - Good, because can selectively exempt workloads without Azure Policy
 - Bad, because requires authoring and maintaining Gatekeeper ConstraintTemplates
-- Bad, because no automatic enforcement — policies can drift or be disabled
+- Bad, because no automatic enforcement. Policies can drift or be disabled
 - Bad, because Istio add-on still available but node management is manual (VMSS pools)
 
 ### Azure Container Apps

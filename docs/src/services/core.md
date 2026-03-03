@@ -31,13 +31,13 @@ Partition properties map environment variable names to middleware connection det
 | **Health** | `:8081/health/liveness`, `:8081/health/readiness` |
 | **Database** | `entitlements` (schema: `entitlements`, 5 tables) |
 
-Entitlements manages user/group membership and access control. It uses a multi-tenant datasource pattern — database configuration is resolved dynamically via the Partition service.
+Entitlements manages user/group membership and access control. It uses a multi-tenant datasource pattern: database configuration is resolved dynamically via the Partition service.
 
 **Key secrets:**
 
-- `entitlements-multi-tenant-postgres-secret` — DB connection (`ENT_PG_URL_SYSTEM`, `ENT_PG_USER_SYSTEM`, `ENT_PG_PASS_SYSTEM`)
-- `entitlements-redis-secret` — Redis password
-- `datafier-secret` — Keycloak client credentials for bootstrap
+- `entitlements-multi-tenant-postgres-secret`: DB connection (`ENT_PG_URL_SYSTEM`, `ENT_PG_USER_SYSTEM`, `ENT_PG_PASS_SYSTEM`)
+- `entitlements-redis-secret`: Redis password
+- `datafier-secret`: Keycloak client credentials for bootstrap
 
 **Bootstrap:** Acquires a token from Keycloak's `datafier` client and provisions tenant entitlements groups.
 

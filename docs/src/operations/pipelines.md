@@ -1,6 +1,6 @@
 # CI/CD Pipelines
 
-This document describes every GitHub Actions workflow in this repository, how they connect, and the end-to-end release flow.
+This page is for contributors and maintainers who need to understand the CI/CD pipeline structure, what blocks a merge, and how releases work.
 
 ---
 
@@ -94,6 +94,9 @@ Runs on every PR and push to protected branches. This is the primary gate for co
 | `terraform-format` | `terraform fmt -check` on `infra/` and `software/` |
 | `powershell-syntax` | PSParser tokenization of all `scripts/*.ps1` files |
 
+!!! info "What blocks a merge"
+    **CI** and **PR Checks** are required status checks that block merge. CodeQL findings appear in the Security tab but do not block PRs.
+
 ### PR Checks
 
 **File:** `pr-checks.yml`
@@ -130,16 +133,22 @@ Validates the preview branch after promotion. Checks formatting, PowerShell synt
 
 Blocks commits that contain files from internal team directories:
 
-- `.ai-team/` — AI agent state files
-- `.ai-team-templates/` — internal templates
-- `team-docs/` — internal team documentation
-- `docs/proposals/` — design proposals
+- `.ai-team/`: AI agent state files
+- `.ai-team-templates/`: internal templates
+- `team-docs/`: internal team documentation
+- `docs/proposals/`: design proposals
 
 File deletions are allowed (cleaning up is fine). The Promote workflow handles stripping these paths during the dev → preview merge.
 
 ---
 
 ## Release Pipelines
+
+Three paths to a release:
+
+- **Normal:** Run the [Promote](#promote) workflow to move `dev → preview → main` with automatic versioning and tagging.
+- **Fallback:** Run the [Release](#release) workflow manually if the Promote workflow fails partway through.
+- **Insider:** Push to the `insider` branch for a pre-release tagged `vX.Y.Z-insider.SHA`.
 
 ### Promote
 
@@ -149,21 +158,21 @@ File deletions are allowed (cleaning up is fine). The Promote workflow handles s
 
 This is the primary release mechanism. It runs two sequential jobs:
 
-**Job 1 — dev-to-preview:**
+**Job 1: dev-to-preview:**
 1. Ensure `preview` branch exists (creates from main if missing)
 2. Merge `dev` into `preview` with `--no-ff`
 3. Strip forbidden paths from the merge
 4. Push preview
 
-**Job 2 — preview-to-main (release):**
-1. **Version calculation** — reads latest git tag (or defaults to `v0.0.0`), scans commit messages:
+**Job 2: preview-to-main (release):**
+1. **Version calculation**: reads latest git tag (or defaults to `v0.0.0`), scans commit messages:
    - `feat` commits → bump minor version
    - `BREAKING CHANGE` or `!:` commits → bump major version
    - Otherwise → bump patch version
-2. **Validation** — checks CHANGELOG has `[Unreleased]` or matching version section, no forbidden files, terraform format
-3. **Merge** — merge preview into main with `--no-ff`
-4. **CHANGELOG stamp** — replace `[Unreleased]` header with version and date, re-add empty `[Unreleased]` section
-5. **Tag and release** — create annotated git tag, push tag, create GitHub Release with changelog notes
+2. **Validation**: checks CHANGELOG has `[Unreleased]` or matching version section, no forbidden files, terraform format
+3. **Merge**: merge preview into main with `--no-ff`
+4. **CHANGELOG stamp**: replace `[Unreleased]` header with version and date, re-add empty `[Unreleased]` section
+5. **Tag and release**: create annotated git tag, push tag, create GitHub Release with changelog notes
 
 Use `dry_run: true` to preview what would happen without making changes.
 
@@ -193,6 +202,8 @@ Creates pre-release tags for early testing. Tags follow the pattern `vX.Y.Z-insi
 
 **File:** `squad-docs.yml`
 **Triggers:** PRs (spell check on `*.md` changes), push to `main` (deploy), manual dispatch from `main`
+
+Published to GitHub Pages at the repository's Pages URL on every push to `main`.
 
 Runs two jobs:
 

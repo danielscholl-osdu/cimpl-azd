@@ -77,7 +77,7 @@ Wellbore is a Domain Data Management Service (DDMS) that provides specialized AP
 | **Flag** | `enable_wellbore_worker` (default: false) |
 | **Health** | `:8081/health/liveness`, `:8081/health/readiness` |
 
-Handles async background tasks for the Wellbore DDMS — data transformations, bulk operations, and indexing.
+Handles async background tasks for the Wellbore DDMS, including data transformations, bulk operations, and indexing.
 
 ### EDS-DMS
 

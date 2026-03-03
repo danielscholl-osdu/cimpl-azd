@@ -30,9 +30,9 @@ Chosen option: "Karpenter/NAP with dynamic VM SKU selection", because it dynamic
 
 ### Consequences
 
-- Good, because eliminates `OverconstrainedZonalAllocationRequest` — Karpenter selects any available D-series SKU per zone
+- Good, because eliminates `OverconstrainedZonalAllocationRequest`. Karpenter selects any available D-series SKU per zone
 - Good, because automatic scale-to-zero when no stateful pods are pending (cost savings)
 - Good, because consolidation policy (`WhenEmpty`, 5 min) removes idle nodes automatically
-- Good, because workloads use the same `agentpool: stateful` label and `workload=stateful:NoSchedule` toleration — no migration needed
+- Good, because workloads use the same `agentpool: stateful` label and `workload=stateful:NoSchedule` toleration. No migration needed
 - Bad, because Karpenter NodePool/AKSNodeClass CRDs are deployed in the platform layer, creating a dependency for all stateful workloads
-- Bad, because VM SKU selection is less predictable — exact SKU varies by zone capacity at scheduling time
+- Bad, because VM SKU selection is less predictable. Exact SKU varies by zone capacity at scheduling time
