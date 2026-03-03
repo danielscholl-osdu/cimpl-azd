@@ -46,29 +46,17 @@ cimpl-azd packages the entire CIMPL stack (infrastructure, middleware, and OSDU 
 
 <div class="grid cards" markdown>
 
--   :material-server-network:{ .lg .middle } **Platform Engineers**
-
-    ---
-
-    Deploy and operate an OSDU platform on AKS Automatic. Manage infrastructure, middleware, and services through Terraform with full lifecycle control.
-
--   :material-cog-outline:{ .lg .middle } **DevOps Engineers**
-
-    ---
-
-    Integrate OSDU deployments into CI/CD pipelines. Use `azd` hooks, feature flags, and multi-environment support for automated testing and promotion workflows.
-
 -   :material-code-braces:{ .lg .middle } **OSDU Developers**
 
     ---
 
-    Get a local or shared OSDU environment running quickly. Focus on service development while the platform handles infrastructure, networking, and security.
+    Get a local or shared OSDU environment running quickly. Focus on service development while the platform handles infrastructure, middleware, networking, and security.
 
--   :material-cloud-outline:{ .lg .middle } **Cloud Architects**
+-   :material-cloud-outline:{ .lg .middle } **OSDU Architects**
 
     ---
 
-    Evaluate the architectural patterns (three-layer deployment, Karpenter node management, AKS safeguards compliance, and Istio service mesh) for your own Azure workloads.
+    Evaluate the deployment architecture, Terraform module patterns, and design decisions (captured in 18 ADRs) to understand how the Community Implementation maps onto Azure infrastructure.
 
 </div>
 
