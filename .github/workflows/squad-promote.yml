@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   dev-to-preview:
-    name: Promote dev to preview
+    name: Promote dev → preview
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,24 +31,14 @@ jobs:
       - name: Fetch all branches
         run: git fetch --all
 
-      - name: Ensure preview branch exists
-        run: |
-          if ! git rev-parse --verify origin/preview >/dev/null 2>&1; then
-            echo "Preview branch does not exist — creating from main"
-            git checkout -b preview origin/main
-            git push origin preview
-          fi
-
       - name: Show current state (dry run info)
         run: |
           echo "=== dev HEAD ===" && git log origin/dev -1 --oneline
           echo "=== preview HEAD ===" && git log origin/preview -1 --oneline
-          echo "=== Commits to promote ==="
-          git log origin/preview..origin/dev --oneline || echo "(none)"
           echo "=== Files that would be stripped ==="
           git diff origin/preview..origin/dev --name-only | grep -E "^(\.(ai-team|squad|ai-team-templates|squad-templates)|team-docs/|docs/proposals/)" || echo "(none)"
 
-      - name: Merge dev to preview (strip forbidden paths)
+      - name: Merge dev → preview (strip forbidden paths)
         if: ${{ inputs.dry_run == 'false' }}
         run: |
           git checkout preview
@@ -65,27 +55,21 @@ jobs:
 
           # Commit if there are staged changes
           if ! git diff --cached --quiet; then
-            SUMMARY=$(git log origin/preview..origin/dev --oneline | head -5 | sed 's/^/  - /')
-            git commit -m "chore: promote dev to preview
-
-          Recent changes:
-          $SUMMARY"
+            git commit -m "chore: promote dev → preview (v$(node -e "console.log(require('./package.json').version)"))"
             git push origin preview
-            echo "Pushed preview branch"
+            echo "✅ Pushed preview branch"
           else
-            echo "Nothing to commit — preview is already up to date"
+            echo "ℹ️ Nothing to commit — preview is already up to date"
           fi
 
       - name: Dry run complete
         if: ${{ inputs.dry_run == 'true' }}
-        run: echo "Dry run complete — no changes pushed."
+        run: echo "🔍 Dry run complete — no changes pushed."
 
   preview-to-main:
-    name: Promote preview to main (release)
+    name: Promote preview → main (release)
     needs: dev-to-preview
     runs-on: ubuntu-latest
-    env:
-      CHECKPOINT_DISABLE: "1"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -97,64 +81,24 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Fetch all branches and tags
-        run: git fetch --all --tags
-
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.5.0"
-
-      - name: Determine next version
-        id: version
-        run: |
-          # Get latest tag or default to v0.0.0
-          LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -1)
-          if [ -z "$LATEST_TAG" ]; then
-            LATEST_TAG="v0.0.0"
-          fi
-          echo "latest=$LATEST_TAG"
-
-          # Increment patch version
-          VERSION=${LATEST_TAG#v}
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-          MINOR=$(echo "$VERSION" | cut -d. -f2)
-          PATCH=$(echo "$VERSION" | cut -d. -f3)
-          NEXT_VERSION="v${MAJOR}.${MINOR}.$((PATCH + 1))"
-
-          # Check commit messages for version bump signals
-          COMMITS=$(git log origin/main..origin/preview --oneline 2>/dev/null || echo "")
-          if echo "$COMMITS" | grep -qiE "^[a-f0-9]+ feat"; then
-            NEXT_VERSION="v${MAJOR}.$((MINOR + 1)).0"
-          fi
-          if echo "$COMMITS" | grep -qiE "BREAKING CHANGE|^[a-f0-9]+ \w+!:"; then
-            NEXT_VERSION="v$((MAJOR + 1)).0.0"
-          fi
-
-          echo "next=$NEXT_VERSION"
-          echo "next=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+      - name: Fetch all branches
+        run: git fetch --all
 
       - name: Show current state
         run: |
           echo "=== preview HEAD ===" && git log origin/preview -1 --oneline
           echo "=== main HEAD ===" && git log origin/main -1 --oneline
-          echo "=== Next version === ${{ steps.version.outputs.next }}"
+          echo "=== Version ===" && node -e "console.log('v' + require('./package.json').version)"
 
       - name: Validate preview is release-ready
         run: |
           git checkout preview
-
-          # Verify CHANGELOG has an entry for this version or [Unreleased]
-          VERSION="${{ steps.version.outputs.next }}"
-          VERSION_NUM="${VERSION#v}"
-          if ! grep -q "## \[${VERSION_NUM}\]" CHANGELOG.md 2>/dev/null; then
-            if ! grep -q "## \[Unreleased\]" CHANGELOG.md 2>/dev/null; then
-              echo "::error::No [${VERSION_NUM}] or [Unreleased] section found in CHANGELOG.md"
-              exit 1
-            fi
-            echo "Found [Unreleased] section — will be stamped as ${VERSION_NUM} on release"
-          else
-            echo "Found CHANGELOG entry for ${VERSION_NUM}"
+          VERSION=$(node -e "console.log(require('./package.json').version)")
+          if ! grep -q "## \[$VERSION\]" CHANGELOG.md 2>/dev/null; then
+            echo "::error::Version $VERSION not found in CHANGELOG.md — update before releasing"
+            exit 1
           fi
+          echo "✅ Version $VERSION has CHANGELOG entry"
 
           # Verify no forbidden files on preview
           FORBIDDEN=$(git ls-files | grep -E "^(\.(ai-team|squad|ai-team-templates|squad-templates)/|team-docs/|docs/proposals/)" || true)
@@ -162,60 +106,16 @@ jobs:
             echo "::error::Forbidden files found on preview: $FORBIDDEN"
             exit 1
           fi
-          echo "No forbidden files on preview"
+          echo "✅ No forbidden files on preview"
 
-      - name: Validate Terraform formatting
-        run: |
-          terraform fmt -check -recursive ./infra
-          terraform fmt -check -recursive ./platform
-
-      - name: Merge preview to main
+      - name: Merge preview → main
         if: ${{ inputs.dry_run == 'false' }}
         run: |
-          VERSION="${{ steps.version.outputs.next }}"
           git checkout main
-          git merge origin/preview --no-ff -m "chore: release ${VERSION}"
+          git merge origin/preview --no-ff -m "chore: promote preview → main (v$(node -e "console.log(require('./package.json').version)"))"
           git push origin main
-
-      - name: Stamp CHANGELOG
-        if: ${{ inputs.dry_run == 'false' }}
-        run: |
-          VERSION="${{ steps.version.outputs.next }}"
-          VERSION_NUM="${VERSION#v}"
-          DATE=$(date +%Y-%m-%d)
-
-          git checkout main
-          git pull origin main
-
-          if grep -q "## \[Unreleased\]" CHANGELOG.md; then
-            sed -i "s/## \[Unreleased\]/## [${VERSION_NUM}] - ${DATE}/" CHANGELOG.md
-            sed -i "/## \[${VERSION_NUM}\]/i ## [Unreleased]\n" CHANGELOG.md
-
-            git add CHANGELOG.md
-            git commit -m "chore: stamp CHANGELOG for ${VERSION}"
-            git push origin main
-          fi
-
-      - name: Create tag and release
-        if: ${{ inputs.dry_run == 'false' }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          VERSION="${{ steps.version.outputs.next }}"
-          VERSION_NUM="${VERSION#v}"
-
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin "$VERSION"
-
-          # Extract changelog section for this version
-          NOTES=$(awk "/^## \[${VERSION_NUM}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
-
-          if [ -z "$NOTES" ]; then
-            gh release create "$VERSION" --generate-notes --title "$VERSION"
-          else
-            echo "$NOTES" | gh release create "$VERSION" --notes-file - --title "$VERSION"
-          fi
+          echo "✅ Pushed main — squad-release.yml will tag and publish the release"
 
       - name: Dry run complete
         if: ${{ inputs.dry_run == 'true' }}
-        run: echo "Dry run complete — no changes pushed."
+        run: echo "🔍 Dry run complete — no changes pushed."

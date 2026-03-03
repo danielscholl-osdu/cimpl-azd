@@ -1,6 +1,6 @@
 # Team Roster
 
-> OSDU platform conversion from ROSA to AKS Automatic
+> {One-line project description}
 
 ## Coordinator
 
@@ -12,10 +12,10 @@
 
 | Name | Role | Charter | Status |
 |------|------|---------|--------|
-| Holden | Lead | `.squad/agents/holden/charter.md` | ✅ Active |
-| Amos | Platform Dev | `.squad/agents/amos/charter.md` | ✅ Active |
-| Alex | Services Dev | `.squad/agents/alex/charter.md` | ✅ Active |
-| Drummer | Tester | `.squad/agents/drummer/charter.md` | ✅ Active |
+| {Name} | {Role} | `.squad/agents/{name}/charter.md` | ✅ Active |
+| {Name} | {Role} | `.squad/agents/{name}/charter.md` | ✅ Active |
+| {Name} | {Role} | `.squad/agents/{name}/charter.md` | ✅ Active |
+| {Name} | {Role} | `.squad/agents/{name}/charter.md` | ✅ Active |
 | Scribe | Session Logger | `.squad/agents/scribe/charter.md` | 📋 Silent |
 | Ralph | Work Monitor | — | 🔄 Monitor |
 
@@ -29,28 +29,32 @@
 
 ### Capabilities
 
-**Good fit — auto-route when enabled:**
-- Mechanical OSDU service ports following the established `osdu.tf` + `modules/osdu-service` pattern
-- Terraform fmt fixes and linting cleanup
-- Documentation updates and README fixes
-- Dependency version bumps
-- Creating kustomize overlays for new services (copy from partition/entitlements template)
+**🟢 Good fit — auto-route when enabled:**
+- Bug fixes with clear reproduction steps
+- Test coverage (adding missing tests, fixing flaky tests)
+- Lint/format fixes and code style cleanup
+- Dependency updates and version bumps
+- Small isolated features with clear specs
+- Boilerplate/scaffolding generation
+- Documentation fixes and README updates
 
-**Needs review — route to @copilot but flag for squad member PR review:**
-- New OSDU service modules in `software/stack/osdu.tf`
-- Kustomize overlay additions at `software/stack/kustomize/services/<service>/`
-- Conditional secrets in `software/stack/charts/osdu-common/main.tf`
+**🟡 Needs review — route to @copilot but flag for squad member PR review:**
+- Medium features with clear specs and acceptance criteria
+- Refactoring with existing test coverage
+- API endpoint additions following established patterns
+- Migration scripts with well-defined schemas
 
-**Not suitable — route to squad member instead:**
-- Architecture decisions (namespace strategy, module design)
-- Shared postrender framework changes
-- Cross-layer integration (infra outputs → stack inputs)
-- Safeguards compliance for new component types
-- Debugging AKS Automatic constraint violations
+**🔴 Not suitable — route to squad member instead:**
+- Architecture decisions and system design
+- Multi-system integration requiring coordination
+- Ambiguous requirements needing clarification
+- Security-critical changes (auth, encryption, access control)
+- Performance-critical paths requiring benchmarking
+- Changes requiring cross-team discussion
 
 ## Project Context
 
-- **Owner:** Daniel Scholl
-- **Stack:** Terraform (HCL), PowerShell, Helm, AKS Automatic, Istio, Gateway API
-- **Description:** Two-layer azd deployment converting OSDU from ROSA to AKS Automatic
-- **Created:** 2026-02-17
+- **Owner:** {user name}
+- **Stack:** {languages, frameworks, tools}
+- **Description:** {what the project does, in one sentence}
+- **Created:** {timestamp}
