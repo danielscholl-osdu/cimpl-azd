@@ -31,10 +31,10 @@ Chosen option: "Bitnami chart with official Keycloak image", because the Bitnami
 
 **Compatibility adjustments required** when using the official image with the Bitnami chart:
 
-- `args: [start, --import-realm]` — pass CLI args directly instead of `KEYCLOAK_EXTRA_ARGS` env var (Bitnami-specific)
-- `runAsUser: 1000`, `runAsGroup: 0` — match the official image UID/GID (not Bitnami's 1001/1001)
-- `readOnlyRootFilesystem: false` — official image requires writable `/opt/keycloak/data/`, `/opt/keycloak/conf/`, `/tmp`
-- `KC_HEALTH_ENABLED: "true"` — native Keycloak env var for health endpoints on port 9000
+- `args: [start, --import-realm]`: pass CLI args directly instead of `KEYCLOAK_EXTRA_ARGS` env var (Bitnami-specific)
+- `runAsUser: 1000`, `runAsGroup: 0`: match the official image UID/GID (not Bitnami's 1001/1001)
+- `readOnlyRootFilesystem: false`: official image requires writable `/opt/keycloak/data/`, `/opt/keycloak/conf/`, `/tmp`
+- `KC_HEALTH_ENABLED: "true"`: native Keycloak env var for health endpoints on port 9000
 
 **Access model**: Keycloak is internal-only with no HTTPRoute/Gateway exposure. OSDU services reach it via `keycloak.keycloak.svc.cluster.local:8080`. Admin console access requires `kubectl port-forward`.
 

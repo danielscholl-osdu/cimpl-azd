@@ -17,14 +17,14 @@ The ROSA reference implementation overrides images for every service. A code rev
 
 - AKS Deployment Safeguards block `:latest` image tags via Gatekeeper policy
 - CIMPL charts pin images to commit SHAs (e.g., `1397af8b`), not mutable tags
-- Chart version (`0.0.7-latest`) is a Helm chart version, not a container image tag — these are distinct concepts
+- Chart version (`0.0.7-latest`) is a Helm chart version, not a container image tag. These are distinct concepts
 - ROSA image overrides reference tags from a different registry path that may not exist in the CIMPL OCI registry
 - Overriding with wrong tags causes `ImagePullBackOff` failures that are harder to diagnose than using defaults
 
 ## Considered Options
 
-- **Use chart default images** — let each chart version bundle its tested image references
-- **Override images explicitly** — pin image repository and tag in Terraform Helm values (ROSA pattern)
+- **Use chart default images**: let each chart version bundle its tested image references
+- **Override images explicitly**: pin image repository and tag in Terraform Helm values (ROSA pattern)
 
 ## Decision Outcome
 
@@ -37,5 +37,5 @@ The `0.0.7-latest` string is the **chart** version (a Helm concept), not an imag
 - Good, because chart upgrades automatically bring matched image versions without manual coordination
 - Good, because it eliminates a class of deployment failures from stale or wrong image tag overrides
 - Good, because it reduces Terraform Helm value surface area per service
-- Bad, because chart version `0.0.7-latest` is a mutable reference — a chart republish could change defaults without our knowledge
+- Bad, because chart version `0.0.7-latest` is a mutable reference. A chart republish could change defaults without our knowledge
 - Mitigation: when chart stability is a concern, pin to an immutable chart digest or a non-`latest` chart version

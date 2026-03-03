@@ -17,6 +17,15 @@ kustomize version
 pwsh --version      # PowerShell Core v7+
 ```
 
+!!! tip "Before you begin"
+    Confirm the following before starting Step 1:
+
+    - [ ] Authenticated to Azure (`az login` and `azd auth login`)
+    - [ ] Correct subscription selected (`az account show`)
+    - [ ] Environment created (`azd env new <name>`)
+    - [ ] Required variables set (contact email, DNS zone, ACME email)
+    - [ ] DNS zone exists and you have DNS Zone Contributor access
+
 ## Step 1: Authenticate
 
 ```bash
@@ -107,13 +116,13 @@ azd up
 
 ### What Happens During `azd up`
 
-**Phase 1 — Pre-Provision** (`scripts/pre-provision.ps1`):
+**Phase 1: Pre-Provision** (`scripts/pre-provision.ps1`):
 
 - Validates all required tools are installed
 - Auto-generates credential variables if not set (PostgreSQL password, Redis password, etc.)
 - Generates an ingress prefix if `CIMPL_INGRESS_PREFIX` is not set
 
-**Phase 2 — Provision** (`infra/`):
+**Phase 2: Provision** (`infra/`):
 
 - Creates the Azure Resource Group (`rg-cimpl-<env>`)
 - Deploys AKS Automatic cluster with Istio service mesh
@@ -121,7 +130,7 @@ azd up
 - Sets up Azure RBAC and policy exemptions
 - **Duration:** ~10-15 minutes
 
-**Phase 3 — Post-Provision** (`scripts/post-provision.ps1`):
+**Phase 3: Post-Provision** (`scripts/post-provision.ps1`):
 
 - Configures kubeconfig for kubectl access
 - Configures AKS deployment safeguards (Warning mode)
@@ -136,7 +145,7 @@ azd up
     - Shared StorageClasses (ES, PG, Redis, RabbitMQ)
 - **Duration:** ~5-10 minutes
 
-**Phase 4 — Pre-Deploy** (`scripts/pre-deploy.ps1`):
+**Phase 4: Pre-Deploy** (`scripts/pre-deploy.ps1`):
 
 - Verifies cluster access
 - Runs `terraform apply` for `software/stack/`
@@ -227,6 +236,29 @@ kubectl get httproute -A
 kubectl get certificates -n platform
 ```
 
+### API Smoke Test
+
+Verify the platform is responding through the gateway:
+
+```bash
+# Get the ingress prefix and DNS zone from your environment
+INGRESS_PREFIX=$(azd env get-value CIMPL_INGRESS_PREFIX)
+DNS_ZONE=$(azd env get-value TF_VAR_dns_zone_name)
+
+# Test the partition service health endpoint
+curl -s "https://${INGRESS_PREFIX}.${DNS_ZONE}/api/partition/v1/_ah/readiness_check"
+```
+
+!!! success "Deployment complete"
+    Your deployment is successful when all of the following are true:
+
+    - All foundation pods in `Running` state (`kubectl get pods -n foundation`)
+    - Elasticsearch shows `green` health, PostgreSQL shows `Cluster in healthy state`
+    - Redis, RabbitMQ, MinIO, and Keycloak pods are `Running`
+    - OSDU service pods are `Running` (core) or `Completed` (bootstrap)
+    - Gateway has an external IP assigned
+    - API smoke test returns a successful response
+
 ### Access Kibana
 
 1. Get the external IP from the Istio gateway
@@ -259,3 +291,9 @@ azd down --force --purge
 
 !!! warning
     `azd down` deletes the resource group and all resources within it. PVCs with `Retain` reclaim policy will be lost when the cluster is deleted.
+
+## What's Next
+
+- **[Troubleshooting](../operations/troubleshooting.md)**: common deployment issues and how to resolve them
+- **[Pipelines](../operations/pipelines.md)**: the CI/CD release flow
+- **[Feature Flags](../getting-started/feature-flags.md)**: enable additional OSDU services

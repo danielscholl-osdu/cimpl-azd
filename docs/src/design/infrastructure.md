@@ -8,10 +8,10 @@ The infrastructure layer (`infra/`) provisions the foundational AKS cluster and 
 
 AKS Automatic provides a managed Kubernetes experience with built-in best practices (see [ADR-0001](../decisions/0001-use-aks-automatic-as-deployment-target.md)):
 
-- **Simplified operations** — Auto-scaling, auto-upgrade, auto-repair
-- **Built-in best practices** — Network policy, pod security, cost optimization
-- **Integrated Istio** — Managed service mesh without manual installation
-- **Deployment Safeguards** — Gatekeeper policies for compliance
+- **Simplified operations**: Auto-scaling, auto-upgrade, auto-repair
+- **Built-in best practices**: Network policy, pod security, cost optimization
+- **Integrated Istio**: Managed service mesh without manual installation
+- **Deployment Safeguards**: Gatekeeper policies for compliance
 
 ```hcl
 # AKS Automatic with Istio
@@ -44,16 +44,16 @@ The cluster spreads workloads across Azure availability zones for high availabil
 
 **System pool variables:**
 
-- `system_pool_vm_size` — VM SKU for system nodes (default: `Standard_D4lds_v5`)
-- `system_pool_availability_zones` — Zones for system nodes (default: `["1", "2", "3"]`)
+- `system_pool_vm_size`: VM SKU for system nodes (default: `Standard_D4lds_v5`)
+- `system_pool_availability_zones`: Zones for system nodes (default: `["1", "2", "3"]`)
 
 ### Why Karpenter (NAP) for Platform Workloads?
 
 The platform node pool uses AKS Node Auto-Provisioning (NAP), powered by Karpenter, instead of a traditional VMSS-based agent pool (see [ADR-0004](../decisions/0004-karpenter-for-stateful-workloads.md)):
 
-1. **Eliminates `OverconstrainedZonalAllocationRequest` failures** — Karpenter selects from multiple D-series VM SKUs per zone
-2. **Dynamic SKU selection** — 4-8 vCPU VMs with premium storage support, best available option per zone
-3. **Automatic scaling** — Nodes provisioned on-demand and consolidated when empty
+1. **Eliminates `OverconstrainedZonalAllocationRequest` failures**: Karpenter selects from multiple D-series VM SKUs per zone
+2. **Dynamic SKU selection**: 4-8 vCPU VMs with premium storage support, best available option per zone
+3. **Automatic scaling**: Nodes provisioned on-demand and consolidated when empty
 
 Workloads target these nodes via `agentpool: platform` nodeSelector and `workload=platform:NoSchedule` toleration. The Karpenter `NodePool` and `AKSNodeClass` CRDs are deployed in `software/stack/platform.tf`.
 
@@ -71,10 +71,10 @@ DNS Service IP:      10.0.0.10
 
 ### Network Security
 
-- **Azure CNI Overlay** — Pod IPs in overlay network, no VNet subnet exhaustion
-- **Cilium** — eBPF-based network policy enforcement
-- **Managed NAT Gateway** — Outbound traffic via dedicated NAT
-- **Istio mTLS** — STRICT mode in `osdu` namespace for east-west traffic
+- **Azure CNI Overlay**: Pod IPs in overlay network, no VNet subnet exhaustion
+- **Cilium**: eBPF-based network policy enforcement
+- **Managed NAT Gateway**: Outbound traffic via dedicated NAT
+- **Istio mTLS**: STRICT mode in `osdu` namespace for east-west traffic
 
 ## Istio Service Mesh
 
@@ -98,7 +98,7 @@ Both the `platform` and `osdu` namespaces have Istio injection enabled with STRI
 
 ### Kubernetes Authentication
 
-- Local accounts disabled — Azure AD authentication required
+- Local accounts disabled; Azure AD authentication required
 - Azure RBAC roles:
     - `Azure Kubernetes Service RBAC Cluster Admin`
     - `Azure Kubernetes Service RBAC Admin`

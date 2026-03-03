@@ -33,6 +33,6 @@ Chosen option: "Enable ECK self-signed TLS", because it matches the ROSA referen
 - Good, because elastic-bootstrap chart works without modification (`https://` URLs resolve correctly)
 - Good, because consistent with ROSA reference architecture
 - Good, because ECK manages certificate lifecycle automatically (no manual cert rotation)
-- Good, because defense-in-depth — TLS encryption at application layer in addition to Istio mTLS at mesh layer
+- Good, because defense-in-depth. TLS encryption at application layer in addition to Istio mTLS at mesh layer
 - Bad, because internal clients must either trust the ECK CA certificate or use `--insecure` / skip TLS verification
-- Bad, because Kibana's HTTP endpoint remains unencrypted (`selfSignedCertificate.disabled: true` on Kibana) to work with Istio ingress routing — asymmetric TLS configuration between ES and Kibana
+- Bad, because Kibana's HTTP endpoint remains unencrypted (`selfSignedCertificate.disabled: true` on Kibana) to work with Istio ingress routing, resulting in asymmetric TLS configuration between ES and Kibana
