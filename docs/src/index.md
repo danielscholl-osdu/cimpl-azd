@@ -2,6 +2,8 @@
 
 **Azure Developer CLI deployment for CIMPL on AKS Automatic** — a transparent, fully automated platform for running [OSDU](https://osduforum.org/) / [CIMPL](https://community.opengroup.org/osdu/platform) services on Azure Kubernetes Service.
 
+**CIMPL** (Community Implementation) is the OSDU Forum's cloud-agnostic reference implementation, created as part of the [Venus initiative](https://community.opengroup.org/osdu/platform). Venus replaced the earlier Mercury model — where each cloud provider maintained a separate codebase — with a single, unified implementation that can be deployed on bare metal, Kubernetes, or any cloud platform. CIMPL is that unified codebase; **cimpl-azd** deploys it on Azure.
+
 cimpl-azd packages the entire CIMPL stack — infrastructure, middleware, and OSDU services — into a single `azd up` command. Every resource is defined in Terraform, every decision is documented in an ADR, and every component can be toggled with a feature flag.
 
 ![Platform Overview](images/platform-overview.png)
