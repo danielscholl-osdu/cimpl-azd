@@ -65,6 +65,22 @@ These variables control the AKS cluster and node pool configuration (Layer 1: `i
 | `enable_gateway` | `true` | Deploy Gateway API resources (HTTPRoute, TLS certificates) |
 | `enable_external_dns` | `false` | Deploy ExternalDNS for automatic DNS record management |
 | `enable_cert_manager` | `true` | Deploy cert-manager for automatic TLS certificate provisioning |
+| `enable_osdu_api_ingress` | `true` | Expose OSDU APIs externally via path-based Gateway API HTTPRoutes |
+| `enable_keycloak_ingress` | `true` | Expose Keycloak UI externally via Gateway API HTTPRoute |
+| `enable_airflow_ingress` | `false` | Expose Airflow UI externally via Gateway API HTTPRoute |
+
+### External Endpoints
+
+When `enable_gateway` is `true` and DNS is configured, the following endpoints are created:
+
+| Endpoint | Hostname Pattern | Condition |
+|----------|-----------------|-----------|
+| Kibana | `{prefix}-kibana.{zone}` | `enable_elasticsearch` |
+| OSDU API | `{prefix}.{zone}` | `enable_osdu_api_ingress` |
+| Keycloak | `{prefix}-keycloak.{zone}` | `enable_keycloak_ingress && enable_keycloak` |
+| Airflow | `{prefix}-airflow.{zone}` | `enable_airflow_ingress && enable_airflow` |
+
+OSDU API uses path-based routing — each enabled service is accessible at `/api/{service}/` on the OSDU API hostname. Only services that are deployed get HTTPRoutes created.
 
 ---
 

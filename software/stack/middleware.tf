@@ -76,13 +76,48 @@ module "airflow" {
 
 module "gateway" {
   source = "./modules/gateway"
-  count  = var.enable_gateway && var.enable_elasticsearch && local.has_ingress_hostname ? 1 : 0
+  count  = var.enable_gateway && local.has_ingress_hostname ? 1 : 0
 
-  namespace             = kubernetes_namespace_v1.platform.metadata[0].name
-  stack_label           = local.stack_label
-  kibana_hostname       = local.kibana_hostname
+  namespace      = kubernetes_namespace_v1.platform.metadata[0].name
+  osdu_namespace = local.osdu_namespace
+  stack_label    = local.stack_label
+
+  # Hostnames
+  kibana_hostname   = local.kibana_hostname
+  osdu_hostname     = local.osdu_domain
+  keycloak_hostname = local.keycloak_hostname
+  airflow_hostname  = local.airflow_hostname
+
+  # Feature flags
+  enable_osdu_api     = var.enable_osdu_api_ingress
+  enable_keycloak     = var.enable_keycloak_ingress && var.enable_keycloak
+  enable_airflow      = var.enable_airflow_ingress && var.enable_airflow
+  enable_cert_manager = var.enable_cert_manager
+
   active_cluster_issuer = local.active_cluster_issuer
-  enable_cert_manager   = var.enable_cert_manager
 
-  depends_on = [module.elastic]
+  # OSDU API path-based routes — only for enabled services
+  osdu_api_routes = var.enable_osdu_api_ingress ? concat(
+    local.deploy_partition ? [{ path_prefix = "/api/partition/", service_name = "partition" }] : [],
+    local.deploy_entitlements ? [{ path_prefix = "/api/entitlements/", service_name = "entitlements" }] : [],
+    local.deploy_legal ? [{ path_prefix = "/api/legal/", service_name = "legal" }] : [],
+    local.deploy_schema ? [{ path_prefix = "/api/schema-service/", service_name = "schema" }] : [],
+    local.deploy_storage ? [{ path_prefix = "/api/storage/", service_name = "storage" }] : [],
+    local.deploy_search ? [{ path_prefix = "/api/search/", service_name = "search" }] : [],
+    local.deploy_indexer ? [{ path_prefix = "/api/indexer/", service_name = "indexer" }] : [],
+    local.deploy_file ? [{ path_prefix = "/api/file/", service_name = "file" }] : [],
+    local.deploy_notification ? [{ path_prefix = "/api/notification/", service_name = "notification" }] : [],
+    local.deploy_dataset ? [{ path_prefix = "/api/dataset/", service_name = "dataset" }] : [],
+    local.deploy_register ? [{ path_prefix = "/api/register/", service_name = "register" }] : [],
+    local.deploy_policy ? [{ path_prefix = "/api/policy/", service_name = "policy" }] : [],
+    local.deploy_secret ? [{ path_prefix = "/api/secret/", service_name = "secret" }] : [],
+    local.deploy_workflow ? [{ path_prefix = "/api/workflow/", service_name = "workflow" }] : [],
+    local.deploy_unit ? [{ path_prefix = "/api/unit/", service_name = "unit" }] : [],
+    local.deploy_crs_conversion ? [{ path_prefix = "/api/crs/converter/", service_name = "crs-conversion" }] : [],
+    local.deploy_crs_catalog ? [{ path_prefix = "/api/crs/catalog/", service_name = "crs-catalog" }] : [],
+    local.deploy_wellbore ? [{ path_prefix = "/api/os-wellbore-ddms/", service_name = "wellbore" }] : [],
+    local.deploy_eds_dms ? [{ path_prefix = "/api/eds/", service_name = "eds-dms" }] : [],
+  ) : []
+
+  depends_on = [module.elastic, module.keycloak, module.airflow]
 }
