@@ -77,3 +77,23 @@ variable "enable_airflow" {
   type        = bool
   default     = true
 }
+
+# ── Ingress flags ──────────────────────────────────────────────────────────────
+
+variable "enable_osdu_api_ingress" {
+  description = "Expose OSDU APIs externally via Gateway API HTTPRoute"
+  type        = bool
+  default     = true
+}
+
+variable "enable_keycloak_ingress" {
+  description = "Expose Keycloak UI externally via Gateway API HTTPRoute"
+  type        = bool
+  default     = true
+}
+
+variable "enable_airflow_ingress" {
+  description = "Expose Airflow UI externally via Gateway API HTTPRoute"
+  type        = bool
+  default     = true
+}

@@ -120,6 +120,19 @@ cimpl-azd/
 └── docs/                            # Documentation (this site)
 ```
 
+## External Access
+
+When DNS and ingress are configured, the gateway module exposes multiple endpoints externally via HTTPS with automatic TLS certificates (cert-manager + Let's Encrypt):
+
+| Endpoint | Hostname | Purpose |
+|----------|----------|---------|
+| **OSDU API** | `{prefix}.{zone}` | Path-based routing to all enabled OSDU services (e.g., `/api/partition/`, `/api/storage/`) |
+| **Kibana** | `{prefix}-kibana.{zone}` | Elasticsearch/Kibana dashboard |
+| **Keycloak** | `{prefix}-keycloak.{zone}` | Identity provider admin console and token endpoint |
+| **Airflow** | `{prefix}-airflow.{zone}` | DAG monitoring and task execution UI (optional) |
+
+Each endpoint gets its own Gateway API HTTPS listener, HTTPRoute, TLS Certificate, and cross-namespace ReferenceGrants. Only enabled endpoints are created — see [Feature Flags](../getting-started/feature-flags.md) for ingress flags.
+
 ## What's Next
 
 - **[Infrastructure Design](infrastructure.md)**: AKS Automatic configuration, node pools, networking, and Azure RBAC setup

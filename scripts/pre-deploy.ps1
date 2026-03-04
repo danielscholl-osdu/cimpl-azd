@@ -305,24 +305,44 @@ function Show-Summary {
         Write-Host "  External IP: $ExternalIp"
         Write-Host ""
 
-        $kibanaHost = if (-not [string]::IsNullOrEmpty($Vars.IngressPrefix) -and -not [string]::IsNullOrEmpty($Vars.DnsZoneName)) {
-            "$($Vars.IngressPrefix)-kibana.$($Vars.DnsZoneName)"
-        }
-        else { "" }
+        $hasIngress = (-not [string]::IsNullOrEmpty($Vars.IngressPrefix)) -and (-not [string]::IsNullOrEmpty($Vars.DnsZoneName))
+        $kibanaHost   = if ($hasIngress) { "$($Vars.IngressPrefix)-kibana.$($Vars.DnsZoneName)" } else { "" }
+        $osduApiHost  = if ($hasIngress) { "$($Vars.IngressPrefix).$($Vars.DnsZoneName)" } else { "" }
+        $keycloakHost = if ($hasIngress) { "$($Vars.IngressPrefix)-keycloak.$($Vars.DnsZoneName)" } else { "" }
+        $airflowHost  = if ($hasIngress) { "$($Vars.IngressPrefix)-airflow.$($Vars.DnsZoneName)" } else { "" }
 
         Write-Host "  Next steps:" -ForegroundColor Yellow
-        if ($Vars.EnableExternalDns -eq "true" -and -not [string]::IsNullOrEmpty($kibanaHost)) {
-            Write-Host "    1. DNS A record will be auto-created by ExternalDNS" -ForegroundColor Gray
-            Write-Host "    2. Access Kibana: https://$kibanaHost" -ForegroundColor Gray
+        if ($Vars.EnableExternalDns -eq "true" -and $hasIngress) {
+            Write-Host "    1. DNS A records will be auto-created by ExternalDNS" -ForegroundColor Gray
         }
-        elseif (-not [string]::IsNullOrEmpty($kibanaHost)) {
-            Write-Host "    1. Create DNS A record: $kibanaHost -> $ExternalIp" -ForegroundColor Gray
-            Write-Host "    2. Access Kibana: https://$kibanaHost" -ForegroundColor Gray
+        elseif ($hasIngress) {
+            Write-Host "    1. Create DNS A records for *.developer domain -> $ExternalIp" -ForegroundColor Gray
         }
         else {
             Write-Host "    1. Configure DNS zone for external access" -ForegroundColor Gray
         }
-        Write-Host "    3. Get Elasticsearch password:" -ForegroundColor Gray
+
+        $step = 2
+        if (-not [string]::IsNullOrEmpty($osduApiHost)) {
+            Write-Host "    $step. OSDU API:  https://$osduApiHost/api/" -ForegroundColor Gray
+            $step++
+        }
+        if (-not [string]::IsNullOrEmpty($keycloakHost)) {
+            Write-Host "    $step. Keycloak:  https://$keycloakHost  (admin / see command below)" -ForegroundColor Gray
+            $step++
+        }
+        if (-not [string]::IsNullOrEmpty($kibanaHost)) {
+            Write-Host "    $step. Kibana:    https://$kibanaHost" -ForegroundColor Gray
+            $step++
+        }
+        if (-not [string]::IsNullOrEmpty($airflowHost) -and $env:TF_VAR_enable_airflow -ne "false") {
+            Write-Host "    $step. Airflow:   https://$airflowHost" -ForegroundColor Gray
+            $step++
+        }
+        Write-Host "    $step. Get Keycloak admin password:" -ForegroundColor Gray
+        Write-Host "       kubectl get secret keycloak-admin-credentials -n $platformNs -o jsonpath='{.data.admin-password}' | base64 -d" -ForegroundColor DarkGray
+        $step++
+        Write-Host "    $step. Get Elasticsearch password:" -ForegroundColor Gray
         Write-Host "       kubectl get secret elasticsearch-es-elastic-user -n $platformNs -o jsonpath='{.data.elastic}' | base64 -d" -ForegroundColor DarkGray
     }
     Write-Host ""

@@ -24,6 +24,8 @@ locals {
 
   # Ingress hostname derivation
   kibana_hostname      = var.ingress_prefix != "" && var.dns_zone_name != "" ? "${var.ingress_prefix}-kibana.${var.dns_zone_name}" : ""
+  keycloak_hostname    = var.ingress_prefix != "" && var.dns_zone_name != "" ? "${var.ingress_prefix}-keycloak.${var.dns_zone_name}" : ""
+  airflow_hostname     = var.ingress_prefix != "" && var.dns_zone_name != "" ? "${var.ingress_prefix}-airflow.${var.dns_zone_name}" : ""
   has_ingress_hostname = local.kibana_hostname != ""
   osdu_domain          = var.ingress_prefix != "" && var.dns_zone_name != "" ? "${var.ingress_prefix}.${var.dns_zone_name}" : ""
 
